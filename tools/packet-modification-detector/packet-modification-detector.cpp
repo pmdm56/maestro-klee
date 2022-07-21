@@ -39,18 +39,22 @@ llvm::cl::list<std::string> InputCallPathFiles(llvm::cl::desc("<call paths>"),
                                                llvm::cl::OneOrMore);
 }
 
-std::string network_layer_to_label(int layer) {
+std::string network_layer_to_label(int layer, klee::ref<klee::Expr> length) {
   // we start with 2, but this layer actually starts from 0
 
   switch (layer) {
   case 0:
     return "ethernet";
   case 1:
-    return "tcp/udp";
-  case 2:
     return "ip";
-  case 3:
+  case 2:
+    if (length->getKind() == klee::Expr::Kind::Constant) {
+      return "tcp/udp";
+    }
+
     return "ip options";
+  case 3:
+    return "tcp/udp";
   default:
     assert(false && "Should not be here");
   }
@@ -79,13 +83,13 @@ struct chunk_t {
     std::vector<unsigned> modified_bytes;
 
     assert(in->getWidth() == out->getWidth());
-    auto width = in->getWidth() / 8; // bits => bytes
+    auto width = in->getWidth(); // bits
 
-    for (auto byte = 0u; byte < width; byte++) {
-      auto in_byte =
-          BDD::solver_toolbox.exprBuilder->Extract(in, byte, klee::Expr::Int8);
-      auto out_byte =
-          BDD::solver_toolbox.exprBuilder->Extract(out, byte, klee::Expr::Int8);
+    for (auto byte = 0u; byte < width / 8; byte++) {
+      auto in_byte = BDD::solver_toolbox.exprBuilder->Extract(in, byte * 8,
+                                                              klee::Expr::Int8);
+      auto out_byte = BDD::solver_toolbox.exprBuilder->Extract(
+          out, byte * 8, klee::Expr::Int8);
       auto eq_bytes = BDD::solver_toolbox.exprBuilder->Eq(in_byte, out_byte);
       auto always_eq =
           BDD::solver_toolbox.is_expr_always_true(constraints, eq_bytes);
@@ -125,7 +129,7 @@ get_chunks_per_call_path(std::vector<call_path_t *> call_paths) {
 
         auto in = call.extra_vars["the_chunk"].second;
         auto constraints = cp->constraints;
-        auto label = network_layer_to_label(layer);
+        auto label = network_layer_to_label(layer, call.args["length"].expr);
         auto call_path_filename = cp->file_name;
 
         chunks.emplace_back(in, constraints, label);
@@ -186,6 +190,8 @@ int main(int argc, char **argv) {
         for (auto modified_byte : chunk.get_modified_bytes()) {
           std::cerr << modified_byte << " ";
         }
+      } else {
+        std::cerr << "no";
       }
 
       std::cerr << "\n";
