@@ -289,6 +289,10 @@ AST::chunk_t AST::get_chunk_from_local(unsigned int idx) {
     }
   }
 
+  if (result.var == nullptr) {
+	dump_stack();
+  }
+
   return result;
 }
 
@@ -379,7 +383,12 @@ Variable_ptr AST::get_from_local_by_addr(const std::string &symbol,
     return var;
   }
 
-  assert(false && "All pointers are allocated, or symbol not found");
+  std::cerr << "Error: all pointers are allocated, or symbol not found.\n";
+  std::cerr << "Symbol: " << symbol << "\n";
+  dump_stack();
+  assert(false);
+  exit(1);
+
   Variable_ptr ptr;
   return ptr;
 }
@@ -855,6 +864,32 @@ const BDD::Call *find_vector_return_with_value(const BDD::Node *root,
   return nullptr;
 }
 
+std::pair<bool, Expr_ptr> AST::inc_pkt_offset(Expr_ptr offset) {
+	if (pkt_buffer_offset.top().size() == 0) {
+		pkt_buffer_offset.top().push(offset);
+		Expr_ptr zero =
+          Constant::build(PrimitiveType::PrimitiveKind::UINT32_T, 0);
+		return std::pair<bool, Expr_ptr>(false, zero);
+	}
+
+	auto last_offset = pkt_buffer_offset.top().top();
+	auto add = Add::build(last_offset, offset);
+
+	pkt_buffer_offset.top().push(add);
+
+	return std::pair<bool, Expr_ptr>(true, last_offset);
+}
+
+void AST::dec_pkt_offset() {
+	if (pkt_buffer_offset.size() == 0 || pkt_buffer_offset.top().size() == 0) {
+		std::cerr << "Error: decrementing empty pkt_buffer_offset\n";
+		assert(false);
+		exit(1);
+	}
+
+	pkt_buffer_offset.top().pop();
+}
+
 Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
                                            TargetOption target) {
   auto call = bdd_call->get_call();
@@ -881,17 +916,19 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     associate_expr_to_local("now", call.ret);
     ignore = true;
   } else if (fname == "packet_borrow_next_chunk") {
-    // rename fname
-    fname = "nf_borrow_next_chunk";
-
+	ignore = true;
     Expr_ptr chunk_expr = transpile(this, call.args["chunk"].out);
     assert(chunk_expr->get_kind() == Node::NodeKind::CONSTANT);
-    ret_addr = std::pair<bool, uint64_t>(
-        true, static_cast<Constant *>(chunk_expr.get())->get_value());
+    auto hdr_addr = static_cast<Constant *>(chunk_expr.get())->get_value();
 
     Variable_ptr p = get_from_local("p");
     assert(p);
     Expr_ptr pkt_len = transpile(this, call.args["length"].expr);
+	auto inc_pkt_offset_res = inc_pkt_offset(pkt_len);
+
+	Type_ptr hdr_type;
+	std::string hdr_symbol;
+	klee::ref<klee::Expr> hdr_expr;
 
     switch (layer.back()) {
     case 2: {
@@ -913,8 +950,8 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
       Struct_ptr ether_hdr = Struct::build("rte_ether_hdr", ether_hdr_fields);
 
-      ret_type = Pointer::build(ether_hdr);
-      ret_symbol = CHUNK_LAYER_2;
+      hdr_type = Pointer::build(ether_hdr);
+      hdr_symbol = CHUNK_LAYER_2;
 
       layer.back()++;
       break;
@@ -954,17 +991,17 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
       Struct_ptr ipv4_hdr = Struct::build("rte_ipv4_hdr", ipv4_hdr_fields);
 
-      ret_type = Pointer::build(ipv4_hdr);
-      ret_symbol = CHUNK_LAYER_3;
+      hdr_type = Pointer::build(ipv4_hdr);
+      hdr_symbol = CHUNK_LAYER_3;
 
       layer.back()++;
       break;
     }
     case 4: {
       if (pkt_len->get_kind() != Node::NodeKind::CONSTANT) {
-        ret_type = Pointer::build(
+        hdr_type = Pointer::build(
             PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T));
-        ret_symbol = "ip_options";
+        hdr_symbol = "ip_options";
         break;
       }
 
@@ -978,8 +1015,8 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
       Struct_ptr tcpudp_hdr = Struct::build("tcpudp_hdr", tcpudp_hdr_fields);
 
-      ret_type = Pointer::build(tcpudp_hdr);
-      ret_symbol = CHUNK_LAYER_4;
+      hdr_type = Pointer::build(tcpudp_hdr);
+      hdr_symbol = CHUNK_LAYER_4;
 
       layer.back()++;
       break;
@@ -987,8 +1024,24 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     default: { assert(false && "Missing layers implementation"); }
     }
 
-    ret_expr = call.extra_vars["the_chunk"].second;
-    args = std::vector<ExpressionType_ptr>{ p, pkt_len };
+    hdr_expr = call.extra_vars["the_chunk"].second;
+
+	Variable_ptr hdr_var = Variable::build(hdr_symbol, hdr_type);
+	hdr_var->set_addr(hdr_addr);
+
+	VariableDecl_ptr hdr_decl = VariableDecl::build(hdr_var);
+	Expr_ptr p_offseted;
+
+	if (!inc_pkt_offset_res.first) {
+		p_offseted = p;
+	} else {
+		p_offseted = Add::build(p, inc_pkt_offset_res.second);
+	}
+
+	auto p_casted = Cast::build(p_offseted, hdr_type);
+	auto p_offseted_assignment = Assignment::build(hdr_decl, p_casted);
+	exprs.push_back(p_offseted_assignment);
+	push_to_local(hdr_var, hdr_expr);
   } else if (fname == "packet_get_unread_length") {
     Variable_ptr p = get_from_local("p");
     assert(p);
@@ -1376,6 +1429,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "packet_return_chunk") {
     ignore = true;
+	dec_pkt_offset();
 
     Expr_ptr chunk_expr = transpile(this, call.args["the_chunk"].expr);
     assert(chunk_expr->get_kind() == Node::NodeKind::CONSTANT);
@@ -1678,6 +1732,12 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 void AST::push() {
   local_variables.emplace_back();
   layer.push_back(layer.back());
+  
+  if (pkt_buffer_offset.size()) {
+	pkt_buffer_offset.push(pkt_buffer_offset.top());
+  } else {
+	pkt_buffer_offset.emplace();
+  }
 }
 
 void AST::pop() {
@@ -1686,6 +1746,9 @@ void AST::pop() {
 
   assert(layer.size() > 1);
   layer.pop_back();
+
+  assert(pkt_buffer_offset.size() > 0);
+  pkt_buffer_offset.pop();
 }
 
 Node_ptr AST::node_from_call(const BDD::Call *bdd_call, TargetOption target) {

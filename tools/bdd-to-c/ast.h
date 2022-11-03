@@ -35,6 +35,7 @@ private:
   struct_translation;
 
   std::vector<unsigned int> layer;
+  std::stack<std::stack<Expr_ptr>> pkt_buffer_offset;
 
   Context context;
   std::map<Context, std::string> context_markers;
@@ -239,6 +240,10 @@ public:
 
   void push();
   void pop();
+
+  void branch_pkt_offset();
+  std::pair<bool, Expr_ptr> inc_pkt_offset(Expr_ptr offset);
+  void dec_pkt_offset();
 
   void push_to_state(Variable_ptr var);
   void push_to_local(Variable_ptr var);

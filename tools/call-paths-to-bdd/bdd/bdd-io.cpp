@@ -873,7 +873,12 @@ void BDD::deserialize(const std::string &file_path) {
   auto magic_check = false;
 
   std::ifstream bdd_file(file_path);
-  assert(bdd_file.is_open() && "Unable to open BDD file.");
+
+  if (!bdd_file.is_open()) {
+	std::cerr << "Unable to open BDD file.\n";
+	assert(false);
+	exit(1);
+  }
 
   enum {
     STATE_INIT,
