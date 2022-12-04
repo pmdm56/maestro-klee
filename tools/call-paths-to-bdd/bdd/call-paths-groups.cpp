@@ -193,7 +193,9 @@ bool CallPathsGroup::check_discriminating_constraint(
   assert(on_false.size());
 
   call_paths_t _on_true = on_true;
-  call_paths_t _on_false;
+  call_paths_t _on_false = on_true;
+
+  _on_false.clear(); 
 
   for (unsigned int i = 0; i < on_false.size(); i++) {
     auto pair = on_false.get(i);

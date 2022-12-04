@@ -112,12 +112,12 @@ Variable_ptr AST::generate_new_symbol(klee::ref<klee::Expr> expr) {
 
   std::string symbol = from_cp_symbol(*symbols.begin());
 
-  auto state_partial_name_finder = [&](Variable_ptr v)->bool {
+  auto state_partial_name_finder = [&](Variable_ptr v) -> bool {
     std::string local_symbol = v->get_symbol();
     return local_symbol.find(symbol) != std::string::npos;
   };
 
-  auto local_partial_name_finder = [&](local_variable_t v)->bool {
+  auto local_partial_name_finder = [&](local_variable_t v) -> bool {
     std::string local_symbol = v.first->get_symbol();
     return local_symbol.find(symbol) != std::string::npos;
   };
@@ -142,12 +142,12 @@ Variable_ptr AST::generate_new_symbol(std::string symbol, Type_ptr type,
 
   symbol = from_cp_symbol(symbol);
 
-  auto state_partial_name_finder = [&](Variable_ptr v)->bool {
+  auto state_partial_name_finder = [&](Variable_ptr v) -> bool {
     std::string local_symbol = v->get_symbol();
     return local_symbol.find(symbol) != std::string::npos;
   };
 
-  auto local_partial_name_finder = [&](local_variable_t v)->bool {
+  auto local_partial_name_finder = [&](local_variable_t v) -> bool {
     std::string local_symbol = v.first->get_symbol();
     return local_symbol.find(symbol) != std::string::npos;
   };
@@ -158,26 +158,27 @@ Variable_ptr AST::generate_new_symbol(std::string symbol, Type_ptr type,
   unsigned int counter = 0;
   unsigned int last_id = 0;
 
-  while (state_it != state.end()) {
-    Variable_ptr var = *state_it;
-    std::string saved_symbol = var->get_symbol();
+  //   while (state_it != state.end()) {
+  //     Variable_ptr var = *state_it;
+  //     std::string saved_symbol = var->get_symbol();
 
-    auto delim = saved_symbol.find(symbol);
-    assert(delim != std::string::npos);
+  //     auto delim = saved_symbol.find(symbol);
+  //     assert(delim != std::string::npos);
 
-    std::string suffix = saved_symbol.substr(delim + symbol.size());
-    if (suffix.size() > 1 && isdigit(suffix[1])) {
-      assert(suffix[0] == '_');
-      suffix = suffix.substr(1);
-      unsigned int id = std::stoi(suffix, nullptr);
-      if (last_id < id) {
-        last_id = id;
-      }
-    }
+  //     std::string suffix = saved_symbol.substr(delim + symbol.size());
+  //     if (suffix.size() > 1 && isdigit(suffix[1])) {
+  //       assert(suffix[0] == '_');
+  //       suffix = suffix.substr(1);
+  //       unsigned int id = std::stoi(suffix, nullptr);
+  //       if (last_id < id) {
+  //         last_id = id;
+  //       }
+  //     }
 
-    counter++;
-    state_it = std::find_if(++state_it, state.end(), state_partial_name_finder);
-  }
+  //     counter++;
+  //     state_it = std::find_if(++state_it, state.end(),
+  //     state_partial_name_finder);
+  //   }
 
   for (auto i = local_variables.rbegin(); i != local_variables.rend(); i++) {
     auto stack = *i;
@@ -231,7 +232,7 @@ Variable_ptr AST::generate_new_symbol(const std::string &symbol,
 Variable_ptr AST::get_from_state(const std::string &symbol) {
   auto translated = from_cp_symbol(symbol);
 
-  auto finder = [&](Variable_ptr v)->bool {
+  auto finder = [&](Variable_ptr v) -> bool {
     return translated == v->get_symbol();
   };
 
@@ -258,7 +259,7 @@ AST::chunk_t AST::get_chunk_from_local(unsigned int idx) {
   result.var = nullptr;
   result.start_index = 0;
 
-  auto finder = [&](local_variable_t v)->bool {
+  auto finder = [&](local_variable_t v) -> bool {
     Variable_ptr var = v.first;
     klee::ref<klee::Expr> expr = v.second;
 
@@ -290,7 +291,7 @@ AST::chunk_t AST::get_chunk_from_local(unsigned int idx) {
   }
 
   if (result.var == nullptr) {
-	dump_stack();
+    dump_stack();
   }
 
   return result;
@@ -299,7 +300,7 @@ AST::chunk_t AST::get_chunk_from_local(unsigned int idx) {
 Variable_ptr AST::get_from_local(const std::string &symbol, bool partial) {
   auto translated = from_cp_symbol(symbol);
 
-  auto finder = [&](local_variable_t v)->bool {
+  auto finder = [&](local_variable_t v) -> bool {
     if (!partial) {
       return v.first->get_symbol() == translated;
     } else {
@@ -324,7 +325,7 @@ klee::ref<klee::Expr> AST::get_expr_from_local_by_addr(unsigned int addr) {
   klee::ref<klee::Expr> found;
 
   assert(addr != 0);
-  auto addr_finder = [&](local_variable_t v)->bool {
+  auto addr_finder = [&](local_variable_t v) -> bool {
     unsigned int local_addr = v.first->get_addr();
     return local_addr == addr;
   };
@@ -346,12 +347,12 @@ Variable_ptr AST::get_from_local_by_addr(const std::string &symbol,
   assert(addr != 0);
   auto translated = from_cp_symbol(symbol);
 
-  auto partial_name_finder = [&](local_variable_t v)->bool {
+  auto partial_name_finder = [&](local_variable_t v) -> bool {
     std::string local_symbol = v.first->get_symbol();
     return local_symbol.find(translated) != std::string::npos;
   };
 
-  auto addr_finder = [&](local_variable_t v)->bool {
+  auto addr_finder = [&](local_variable_t v) -> bool {
     unsigned int local_addr = v.first->get_addr();
     return local_addr == addr;
   };
@@ -396,7 +397,7 @@ Variable_ptr AST::get_from_local_by_addr(const std::string &symbol,
 Variable_ptr AST::get_from_state(unsigned int addr) {
   assert(addr != 0);
 
-  auto addr_finder = [&](Variable_ptr v)->bool {
+  auto addr_finder = [&](Variable_ptr v) -> bool {
     return v->get_addr() == addr;
   };
 
@@ -414,7 +415,7 @@ Expr_ptr AST::get_from_local(klee::ref<klee::Expr> expr) {
   assert(!expr.isNull());
 
   auto find_matching_offset = [](klee::ref<klee::Expr> saved,
-                                 klee::ref<klee::Expr> wanted)->int {
+                                 klee::ref<klee::Expr> wanted) -> int {
     auto saved_sz = saved->getWidth();
     auto wanted_sz = wanted->getWidth();
 
@@ -440,7 +441,7 @@ Expr_ptr AST::get_from_local(klee::ref<klee::Expr> expr) {
     return -1;
   };
 
-  auto finder = [&](local_variable_t v)->bool {
+  auto finder = [&](local_variable_t v) -> bool {
     if (v.second.isNull()) {
       return false;
     }
@@ -478,7 +479,7 @@ void AST::associate_expr_to_local(const std::string &symbol,
                                   klee::ref<klee::Expr> expr) {
   auto translated = from_cp_symbol(symbol);
 
-  auto name_finder = [&](local_variable_t v)->bool {
+  auto name_finder = [&](local_variable_t v) -> bool {
     return v.first->get_symbol() == translated;
   };
 
@@ -496,9 +497,20 @@ void AST::associate_expr_to_local(const std::string &symbol,
   assert(false && "Variable not found");
 }
 
+bool AST::is_in_state(const std::string &symbol) const {
+  for (const auto &var : state) {
+    if (var->get_symbol() == symbol) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void AST::push_to_state(Variable_ptr var) {
-  assert(get_from_state(var->get_symbol()) == nullptr);
-  state.push_back(var);
+  if (!is_in_state(var->get_symbol())) {
+  	state.push_back(var);
+  }
 }
 
 void AST::push_to_local(Variable_ptr var) {
@@ -522,9 +534,14 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
   std::vector<ExpressionType_ptr> args;
 
   PrimitiveType_ptr ret_type;
+  klee::ref<klee::Expr> ret_expr;
   std::string ret_symbol;
 
-  if (fname == "map_allocate") {
+  if (fname == "rte_lcore_count") {
+    ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T);
+    ret_symbol = get_symbol_label("lcores", symbols);
+    ret_expr = call.ret;
+  } else if (fname == "map_allocate") {
     Expr_ptr map_out_expr = transpile(this, call.args["map_out"].out);
     assert(map_out_expr->get_kind() == Node::NodeKind::CONSTANT);
     uint64_t map_addr =
@@ -532,8 +549,10 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
 
     assert(call.args["keq"].fn_ptr_name.first);
     assert(call.args["khash"].fn_ptr_name.first);
+
     Type_ptr void_type =
         PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
+
     Expr_ptr keq =
         Variable::build(call.args["keq"].fn_ptr_name.second, void_type);
     assert(keq);
@@ -541,14 +560,17 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     auto keq_ret_type =
         PrimitiveType::build(PrimitiveType::PrimitiveKind::BOOL);
     std::vector<FunctionArgDecl_ptr> keq_args{
-      FunctionArgDecl::build("a", Pointer::build(void_type)),
-      FunctionArgDecl::build("b", Pointer::build(void_type)),
+        FunctionArgDecl::build("a", Pointer::build(void_type)),
+        FunctionArgDecl::build("b", Pointer::build(void_type)),
     };
 
     auto keq_decl = Function::build(call.args["keq"].fn_ptr_name.second,
                                     keq_args, keq_ret_type);
     keq_decl->set_terminate_line(true);
-    push_global_code(keq_decl);
+
+    if (!function_in_global_code(call.args["keq"].fn_ptr_name.second)) {
+      push_global_code(keq_decl);
+    }
 
     Expr_ptr khash =
         Variable::build(call.args["khash"].fn_ptr_name.second, void_type);
@@ -557,12 +579,15 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     auto khash_ret_type =
         PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T);
     std::vector<FunctionArgDecl_ptr> khash_args{
-      FunctionArgDecl::build("obj", Pointer::build(void_type)),
+        FunctionArgDecl::build("obj", Pointer::build(void_type)),
     };
     auto kash_decl = Function::build(call.args["khash"].fn_ptr_name.second,
                                      khash_args, khash_ret_type);
     kash_decl->set_terminate_line(true);
-    push_global_code(kash_decl);
+
+    if (!function_in_global_code(call.args["khash"].fn_ptr_name.second)) {
+      push_global_code(kash_decl);
+    }
 
     Expr_ptr capacity = transpile(this, call.args["capacity"].expr);
     assert(capacity);
@@ -572,6 +597,7 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     new_map->set_addr(map_addr);
 
     push_to_state(new_map);
+    push_to_local(new_map);
 
     // hack
     if (target == TargetOption::SHARED_NOTHING) {
@@ -579,9 +605,8 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
                                     map_type, 1, 0);
     }
 
-    args =
-        std::vector<ExpressionType_ptr>{ keq,      khash,
-                                         capacity, AddressOf::build(new_map) };
+    args = std::vector<ExpressionType_ptr>{keq, khash, capacity,
+                                           AddressOf::build(new_map)};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("map_allocation_succeeded", symbols);
@@ -607,19 +632,22 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     auto init_elem_ret_type =
         PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
     std::vector<FunctionArgDecl_ptr> init_elem_args{
-      FunctionArgDecl::build("obj", Pointer::build(void_type)),
+        FunctionArgDecl::build("obj", Pointer::build(void_type)),
     };
     auto init_elem_decl =
         Function::build(call.args["init_elem"].fn_ptr_name.second,
                         init_elem_args, init_elem_ret_type);
     init_elem_decl->set_terminate_line(true);
-    push_global_code(init_elem_decl);
+    if (!function_in_global_code(call.args["init_elem"].fn_ptr_name.second)) {
+      push_global_code(init_elem_decl);
+    }
 
     Type_ptr vector_type = Struct::build(translate_struct("Vector", target));
     Variable_ptr new_vector = generate_new_symbol("vector", vector_type, 1, 0);
     new_vector->set_addr(vector_addr);
 
     push_to_state(new_vector);
+    push_to_local(new_vector);
 
     // hack
     if (target == TargetOption::SHARED_NOTHING) {
@@ -627,9 +655,8 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
           "(*" + new_vector->get_symbol() + "_ptr)", vector_type, 1, 0);
     }
 
-    args = std::vector<ExpressionType_ptr>{
-      elem_size, capacity, init_elem, AddressOf::build(new_vector)
-    };
+    args = std::vector<ExpressionType_ptr>{elem_size, capacity, init_elem,
+                                           AddressOf::build(new_vector)};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("vector_alloc_success", symbols);
@@ -648,6 +675,7 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     new_dchain->set_addr(dchain_addr);
 
     push_to_state(new_dchain);
+    push_to_local(new_dchain);
 
     // hack
     if (target == TargetOption::SHARED_NOTHING) {
@@ -655,8 +683,8 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
           "(*" + new_dchain->get_symbol() + "_ptr)", dchain_type, 1, 0);
     }
 
-    args = std::vector<ExpressionType_ptr>{ index_range,
-                                            AddressOf::build(new_dchain) };
+    args = std::vector<ExpressionType_ptr>{index_range,
+                                           AddressOf::build(new_dchain)};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("is_dchain_allocated", symbols);
@@ -671,12 +699,15 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     auto khash_ret_type =
         PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T);
     std::vector<FunctionArgDecl_ptr> khash_args{
-      FunctionArgDecl::build("obj", Pointer::build(void_type)),
+        FunctionArgDecl::build("obj", Pointer::build(void_type)),
     };
     auto kash_decl = Function::build(call.args["khash"].fn_ptr_name.second,
                                      khash_args, khash_ret_type);
     kash_decl->set_terminate_line(true);
-    push_global_code(kash_decl);
+
+    if (!function_in_global_code(call.args["khash"].fn_ptr_name.second)) {
+      push_global_code(kash_decl);
+    }
 
     Expr_ptr capacity = transpile(this, call.args["capacity"].expr);
     assert(capacity);
@@ -694,6 +725,7 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     new_sketch->set_addr(sketch_addr);
 
     push_to_state(new_sketch);
+    push_to_local(new_sketch);
 
     // hack
     if (target == TargetOption::SHARED_NOTHING) {
@@ -701,9 +733,8 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
           "(*" + new_sketch->get_symbol() + "_ptr)", sketch_type, 1, 0);
     }
 
-    args = std::vector<ExpressionType_ptr>{
-      khash, capacity, threshold, AddressOf::build(new_sketch)
-    };
+    args = std::vector<ExpressionType_ptr>{khash, capacity, threshold,
+                                           AddressOf::build(new_sketch)};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("sketch_allocation_succeeded", symbols);
@@ -721,7 +752,7 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     assert(backend_capacity);
 
     args =
-        std::vector<ExpressionType_ptr>{ vector, cht_height, backend_capacity };
+        std::vector<ExpressionType_ptr>{vector, cht_height, backend_capacity};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("cht_fill_cht_successful", symbols);
@@ -744,9 +775,11 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
                 << expr_to_string(ev.second.second) << "\n";
     }
 
+    std::cerr << "Not implemented:\n";
     std::cerr << expr_to_string(call.ret) << "\n";
 
     assert(false && "Not implemented");
+    exit(1);
   }
 
   fname = translate_fname(fname, target);
@@ -759,7 +792,12 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
 
     Variable_ptr ret_var = generate_new_symbol(ret_symbol, ret_type);
     ret_var->set_wrap(false);
-    push_to_local(ret_var);
+
+    if (!ret_expr.isNull()) {
+      push_to_local(ret_var, ret_expr);
+    } else {
+      push_to_local(ret_var);
+    }
 
     VariableDecl_ptr ret = VariableDecl::build(ret_var);
     Assignment_ptr assignment = Assignment::build(ret, fcall);
@@ -774,7 +812,7 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
 const BDD::Call *find_vector_return_with_obj(const BDD::Node *root,
                                              klee::ref<klee::Expr> obj) {
   assert(root && "Root is null");
-  std::vector<const BDD::Node *> nodes{ root };
+  std::vector<const BDD::Node *> nodes{root};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -818,7 +856,7 @@ const BDD::Call *find_vector_return_with_obj(const BDD::Node *root,
 const BDD::Call *find_vector_return_with_value(const BDD::Node *root,
                                                klee::ref<klee::Expr> value) {
   assert(root && "Root is null");
-  std::vector<const BDD::Node *> nodes{ root };
+  std::vector<const BDD::Node *> nodes{root};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -865,29 +903,28 @@ const BDD::Call *find_vector_return_with_value(const BDD::Node *root,
 }
 
 std::pair<bool, Expr_ptr> AST::inc_pkt_offset(Expr_ptr offset) {
-	if (pkt_buffer_offset.top().size() == 0) {
-		pkt_buffer_offset.top().push(offset);
-		Expr_ptr zero =
-          Constant::build(PrimitiveType::PrimitiveKind::UINT32_T, 0);
-		return std::pair<bool, Expr_ptr>(false, zero);
-	}
+  if (pkt_buffer_offset.top().size() == 0) {
+    pkt_buffer_offset.top().push(offset);
+    Expr_ptr zero = Constant::build(PrimitiveType::PrimitiveKind::UINT32_T, 0);
+    return std::pair<bool, Expr_ptr>(false, zero);
+  }
 
-	auto last_offset = pkt_buffer_offset.top().top();
-	auto add = Add::build(last_offset, offset);
+  auto last_offset = pkt_buffer_offset.top().top();
+  auto add = Add::build(last_offset, offset);
 
-	pkt_buffer_offset.top().push(add);
+  pkt_buffer_offset.top().push(add);
 
-	return std::pair<bool, Expr_ptr>(true, last_offset);
+  return std::pair<bool, Expr_ptr>(true, last_offset);
 }
 
 void AST::dec_pkt_offset() {
-	if (pkt_buffer_offset.size() == 0 || pkt_buffer_offset.top().size() == 0) {
-		std::cerr << "Error: decrementing empty pkt_buffer_offset\n";
-		assert(false);
-		exit(1);
-	}
+  if (pkt_buffer_offset.size() == 0 || pkt_buffer_offset.top().size() == 0) {
+    std::cerr << "Error: decrementing empty pkt_buffer_offset\n";
+    assert(false);
+    exit(1);
+  }
 
-	pkt_buffer_offset.top().pop();
+  pkt_buffer_offset.top().pop();
 }
 
 Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
@@ -916,7 +953,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     associate_expr_to_local("now", call.ret);
     ignore = true;
   } else if (fname == "packet_borrow_next_chunk") {
-	ignore = true;
+    ignore = true;
     Expr_ptr chunk_expr = transpile(this, call.args["chunk"].out);
     assert(chunk_expr->get_kind() == Node::NodeKind::CONSTANT);
     auto hdr_addr = static_cast<Constant *>(chunk_expr.get())->get_value();
@@ -924,29 +961,28 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Variable_ptr p = get_from_local("p");
     assert(p);
     Expr_ptr pkt_len = transpile(this, call.args["length"].expr);
-	auto inc_pkt_offset_res = inc_pkt_offset(pkt_len);
+    auto inc_pkt_offset_res = inc_pkt_offset(pkt_len);
 
-	Type_ptr hdr_type;
-	std::string hdr_symbol;
-	klee::ref<klee::Expr> hdr_expr;
+    Type_ptr hdr_type;
+    std::string hdr_symbol;
+    klee::ref<klee::Expr> hdr_expr;
 
     switch (layer.back()) {
     case 2: {
       Array_ptr _uint8_t_6 = Array::build(
           PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T), 6);
 
-      std::vector<Variable_ptr> ether_addr_fields{ Variable::build(
-          "addr_bytes", _uint8_t_6) };
+      std::vector<Variable_ptr> ether_addr_fields{
+          Variable::build("addr_bytes", _uint8_t_6)};
 
       Struct_ptr ether_addr = Struct::build("ether_addr", ether_addr_fields);
 
       std::vector<Variable_ptr> ether_hdr_fields{
-        Variable::build("d_addr", ether_addr),
-        Variable::build("s_addr", ether_addr),
-        Variable::build(
-            "ether_type",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T))
-      };
+          Variable::build("d_addr", ether_addr),
+          Variable::build("s_addr", ether_addr),
+          Variable::build(
+              "ether_type",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T))};
 
       Struct_ptr ether_hdr = Struct::build("rte_ether_hdr", ether_hdr_fields);
 
@@ -958,36 +994,36 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     }
     case 3: {
       std::vector<Variable_ptr> ipv4_hdr_fields{
-        Variable::build(
-            "version_ihl",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
-        Variable::build(
-            "type_of_service",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
-        Variable::build(
-            "total_length",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-        Variable::build(
-            "packet_id",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-        Variable::build(
-            "fragment_offset",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-        Variable::build(
-            "time_to_live",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
-        Variable::build(
-            "next_proto_id",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
-        Variable::build(
-            "hdr_checksum",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-        Variable::build(
-            "src_addr",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T)),
-        Variable::build("dst_addr", PrimitiveType::build(
-                                        PrimitiveType::PrimitiveKind::UINT32_T))
-      };
+          Variable::build(
+              "version_ihl",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
+          Variable::build(
+              "type_of_service",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
+          Variable::build(
+              "total_length",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+          Variable::build(
+              "packet_id",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+          Variable::build(
+              "fragment_offset",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+          Variable::build(
+              "time_to_live",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
+          Variable::build(
+              "next_proto_id",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T)),
+          Variable::build(
+              "hdr_checksum",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+          Variable::build(
+              "src_addr",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T)),
+          Variable::build(
+              "dst_addr",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T))};
 
       Struct_ptr ipv4_hdr = Struct::build("rte_ipv4_hdr", ipv4_hdr_fields);
 
@@ -1006,12 +1042,12 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       }
 
       std::vector<Variable_ptr> tcpudp_hdr_fields{
-        Variable::build(
-            "src_port",
-            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-        Variable::build("dst_port", PrimitiveType::build(
-                                        PrimitiveType::PrimitiveKind::UINT16_T))
-      };
+          Variable::build(
+              "src_port",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+          Variable::build(
+              "dst_port",
+              PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T))};
 
       Struct_ptr tcpudp_hdr = Struct::build("tcpudp_hdr", tcpudp_hdr_fields);
 
@@ -1021,32 +1057,34 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       layer.back()++;
       break;
     }
-    default: { assert(false && "Missing layers implementation"); }
+    default: {
+      assert(false && "Missing layers implementation");
+    }
     }
 
     hdr_expr = call.extra_vars["the_chunk"].second;
 
-	Variable_ptr hdr_var = Variable::build(hdr_symbol, hdr_type);
-	hdr_var->set_addr(hdr_addr);
+    Variable_ptr hdr_var = Variable::build(hdr_symbol, hdr_type);
+    hdr_var->set_addr(hdr_addr);
 
-	VariableDecl_ptr hdr_decl = VariableDecl::build(hdr_var);
-	Expr_ptr p_offseted;
+    VariableDecl_ptr hdr_decl = VariableDecl::build(hdr_var);
+    Expr_ptr p_offseted;
 
-	if (!inc_pkt_offset_res.first) {
-		p_offseted = p;
-	} else {
-		p_offseted = Add::build(p, inc_pkt_offset_res.second);
-	}
+    if (!inc_pkt_offset_res.first) {
+      p_offseted = p;
+    } else {
+      p_offseted = Add::build(p, inc_pkt_offset_res.second);
+    }
 
-	auto p_casted = Cast::build(p_offseted, hdr_type);
-	auto p_offseted_assignment = Assignment::build(hdr_decl, p_casted);
-	exprs.push_back(p_offseted_assignment);
-	push_to_local(hdr_var, hdr_expr);
+    auto p_casted = Cast::build(p_offseted, hdr_type);
+    auto p_offseted_assignment = Assignment::build(hdr_decl, p_casted);
+    exprs.push_back(p_offseted_assignment);
+    push_to_local(hdr_var, hdr_expr);
   } else if (fname == "packet_get_unread_length") {
     Variable_ptr p = get_from_local("p");
     assert(p);
 
-    args = std::vector<ExpressionType_ptr>{ p };
+    args = std::vector<ExpressionType_ptr>{p};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T);
     ret_symbol = get_symbol_label("unread_len", symbols);
     ret_expr = call.ret;
@@ -1075,7 +1113,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     now = fix_time_expiration(now);
 
-    args = std::vector<ExpressionType_ptr>{ chain, vector, map, now };
+    args = std::vector<ExpressionType_ptr>{chain, vector, map, now};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("number_of_freed_flows", symbols);
     ret_expr = call.ret;
@@ -1106,7 +1144,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     now = fix_time_expiration(now);
 
-    args = std::vector<ExpressionType_ptr>{ chain, vector, map, now, offset };
+    args = std::vector<ExpressionType_ptr>{chain, vector, map, now, offset};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("number_of_freed_flows", symbols);
     ret_expr = call.ret;
@@ -1129,7 +1167,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr n_elems = transpile(this, call.args["n_elems"].expr, true);
     assert(n_elems);
 
-    args = std::vector<ExpressionType_ptr>{ vector, map, start, n_elems };
+    args = std::vector<ExpressionType_ptr>{vector, map, start, n_elems};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("number_of_freed_flows", symbols);
     ret_expr = call.ret;
@@ -1155,7 +1193,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     assert(statements.size());
     exprs.insert(exprs.end(), statements.begin(), statements.end());
 
-    args = std::vector<ExpressionType_ptr>{ sketch, AddressOf::build(key) };
+    args = std::vector<ExpressionType_ptr>{sketch, AddressOf::build(key)};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "sketch_refresh") {
     Expr_ptr sketch_expr = transpile(this, call.args["sketch"].expr);
@@ -1170,7 +1208,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     now = fix_time_32_bits(now);
 
-    args = std::vector<ExpressionType_ptr>{ sketch, now };
+    args = std::vector<ExpressionType_ptr>{sketch, now};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "sketch_fetch") {
     Expr_ptr sketch_expr = transpile(this, call.args["sketch"].expr);
@@ -1180,7 +1218,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     Expr_ptr sketch = get_from_state(sketch_addr);
 
-    args = std::vector<ExpressionType_ptr>{ sketch };
+    args = std::vector<ExpressionType_ptr>{sketch};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("overflow", symbols);
     ret_expr = call.ret;
@@ -1198,7 +1236,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     assert(now);
     now = fix_time_32_bits(now);
 
-    args = std::vector<ExpressionType_ptr>{ sketch, now };
+    args = std::vector<ExpressionType_ptr>{sketch, now};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("success", symbols);
     ret_expr = call.ret;
@@ -1217,7 +1255,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     now = fix_time_expiration(now);
 
-    args = std::vector<ExpressionType_ptr>{ sketch, now };
+    args = std::vector<ExpressionType_ptr>{sketch, now};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "map_get") {
     Expr_ptr map_expr = transpile(this, call.args["map"].expr);
@@ -1250,8 +1288,8 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     VariableDecl_ptr value_out_decl = VariableDecl::build(value_out);
     exprs.push_back(value_out_decl);
 
-    args = std::vector<ExpressionType_ptr>{ map, AddressOf::build(key),
-                                            AddressOf::build(value_out) };
+    args = std::vector<ExpressionType_ptr>{map, AddressOf::build(key),
+                                           AddressOf::build(value_out)};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("map_has_this_key", symbols);
     ret_expr = call.ret;
@@ -1278,8 +1316,8 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     VariableDecl_ptr index_out_decl = VariableDecl::build(index_out);
     exprs.push_back(index_out_decl);
 
-    args = std::vector<ExpressionType_ptr>{ chain, AddressOf::build(index_out),
-                                            now };
+    args = std::vector<ExpressionType_ptr>{chain, AddressOf::build(index_out),
+                                           now};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("out_of_space", symbols);
 
@@ -1331,7 +1369,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr val_out_arg = AddressOf::build(val_out);
     Cast_ptr val_out_cast = Cast::build(val_out_arg, val_out_type_arg);
 
-    args = std::vector<ExpressionType_ptr>{ vector, index_arg, val_out_cast };
+    args = std::vector<ExpressionType_ptr>{vector, index_arg, val_out_cast};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
 
     // preemptive write
@@ -1375,7 +1413,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr value = transpile(this, call.args["value"].expr, true);
     assert(value);
 
-    args = std::vector<ExpressionType_ptr>{ map, vector_return_value, value };
+    args = std::vector<ExpressionType_ptr>{map, vector_return_value, value};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "vector_return") {
     Expr_ptr vector_expr = transpile(this, call.args["vector"].expr);
@@ -1406,7 +1444,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       index_arg = Read::build(index_cast, int_type, zero);
     }
 
-    args = std::vector<ExpressionType_ptr>{ vector, index_arg, value };
+    args = std::vector<ExpressionType_ptr>{vector, index_arg, value};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "dchain_rejuvenate_index") {
     Expr_ptr chain_expr = transpile(this, call.args["chain"].expr);
@@ -1423,13 +1461,13 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     now = fix_time_32_bits(now);
 
-    args = std::vector<ExpressionType_ptr>{ chain, index, now };
+    args = std::vector<ExpressionType_ptr>{chain, index, now};
 
     // actually this is an int, but we never use it in any call path...
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "packet_return_chunk") {
     ignore = true;
-	dec_pkt_offset();
+    dec_pkt_offset();
 
     Expr_ptr chunk_expr = transpile(this, call.args["the_chunk"].expr);
     assert(chunk_expr->get_kind() == Node::NodeKind::CONSTANT);
@@ -1455,7 +1493,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr obj = transpile(this, call.args["obj"].in);
     assert(obj);
 
-    args = std::vector<ExpressionType_ptr>{ AddressOf::build(obj) };
+    args = std::vector<ExpressionType_ptr>{AddressOf::build(obj)};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = "hash";
     ret_expr = call.ret;
@@ -1482,7 +1520,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       index_arg = Read::build(index_cast, int_type, zero);
     }
 
-    args = std::vector<ExpressionType_ptr>{ chain, index_arg };
+    args = std::vector<ExpressionType_ptr>{chain, index_arg};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT32_T);
     ret_symbol = get_symbol_label("dchain_is_index_allocated", symbols);
@@ -1502,7 +1540,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     assert(statements.size());
     exprs.insert(exprs.end(), statements.begin(), statements.end());
 
-    args = std::vector<ExpressionType_ptr>{ hashed_obj };
+    args = std::vector<ExpressionType_ptr>{hashed_obj};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T);
     ret_symbol = get_symbol_label("LoadBalancedFlow_hash", symbols);
@@ -1549,10 +1587,12 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr zero = Constant::build(PrimitiveType::PrimitiveKind::UINT32_T, 0);
     exprs.push_back(Assignment::build(chosen_backend_decl, zero));
 
-    args = std::vector<ExpressionType_ptr>{
-      hash,       cht,              active_backends,
-      cht_height, backend_capacity, AddressOf::build(chosen_backend)
-    };
+    args = std::vector<ExpressionType_ptr>{hash,
+                                           cht,
+                                           active_backends,
+                                           cht_height,
+                                           backend_capacity,
+                                           AddressOf::build(chosen_backend)};
 
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT32_T);
     ret_symbol = get_symbol_label("prefered_backend_found", symbols);
@@ -1576,7 +1616,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     assert(packet);
 
     fname = "rte_ipv4_udptcp_cksum";
-    args = std::vector<ExpressionType_ptr>{ ip_header, l4_header };
+    args = std::vector<ExpressionType_ptr>{ip_header, l4_header};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);
     ret_symbol = get_symbol_label("checksum", symbols);
   } else if (fname == "map_erase") {
@@ -1610,8 +1650,8 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr trash_arg = AddressOf::build(trash);
     Cast_ptr trash_cast = Cast::build(trash_arg, trash_type_arg);
 
-    args = std::vector<ExpressionType_ptr>{ map, AddressOf::build(key),
-                                            trash_cast };
+    args =
+        std::vector<ExpressionType_ptr>{map, AddressOf::build(key), trash_cast};
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
   } else if (fname == "dchain_free_index") {
     check_write_attempt = true;
@@ -1626,7 +1666,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr index = transpile(this, call.args["index"].expr);
     assert(index);
 
-    args = std::vector<ExpressionType_ptr>{ chain, index };
+    args = std::vector<ExpressionType_ptr>{chain, index};
 
     // actually this is an int, but we never use it in any call path...
     ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::VOID);
@@ -1732,11 +1772,11 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 void AST::push() {
   local_variables.emplace_back();
   layer.push_back(layer.back());
-  
+
   if (pkt_buffer_offset.size()) {
-	pkt_buffer_offset.push(pkt_buffer_offset.top());
+    pkt_buffer_offset.push(pkt_buffer_offset.top());
   } else {
-	pkt_buffer_offset.emplace();
+    pkt_buffer_offset.emplace();
   }
 }
 
@@ -1777,19 +1817,18 @@ void AST::context_switch(Context ctx) {
     push();
 
     std::vector<VariableDecl_ptr> args{
-      VariableDecl::build(
-          from_cp_symbol("src_devices"),
-          PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-      VariableDecl::build(from_cp_symbol("p"),
-                          Pointer::build(PrimitiveType::build(
-                              PrimitiveType::PrimitiveKind::UINT8_T))),
-      VariableDecl::build(
-          from_cp_symbol("pkt_len"),
-          PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-      VariableDecl::build(
-          from_cp_symbol("now"),
-          PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT64_T))
-    };
+        VariableDecl::build(
+            from_cp_symbol("src_devices"),
+            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+        VariableDecl::build(from_cp_symbol("p"),
+                            Pointer::build(PrimitiveType::build(
+                                PrimitiveType::PrimitiveKind::UINT8_T))),
+        VariableDecl::build(
+            from_cp_symbol("pkt_len"),
+            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+        VariableDecl::build(
+            from_cp_symbol("now"),
+            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT64_T))};
 
     for (const auto &arg : args) {
       push_to_local(Variable::build(arg->get_symbol(), arg->get_type()));
@@ -1820,18 +1859,18 @@ void AST::commit(Node_ptr body) {
 
   case PROCESS: {
     std::vector<FunctionArgDecl_ptr> _args{
-      FunctionArgDecl::build(
-          from_cp_symbol("src_devices"),
-          PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-      FunctionArgDecl::build(from_cp_symbol("p"),
-                             Pointer::build(PrimitiveType::build(
-                                 PrimitiveType::PrimitiveKind::UINT8_T))),
-      FunctionArgDecl::build(
-          from_cp_symbol("pkt_len"),
-          PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
-      FunctionArgDecl::build(
-          from_cp_symbol("now"),
-          PrimitiveType::build(PrimitiveType::PrimitiveKind::INT64_T)),
+        FunctionArgDecl::build(
+            from_cp_symbol("src_devices"),
+            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+        FunctionArgDecl::build(from_cp_symbol("p"),
+                               Pointer::build(PrimitiveType::build(
+                                   PrimitiveType::PrimitiveKind::UINT8_T))),
+        FunctionArgDecl::build(
+            from_cp_symbol("pkt_len"),
+            PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT16_T)),
+        FunctionArgDecl::build(
+            from_cp_symbol("now"),
+            PrimitiveType::build(PrimitiveType::PrimitiveKind::INT64_T)),
     };
 
     Type_ptr _return = PrimitiveType::build(PrimitiveType::PrimitiveKind::INT);

@@ -2905,6 +2905,10 @@ private:
         return_type(_return_type) {}
 
 public:
+  std::string get_name() const {
+	return name;
+  }
+  
   void synthesize_expr(std::ostream &ofs, unsigned int lvl = 0) const override {
     indent(ofs, lvl);
 

@@ -31,7 +31,8 @@ private:
   call_t pop_call();
 
 public:
-  CallPathsGroup(const call_paths_t &_call_paths) : call_paths(_call_paths) {
+  CallPathsGroup(const call_paths_t &_call_paths)
+      : call_paths(_call_paths) {
     group_call_paths();
   }
 

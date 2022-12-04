@@ -117,10 +117,9 @@ bool solver_toolbox_t::are_exprs_always_not_equal(
   return not_eq_in_e1_ctx && not_eq_in_e2_ctx;
 }
 
-bool
-solver_toolbox_t::is_expr_always_true(klee::ConstraintManager constraints,
-                                      klee::ref<klee::Expr> expr,
-                                      ReplaceSymbols &symbol_replacer) const {
+bool solver_toolbox_t::is_expr_always_true(
+    klee::ConstraintManager constraints, klee::ref<klee::Expr> expr,
+    ReplaceSymbols &symbol_replacer) const {
   klee::ConstraintManager replaced_constraints;
 
   for (auto constr : constraints) {
@@ -146,10 +145,9 @@ bool solver_toolbox_t::is_expr_always_false(klee::ConstraintManager constraints,
   return result;
 }
 
-bool
-solver_toolbox_t::is_expr_always_false(klee::ConstraintManager constraints,
-                                       klee::ref<klee::Expr> expr,
-                                       ReplaceSymbols &symbol_replacer) const {
+bool solver_toolbox_t::is_expr_always_false(
+    klee::ConstraintManager constraints, klee::ref<klee::Expr> expr,
+    ReplaceSymbols &symbol_replacer) const {
   klee::ConstraintManager replaced_constraints;
 
   for (auto constr : constraints) {
@@ -159,9 +157,8 @@ solver_toolbox_t::is_expr_always_false(klee::ConstraintManager constraints,
   return is_expr_always_false(replaced_constraints, expr);
 }
 
-bool
-solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1,
-                                         klee::ref<klee::Expr> expr2) const {
+bool solver_toolbox_t::are_exprs_always_equal(
+    klee::ref<klee::Expr> expr1, klee::ref<klee::Expr> expr2) const {
   if (expr1.isNull() != expr2.isNull()) {
     return false;
   }
@@ -188,6 +185,44 @@ solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1,
 
   auto eq = exprBuilder->Eq(expr1, replaced);
   return is_expr_always_true(eq);
+}
+
+bool solver_toolbox_t::are_exprs_values_always_equal(
+    klee::ref<klee::Expr> expr1, klee::ref<klee::Expr> expr2) const {
+  if (expr1.isNull() != expr2.isNull()) {
+    return false;
+  }
+
+  if (expr1.isNull()) {
+    return true;
+  }
+
+  auto v1 = value_from_expr(expr1);
+  auto v2 = value_from_expr(expr2);
+
+  auto v1_const = exprBuilder->Constant(v1, expr1->getWidth());
+  auto v2_const = exprBuilder->Constant(v2, expr2->getWidth());
+
+  auto always_v1 = are_exprs_always_equal(v1_const, expr1);
+  auto always_v2 = are_exprs_always_equal(v2_const, expr2);
+
+  if (!always_v1) {
+	std::cerr << "are_exprs_values_always_equal error\n";
+	std::cerr << "expr1 not always = " << expr_to_string(v1_const) << "\n";
+	std::cerr << "expr1: " << expr_to_string(expr1) << "\n";
+	assert(false && "are_exprs_values_always_equal error");
+	exit(1);
+  }
+
+  if (!always_v2) {
+	std::cerr << "are_exprs_values_always_equal error\n";
+	std::cerr << "expr2 not always = " << expr_to_string(v2_const) << "\n";
+	std::cerr << "expr2: " << expr_to_string(expr2) << "\n";
+	assert(false && "are_exprs_values_always_equal error");
+	exit(1);
+  }
+
+  return v1 == v2;
 }
 
 uint64_t solver_toolbox_t::value_from_expr(klee::ref<klee::Expr> expr) const {

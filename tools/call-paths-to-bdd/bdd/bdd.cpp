@@ -7,18 +7,20 @@
 #include "nodes/return_process.h"
 #include "nodes/return_raw.h"
 
+#include <unordered_map>
+
 namespace BDD {
 
 constexpr char BDD::INIT_CONTEXT_MARKER[];
 constexpr char BDD::MAGIC_SIGNATURE[];
 
-std::vector<std::string> BDD::skip_conditions_with_symbol{ "received_a_packet",
-                                                           "loop_termination" };
+std::vector<std::string> BDD::skip_conditions_with_symbol{"received_a_packet",
+                                                          "loop_termination"};
 
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(*this); }
 
 BDDNode_ptr BDD::get_node_by_id(uint64_t _id) const {
-  std::vector<BDDNode_ptr> nodes{ nf_init, nf_process };
+  std::vector<BDDNode_ptr> nodes{nf_init, nf_process};
   BDDNode_ptr node;
 
   while (nodes.size()) {
@@ -45,7 +47,7 @@ BDDNode_ptr BDD::get_node_by_id(uint64_t _id) const {
 unsigned BDD::get_number_of_nodes(BDDNode_ptr root) const {
   unsigned num_nodes = 0;
 
-  std::vector<BDDNode_ptr> nodes{ root };
+  std::vector<BDDNode_ptr> nodes{root};
   BDDNode_ptr node;
 
   while (nodes.size()) {
@@ -505,7 +507,7 @@ void BDD::rename_symbols(BDDNode_ptr node, SymbolFactory &factory) {
 }
 
 void BDD::trim_constraints(BDDNode_ptr node) {
-  std::vector<BDDNode_ptr> nodes{ node };
+  std::vector<BDDNode_ptr> nodes{node};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -525,9 +527,9 @@ void BDD::trim_constraints(BDDNode_ptr node) {
 
         auto used_symbols = retriever.get_retrieved_strings();
 
-        auto used_not_available_it =
-            std::find_if(used_symbols.begin(), used_symbols.end(),
-                         [&](const std::string &used_symbol) {
+        auto used_not_available_it = std::find_if(
+            used_symbols.begin(), used_symbols.end(),
+            [&](const std::string &used_symbol) {
               auto available_symbol_it = std::find_if(
                   available_symbols.begin(), available_symbols.end(),
                   [&](const symbol_t &available_symbol) {
@@ -554,6 +556,193 @@ void BDD::trim_constraints(BDDNode_ptr node) {
 
       nodes.push_back(branch_node->get_on_true());
       nodes.push_back(branch_node->get_on_false());
+    } else if (node->get_next()) {
+      nodes.push_back(node->get_next());
+    }
+  }
+}
+
+bool fname_contains(call_t call, std::string fname) {
+  return call.function_name.find(fname) != std::string::npos;
+}
+
+bool is_zero(klee::ref<klee::Expr> expr) {
+  auto zero = solver_toolbox.exprBuilder->Constant(0, expr->getWidth());
+  auto is_zero = solver_toolbox.are_exprs_always_equal(zero, expr);
+  return is_zero;
+}
+
+struct instances_bank_t {
+  enum object_type_t { MAP, VECTOR, DCHAIN, SKETCH };
+
+  std::unordered_map<object_type_t,
+                     std::vector<std::vector<klee::ref<klee::Expr>>>>
+      instances_bank;
+
+  instances_bank_t(call_paths_t call_paths) {
+    for (auto calls : call_paths.backup) {
+      std::unordered_map<object_type_t, unsigned> ids_by_type = {
+          {MAP, 0},
+          {VECTOR, 0},
+          {DCHAIN, 0},
+          {SKETCH, 0},
+      };
+
+      for (auto call : calls) {
+        if (fname_contains(call, "map_allocate")) {
+          auto out = call.args["map_out"].out;
+
+          if (!out.isNull() && !is_zero(out)) {
+            push(MAP, ids_by_type[MAP], out);
+            ids_by_type[MAP]++;
+          }
+        }
+        
+        else if (fname_contains(call, "vector_allocate")) {
+          auto out = call.args["vector_out"].out;
+
+          if (!out.isNull() && !is_zero(out)) {
+            push(VECTOR, ids_by_type[VECTOR], out);
+            ids_by_type[VECTOR]++;
+          }
+        }
+        
+        else if (fname_contains(call, "dchain_allocate")) {
+          auto out = call.args["chain_out"].out;
+
+          if (!out.isNull() && !is_zero(out)) {
+            push(DCHAIN, ids_by_type[DCHAIN], out);
+            ids_by_type[DCHAIN]++;
+          }
+        }
+        
+        else if (fname_contains(call, "sketch_allocate")) {
+          auto out = call.args["sketch_out"].out;
+
+          if (!out.isNull() && !is_zero(out)) {
+            push(SKETCH, ids_by_type[SKETCH], out);
+            ids_by_type[SKETCH]++;
+          }
+        }
+      }
+    }
+  }
+
+  void push(object_type_t ot, unsigned id, klee::ref<klee::Expr> instance) {
+    while (instances_bank[ot].size() <= id) {
+      instances_bank[ot].emplace_back();
+    }
+
+    for (auto inst : instances_bank[ot][id]) {
+      auto eq = solver_toolbox.are_exprs_values_always_equal(inst, instance);
+      if (eq) {
+        return;
+      }
+    }
+
+    instances_bank[ot][id].push_back(instance);
+  }
+
+  klee::ref<klee::Expr> get_by_other_instance(object_type_t ot,
+                                              klee::ref<klee::Expr> other) {
+    for (auto id = 0u; id < instances_bank[ot].size(); id++) {
+      const auto &instances = instances_bank[ot][id];
+      for (const auto &instance : instances) {
+        auto eq = solver_toolbox.are_exprs_values_always_equal(other, instance);
+        if (eq) {
+          return instances_bank[ot][id][0];
+        }
+      }
+    }
+
+    std::cerr << "Error: instance not registered anywhere\n";
+    assert(false && "Instance not registered anywhere");
+    exit(1);
+  }
+};
+
+void fix_instances_in_call(instances_bank_t &instances_bank, call_t &call) {
+  for (auto it = call.args.begin(); it != call.args.end(); it++) {
+    if (it->first == "map_out") {
+      auto curr_inst = it->second.out;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::MAP,
+                                                       curr_inst);
+      it->second.out = inst;
+    }
+
+    else if (it->first == "map") {
+      auto curr_inst = it->second.expr;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::MAP,
+                                                       curr_inst);
+      it->second.expr = inst;
+    }
+
+    else if (it->first == "vector_out") {
+      auto curr_inst = it->second.out;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::VECTOR,
+                                                       curr_inst);
+      it->second.out = inst;
+    }
+
+    else if (it->first == "vector") {
+      auto curr_inst = it->second.expr;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::VECTOR,
+                                                       curr_inst);
+      it->second.expr = inst;
+    }
+
+    else if (it->first == "chain_out") {
+      auto curr_inst = it->second.out;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::DCHAIN,
+                                                       curr_inst);
+      it->second.out = inst;
+    }
+
+    else if (it->first == "chain") {
+      auto curr_inst = it->second.expr;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::DCHAIN,
+                                                       curr_inst);
+      it->second.expr = inst;
+    }
+
+    else if (it->first == "sketch_out") {
+      auto curr_inst = it->second.out;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::SKETCH,
+                                                       curr_inst);
+      it->second.out = inst;
+    }
+
+    else if (it->first == "sketch") {
+      auto curr_inst = it->second.expr;
+      auto inst = instances_bank.get_by_other_instance(instances_bank_t::SKETCH,
+                                                       curr_inst);
+      it->second.expr = inst;
+    }
+  }
+}
+
+void BDD::merge_same_obj_instances(call_paths_t call_paths) {
+  instances_bank_t instances_bank(call_paths);
+
+  std::vector<BDDNode_ptr> nodes{nf_init, nf_process};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    if (node->get_type() == Node::NodeType::BRANCH) {
+      auto branch_node = static_cast<Branch *>(node.get());
+
+      nodes.push_back(branch_node->get_on_true());
+      nodes.push_back(branch_node->get_on_false());
+    } else if (node->get_type() == Node::NodeType::CALL) {
+      auto call_node = static_cast<Call *>(node.get());
+      auto call = call_node->get_call();
+
+      fix_instances_in_call(instances_bank, call);
+      call_node->set_call(call);
+
+      nodes.push_back(node->get_next());
     } else if (node->get_next()) {
       nodes.push_back(node->get_next());
     }

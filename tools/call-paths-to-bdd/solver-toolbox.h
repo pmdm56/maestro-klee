@@ -56,10 +56,10 @@ public:
       klee::ref<klee::Expr> replaced =
           klee::expr::ExprHandle(const_cast<klee::ReadExpr *>(&e));
       std::map<klee::ref<klee::Expr>, klee::ref<klee::Expr>>::const_iterator
-      it = replacements.find(replaced);
+          it = replacements.find(replaced);
 
       if (it != replacements.end()) {
-        replacements.insert({ replaced, read });
+        replacements.insert({replaced, read});
       }
 
       return Action::changeTo(read);
@@ -119,6 +119,9 @@ struct solver_toolbox_t {
                                   klee::ConstraintManager c2) const;
   bool are_exprs_always_equal(klee::ref<klee::Expr> expr1,
                               klee::ref<klee::Expr> expr2) const;
+
+  bool are_exprs_values_always_equal(klee::ref<klee::Expr> expr1,
+                                     klee::ref<klee::Expr> expr2) const;
 
   uint64_t value_from_expr(klee::ref<klee::Expr> expr) const;
   uint64_t value_from_expr(klee::ref<klee::Expr> expr,
@@ -221,7 +224,7 @@ public:
         auto new_ul = klee::UpdateList(new_root, ul.head);
         auto replacement = solver_toolbox.exprBuilder->Read(new_ul, e.index);
 
-        replacements.insert({ replaced, replacement });
+        replacements.insert({replaced, replacement});
 
         return Action::changeTo(replacement);
       }
@@ -349,7 +352,7 @@ public:
                                                             index->getWidth());
       auto replacement = solver_toolbox.exprBuilder->Read(ul, new_index);
 
-      replacements.insert({ replaced, replacement });
+      replacements.insert({replaced, replacement});
 
       return Action::changeTo(replacement);
     }

@@ -445,6 +445,19 @@ symbols_t SymbolFactory::current_time(
   return symbols;
 }
 
+symbols_t SymbolFactory::rte_lcore_count(
+    call_t call, bool save,
+    const std::vector<klee::ConstraintManager> &constraint_managers) {
+  symbols_t symbols;
+
+  assert(!call.ret.isNull());
+  auto lcores = call.ret;
+  symbols.emplace(build_label("lcores", save, constraint_managers),
+                  "lcores", lcores);
+
+  return symbols;
+}
+
 symbols_t SymbolFactory::nf_set_rte_ipv4_udptcp_checksum(
     call_t call, bool save,
     const std::vector<klee::ConstraintManager> &constraint_managers) {

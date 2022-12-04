@@ -142,6 +142,10 @@ private:
   current_time(call_t call, bool save,
                const std::vector<klee::ConstraintManager> &constraint_managers);
 
+  symbols_t
+  rte_lcore_count(call_t call, bool save,
+                  const std::vector<klee::ConstraintManager> &constraint_managers);
+
   symbols_t nf_set_rte_ipv4_udptcp_checksum(
       call_t call, bool save,
       const std::vector<klee::ConstraintManager> &constraint_managers);
@@ -155,6 +159,7 @@ public:
     call_processor_lookup_table = {
       { "start_time", &SymbolFactory::no_process },
       { "current_time", &SymbolFactory::current_time },
+	  { "rte_lcore_count", &SymbolFactory::rte_lcore_count },
       { "loop_invariant_consume", &SymbolFactory::no_process },
       { "loop_invariant_produce", &SymbolFactory::no_process },
       { "packet_receive", &SymbolFactory::no_process },
