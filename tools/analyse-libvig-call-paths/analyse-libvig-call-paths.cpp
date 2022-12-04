@@ -1654,6 +1654,7 @@ private:
     add_access_lookup_table(LibvigAccess("start_time"));
     add_access_lookup_table(LibvigAccess("restart_time"));
     add_access_lookup_table(LibvigAccess("current_time"));
+    add_access_lookup_table(LibvigAccess("rte_lcore_count"));
 
     add_access_lookup_table(LibvigAccess("sketch_hash"));
     add_access_lookup_table(LibvigAccess("rte_ether_addr_hash"));
