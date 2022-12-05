@@ -509,7 +509,7 @@ bool AST::is_in_state(const std::string &symbol) const {
 
 void AST::push_to_state(Variable_ptr var) {
   if (!is_in_state(var->get_symbol())) {
-  	state.push_back(var);
+    state.push_back(var);
   }
 }
 
@@ -523,6 +523,13 @@ void AST::push_to_local(Variable_ptr var, klee::ref<klee::Expr> expr) {
   assert(get_from_local(var->get_symbol()) == nullptr);
   assert(local_variables.size() > 0);
   local_variables.back().push_back(std::make_pair(var, expr));
+}
+
+FunctionCall_ptr spread_capacity_among_cores(Expr_ptr capacity) {
+  auto args = std::vector<ExpressionType_ptr>{capacity};
+  auto ret_type = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T);
+  auto fcall = FunctionCall::build("spread_data_among_cores", args, ret_type);
+  return fcall;
 }
 
 Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
@@ -592,6 +599,10 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     Expr_ptr capacity = transpile(this, call.args["capacity"].expr);
     assert(capacity);
 
+    if (target == TargetOption::SHARED_NOTHING) {
+      capacity = spread_capacity_among_cores(capacity);
+    }
+
     Type_ptr map_type = Struct::build(translate_struct("Map", target));
     Variable_ptr new_map = generate_new_symbol("map", map_type, 1, 0);
     new_map->set_addr(map_addr);
@@ -655,6 +666,10 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
           "(*" + new_vector->get_symbol() + "_ptr)", vector_type, 1, 0);
     }
 
+    if (target == TargetOption::SHARED_NOTHING) {
+      capacity = spread_capacity_among_cores(capacity);
+    }
+
     args = std::vector<ExpressionType_ptr>{elem_size, capacity, init_elem,
                                            AddressOf::build(new_vector)};
 
@@ -681,6 +696,10 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     if (target == TargetOption::SHARED_NOTHING) {
       new_dchain = generate_new_symbol(
           "(*" + new_dchain->get_symbol() + "_ptr)", dchain_type, 1, 0);
+    }
+
+    if (target == TargetOption::SHARED_NOTHING) {
+      index_range = spread_capacity_among_cores(index_range);
     }
 
     args = std::vector<ExpressionType_ptr>{index_range,
@@ -731,6 +750,10 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     if (target == TargetOption::SHARED_NOTHING) {
       new_sketch = generate_new_symbol(
           "(*" + new_sketch->get_symbol() + "_ptr)", sketch_type, 1, 0);
+    }
+
+    if (target == TargetOption::SHARED_NOTHING) {
+      capacity = spread_capacity_among_cores(capacity);
     }
 
     args = std::vector<ExpressionType_ptr>{khash, capacity, threshold,
