@@ -19,7 +19,6 @@ public:
     nf_init = populate_init(root);
     nf_process = populate_process(root);
 
-	merge_same_obj_instances(cp);
     rename_symbols();
     trim_constraints();
   }
@@ -92,8 +91,6 @@ private:
     trim_constraints(nf_init);
     trim_constraints(nf_process);
   }
-
-  void merge_same_obj_instances(call_paths_t call_paths);
 
   void rename_symbols(BDDNode_ptr node, SymbolFactory &factory);
   void trim_constraints(BDDNode_ptr node);
