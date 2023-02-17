@@ -1,3 +1,5 @@
 #pragma once
 
-void f();
+namespace BDD{
+	void f();
+}
