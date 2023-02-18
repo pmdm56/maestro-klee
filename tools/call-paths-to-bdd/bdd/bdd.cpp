@@ -1,5 +1,4 @@
 #include "bdd.h"
-#include <klee/tools/bdd.hpp>
 
 #include "call-paths-groups.h"
 #include "visitor.h"
@@ -15,9 +14,6 @@ namespace BDD {
 constexpr char BDD::INIT_CONTEXT_MARKER[];
 constexpr char BDD::MAGIC_SIGNATURE[];
 
-void f() {
-  std::cout << "hello" << std::endl;
-}
 
 std::vector<std::string> BDD::skip_conditions_with_symbol{"received_a_packet",
                                                           "loop_termination"};
