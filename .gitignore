@@ -36,6 +36,6 @@ autom4te.cache/
 
 # Consolidator inputs
 bdds/
-input
+input/
 *.bdd
 *.gv
