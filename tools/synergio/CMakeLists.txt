@@ -10,8 +10,33 @@ file(GLOB_RECURSE synergio-sources
   "*.cpp"
 )
 
+file(GLOB_RECURSE load-call-paths-sources
+  "../load-call-paths*.cpp"
+)
+
+file(GLOB_RECURSE call-paths-to-bdd-sources
+  "../call-paths-to-bdd/*.cpp"
+)
+
+file(GLOB_RECURSE bdd-reorderer-sources
+  "../bdd-reorderer/*.cpp"
+)
+
+file(GLOB_RECURSE expr-printer-sources
+  "../expr-printer/*.cpp"
+)
+
+list(FILTER load-call-paths-sources EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER call-paths-to-bdd-sources EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER bdd-reorderer-sources EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER expr-printer-sources EXCLUDE REGEX ".*main\\.cpp$")
+
 add_executable(synergio
   ${synergio-sources}
+  ${load-call-paths-sources}
+  ${bdd-reorderer-sources}
+  ${call-paths-to-bdd-sources}
+  ${expr-printer-sources}
 )
 
 set(KLEE_LIBS
@@ -19,7 +44,7 @@ set(KLEE_LIBS
   kleeCore
 )
 
-target_include_directories(synergio PRIVATE)
+target_include_directories(synergio PRIVATE ../load-call-paths ../call-paths-to-bdd ../expr-printer)
 target_link_libraries(synergio ${KLEE_LIBS})
 
 install(TARGETS synergio RUNTIME DESTINATION bin)
