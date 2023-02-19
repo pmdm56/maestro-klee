@@ -1,27 +1,29 @@
 #include "nf.hpp"
 
 #include "../pch.hpp"
-
 #include "../util/logger.hpp"
+#include "../bdd/loader.hpp"
 
-NF::NF(const std::string &id, const std::string &path) : id(id), path(path) {}
+#include "call-paths-to-bdd.h"
 
-NF::~NF() {}
+namespace Synergio {
+	NF::NF(const std::string &id, const std::string &path) : id(id), path(path) {}
 
-std::string NF::get_id() const {
-	return id;
-}
+	NF::~NF() {}
 
-std::string NF::get_path() const {
-	return path;
-}
+	string NF::get_id() const {
+		return id;
+	}
 
-void NF::load() {
-	info("Loading BDD ", id, " from ", path);
-	success("BDD ", id, " loaded");
-	
-}
+	string NF::get_path() const {
+		return path;
+	}
 
-void NF::print() {
-	debug("NF ", id, " from ", path);
+	void NF::set_bdd(unique_ptr<BDD::BDD> bdd) {
+		this->bdd = move(bdd);
+	}
+
+	void NF::print() {
+		debug("NF ", id, " from ", path);
+	}
 }

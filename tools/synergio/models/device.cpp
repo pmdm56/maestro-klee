@@ -4,14 +4,17 @@
 
 #include "../util/logger.hpp"
 
-Device::Device(const std::string &id) : id(id) {}
 
-Device::~Device() = default;
+namespace Synergio {
+	Device::Device(const std::string &id) : id(id) {}
 
-string Device::get_id() const {
-	return id;
-}
+	Device::~Device() = default;
 
-void Device::print() {
-	debug("Device ", id);
+	string Device::get_id() const {
+		return id;
+	}
+
+	void Device::print() {
+		debug("Device ", id);
+	}
 }

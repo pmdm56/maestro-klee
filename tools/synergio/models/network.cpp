@@ -1,43 +1,45 @@
 #include "network.hpp"
 
 #include "../pch.hpp"
-
 #include "../util/logger.hpp"
 
 #include "device.hpp"
 #include "nf.hpp"
 #include "link.hpp"
 
-Network::Network(Devices devices, NFs nfs, Topology topology): devices(move(devices)), nfs(move(nfs)), topology(move(topology)) {}
+#include "../bdd/loader.hpp"
 
-Network::~Network() = default;
+namespace Synergio {
+	Network::Network(Devices &&devices, NFs &&nfs, Topology &&topology): devices(move(devices)), nfs(move(nfs)), topology(move(topology)) {}
 
-void Network::load() {
-	info("Loading all BDDs");
+	Network::~Network() = default;
 
-	for (auto it = nfs.begin(); it != nfs.end(); ++it) {
-		auto& nf = it->second;
-		nf->load();
-	}
-	
-	success("BDDs loaded");
-}
+	void Network::load() {
+		info("Loading all BDDs");
 
-void Network::print() {
-	debug("Printing Network");
-
-	for (auto it = devices.begin(); it != devices.end(); ++it) {
-		auto& device = it->second;
-		device->print();
+		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
+			auto& nf = it->second;
+			auto bdd = Loader::load(nf->get_path());
+		}
+		
+		success("BDDs loaded");
 	}
 
-	for (auto it = nfs.begin(); it != nfs.end(); ++it) {
-		auto& nf = it->second;
-		nf->print();
-	}
+	void Network::print() {
+		debug("Printing Network");
 
-	for (auto& link : topology) {
-		link->print();
-	}
+		for (auto it = devices.begin(); it != devices.end(); ++it) {
+			auto& device = it->second;
+			device->print();
+		}
 
+		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
+			auto& nf = it->second;
+			nf->print();
+		}
+
+		for (auto& link : topology) {
+			link->print();
+		}
+	}
 }

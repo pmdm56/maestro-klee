@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 	}
 
 	const std::string input_file {argv[1]};
-	auto network = parse(input_file);
+	auto network = Synergio::parse(input_file);
 
 	network->print();
 	network->load();

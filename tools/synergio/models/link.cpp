@@ -4,33 +4,36 @@
 
 #include "../util/logger.hpp"
 
-size_t Link::id_counter = 0;
+namespace Synergio {
+	size_t Link::id_counter = 0;
 
-Link::Link(const string &node1, const int port1, const string &node2, const int port2): 
-	id(id_counter++), node1(node1), port1(port1), node2(node2), port2(port2) {}
+	Link::Link(const string &node1, const int port1, const string &node2, const int port2): 
+		id(id_counter++), node1(node1), port1(port1), node2(node2), port2(port2) {}
 
-Link::~Link() {}
+	Link::~Link() {}
 
-size_t Link::get_id() const {
-	return this->id;
+	size_t Link::get_id() const {
+		return this->id;
+	}
+
+	string Link::get_node1() const {
+		return this->node1;
+	}
+
+	string Link::get_node2() const {
+		return this->node2;
+	}
+
+	int Link::get_port1() const {
+		return this->port1;
+	}
+
+	int Link::get_port2() const {
+		return this->port2;
+	}
+
+	void Link::print() {
+		debug("Link ", this->id, " ", this->node1, ":", this->port1, " <--> ", this->node2, ":", this->port2);
+	}
 }
 
-string Link::get_node1() const {
-	return this->node1;
-}
-
-string Link::get_node2() const {
-	return this->node2;
-}
-
-int Link::get_port1() const {
-	return this->port1;
-}
-
-int Link::get_port2() const {
-	return this->port2;
-}
-
-void Link::print() {
-	debug("Link ", this->id, " ", this->node1, ":", this->port1, " <--> ", this->node2, ":", this->port2);
-}

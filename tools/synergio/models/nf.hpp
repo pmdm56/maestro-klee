@@ -4,19 +4,26 @@
 #include <unordered_map>
 #include <memory>
 
-class NF {
-private:
-	std::string id {""};
-	std::string path {""};
-public:
-	NF(const std::string &id, const std::string &path);
-	~NF();
+#include "call-paths-to-bdd.h"
 
-	std::string get_id() const;
-	std::string get_path() const;
-	
-	void load();
-	void print();
-};
+namespace Synergio {
+	class NF {
+	private:
+		std::string id {""};
+		std::string path {""};
+		
+		std::unique_ptr<BDD::BDD> bdd {nullptr};
+	public:
+		NF(const std::string &id, const std::string &path);
+		~NF();
 
-typedef std::unordered_map<std::string, std::unique_ptr<NF>> NFs;
+		std::string get_id() const;
+		std::string get_path() const;
+		
+		void set_bdd(std::unique_ptr<BDD::BDD> bdd);
+
+		void print();
+	};
+
+	typedef std::unordered_map<std::string, std::unique_ptr<NF>> NFs;
+}
