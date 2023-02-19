@@ -8,27 +8,28 @@
 #include "call-paths-to-bdd.h"
 
 namespace Synergio {
-	class Device;
 	class NF;
 	class Link;
+	class Device;
 
-	typedef std::unordered_map<std::string, std::unique_ptr<Device>> Devices;
+	typedef std::vector<std::unique_ptr<Link>> Links;
 	typedef std::unordered_map<std::string, std::unique_ptr<NF>> NFs;
-	typedef std::vector<std::unique_ptr<Link>> Topology;
+	typedef std::unordered_map<std::string, std::shared_ptr<BDD::BDD>> BDDs;
+	typedef std::unordered_map<std::string, std::unique_ptr<Device>> Devices;
 
 	class Network {
 	private:
-		Devices devices;
 		NFs nfs;
-		Topology topology;
+		BDDs bdds;
+		Devices devices;
+		Links links;
 
-		std::unordered_map<std::string, std::unique_ptr<BDD::BDD>> bdds;
-
+		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 	public:
-		Network(Devices &&devices, NFs &&nfs, Topology &&links);
 		~Network();
 
-		void load();
+		static std::unique_ptr<Network> create(Devices &&devices, NFs &&nfs, Links &&links);
+
 		void print();
 	};
 }

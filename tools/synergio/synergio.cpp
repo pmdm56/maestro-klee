@@ -13,11 +13,10 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
-	const std::string input_file {argv[1]};
+	const string input_file {argv[1]};
 	auto network = Synergio::parse(input_file);
 
 	network->print();
-	network->load();
 	
 	return EXIT_SUCCESS;
 }

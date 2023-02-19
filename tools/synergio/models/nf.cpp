@@ -18,7 +18,7 @@ namespace Synergio {
 		return path;
 	}
 
-	void NF::set_bdd(unique_ptr<BDD::BDD> bdd) {
+	void NF::set_bdd(shared_ptr<BDD::BDD> bdd) {
 		this->bdd = move(bdd);
 	}
 

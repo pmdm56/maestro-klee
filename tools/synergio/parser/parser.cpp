@@ -78,9 +78,9 @@ namespace Synergio {
 
 		ifstream fstream = open_file(network_file);
 
-		Devices devices;
+		Links links;
 		NFs nfs;
-		Topology topology;
+		Devices devices;
 		
 		string line;
 		
@@ -111,7 +111,7 @@ namespace Synergio {
 				} 
 				else if(type == STRING_LINK) {
 					auto link = parse_link(words, devices, nfs);
-					topology.push_back(move(link));
+					links.push_back(move(link));
 				} 
 				else {
 					danger("Invalid line: ", line);
@@ -135,7 +135,7 @@ namespace Synergio {
 		}
 
 		success("Parsed network " + network_file);
-		
-		return unique_ptr<Network>(new Network(move(devices), move(nfs), move(topology)));;
+
+		return Network::create(move(devices), move(nfs), move(links));
 	}
 }

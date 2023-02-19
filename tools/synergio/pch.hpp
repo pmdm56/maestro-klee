@@ -23,6 +23,7 @@ using std::unordered_map;
 
 using std::move;
 using std::unique_ptr;
+using std::shared_ptr;
 
 using std::stoi;
 using std::stoul;

@@ -10,22 +10,32 @@
 #include "call-paths-to-bdd.h"
 
 namespace Synergio {
-	Network::Network(Devices &&devices, NFs &&nfs, Topology &&topology): devices(move(devices)), nfs(move(nfs)), topology(move(topology)) {}
-
+	Network::Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds): devices(move(devices)), nfs(move(nfs)), links(move(links)), bdds(move(bdds)) {}
+	
 	Network::~Network() = default;
 
-	void Network::load() {
+ 	std::unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
 		info("Loading all BDDs");
+
+		BDDs bdds;
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
 			auto& nf = it->second;
 
-			if(bdds.find(nf->get_path()) == bdds.end()) {
-				bdds.emplace(nf->get_path(), unique_ptr<BDD::BDD>(new BDD::BDD(nf->get_path())));
+			const string &path = nf->get_path();
+
+			if(bdds.find(path) == bdds.end()) {
+				bdds.emplace(path, shared_ptr<BDD::BDD>(new BDD::BDD(path)));
+				info("BDD loaded for NF ", nf->get_id(), " at ", path);
+			}
+			else {
+				info("BDD already loaded for NF ", nf->get_id(), " at ", path);
 			}
 		}
 		
 		success("BDDs loaded");
+
+		return std::unique_ptr<Network>(new Network(move(devices), move(nfs), move(links), move(bdds)));
 	}
 
 	void Network::print() {
@@ -41,7 +51,7 @@ namespace Synergio {
 			nf->print();
 		}
 
-		for (auto& link : topology) {
+		for (auto& link : links) {
 			link->print();
 		}
 	}
