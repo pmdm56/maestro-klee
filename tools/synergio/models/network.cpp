@@ -16,6 +16,19 @@ namespace Synergio {
 	
 	Network::~Network() = default;
 
+	/* Private methods */
+	Network::NodeType Network::get_node_type(const string &node_str) const {
+		if(devices.find(node_str) != devices.end()) {
+			return NodeType::DEVICE;
+		}
+		else if(nfs.find(node_str) != nfs.end()) {
+			return NodeType::NF;
+		}
+		else {
+			throw runtime_error("Node " + node_str + " not found");
+		}
+	}
+
 	/* Static methods */
  	std::unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
 		info("Loading all BDDs");
@@ -46,7 +59,21 @@ namespace Synergio {
 
 
 	/* Public methods */
-	void Network::print() {
+	void Network::consolidate() {
+		info("Starting network consolidation");
+
+		for(auto &link: links) {
+			const string &node1_str = link->get_node1();
+			const string &node2_str = link->get_node2();
+
+			NodeType node1_type = get_node_type(node1_str);
+			NodeType node2_type = get_node_type(node2_str);
+		}
+
+		success("Network consolidated");
+	}
+
+	void Network::print() const {
 		debug("Printing Network");
 
 		for (auto it = devices.begin(); it != devices.end(); ++it) {

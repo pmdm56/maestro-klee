@@ -17,6 +17,7 @@ int main(int argc, char **argv) {
 	auto network = Synergio::parse(input_file);
 
 	network->print();
+	network->consolidate();
 	
 	return EXIT_SUCCESS;
 }

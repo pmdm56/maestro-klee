@@ -24,12 +24,21 @@ namespace Synergio {
 		const Devices devices;
 		const Links links;
 
+		enum class NodeType {
+			DEVICE,
+			NF
+		};
+
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
+
+		NodeType get_node_type(const std::string &node_str) const;
 	public:
 		~Network();
 
 		static std::unique_ptr<Network> create(Devices &&devices, NFs &&nfs, Links &&links);
 
-		void print();
+		void consolidate();
+
+		void print() const;
 	};
 }
