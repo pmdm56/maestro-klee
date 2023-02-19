@@ -1,5 +1,6 @@
 #pragma once
 
+
 template<typename... Args>
 void info(Args&&... args);
 
