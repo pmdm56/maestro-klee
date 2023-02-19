@@ -25,5 +25,10 @@ using std::move;
 using std::unique_ptr;
 
 using std::stoi;
+using std::stoul;
 
 using std::runtime_error;
+using std::invalid_argument;
+using std::range_error;
+using std::out_of_range;
+using std::exception;

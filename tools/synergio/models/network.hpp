@@ -5,6 +5,8 @@
 #include <string>
 #include <memory>
 
+#include "call-paths-to-bdd.h"
+
 namespace Synergio {
 	class Device;
 	class NF;
@@ -19,6 +21,8 @@ namespace Synergio {
 		Devices devices;
 		NFs nfs;
 		Topology topology;
+
+		std::unordered_map<std::string, std::unique_ptr<BDD::BDD>> bdds;
 
 	public:
 		Network(Devices &&devices, NFs &&nfs, Topology &&links);

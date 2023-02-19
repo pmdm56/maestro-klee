@@ -7,7 +7,7 @@
 namespace Synergio {
 	size_t Link::id_counter = 0;
 
-	Link::Link(const string &node1, const int port1, const string &node2, const int port2): 
+	Link::Link(const string &node1, const unsigned port1, const string &node2, const unsigned port2): 
 		id(id_counter++), node1(node1), port1(port1), node2(node2), port2(port2) {}
 
 	Link::~Link() {}
@@ -24,11 +24,11 @@ namespace Synergio {
 		return this->node2;
 	}
 
-	int Link::get_port1() const {
+	unsigned Link::get_port1() const {
 		return this->port1;
 	}
 
-	int Link::get_port2() const {
+	unsigned Link::get_port2() const {
 		return this->port2;
 	}
 

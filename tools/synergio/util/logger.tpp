@@ -23,7 +23,7 @@ namespace Synergio {
 
     template<typename... Args>
     void danger(Args&&... args) {
-        std::cout << "\033[34m";
+        std::cout << "\033[35m";
         std::cout << "[ERROR] ";
         std::cout << "\033[37m";
         print_arg(std::forward<Args>(args)...);

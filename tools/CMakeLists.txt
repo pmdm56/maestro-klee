@@ -24,4 +24,7 @@ add_subdirectory(call-path-hit-rate-graphviz-generator)
 add_subdirectory(bdd-reorderer)
 add_subdirectory(synapse)
 add_subdirectory(packet-modification-detector)
+
+## Disabling warnings for my code
+add_compile_options(-w)
 add_subdirectory(synergio)

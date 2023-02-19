@@ -7,7 +7,7 @@
 #include "nf.hpp"
 #include "link.hpp"
 
-#include "../bdd/loader.hpp"
+#include "call-paths-to-bdd.h"
 
 namespace Synergio {
 	Network::Network(Devices &&devices, NFs &&nfs, Topology &&topology): devices(move(devices)), nfs(move(nfs)), topology(move(topology)) {}
@@ -19,7 +19,10 @@ namespace Synergio {
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
 			auto& nf = it->second;
-			auto bdd = Loader::load(nf->get_path());
+
+			if(bdds.find(nf->get_path()) == bdds.end()) {
+				bdds.emplace(nf->get_path(), unique_ptr<BDD::BDD>(new BDD::BDD(nf->get_path())));
+			}
 		}
 		
 		success("BDDs loaded");
