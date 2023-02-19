@@ -19,10 +19,10 @@ namespace Synergio {
 
 	class Network {
 	private:
-		NFs nfs;
-		BDDs bdds;
-		Devices devices;
-		Links links;
+		const NFs nfs;
+		const BDDs bdds;
+		const Devices devices;
+		const Links links;
 
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 	public:

@@ -10,15 +10,19 @@
 #include "call-paths-to-bdd.h"
 
 namespace Synergio {
+
+	/* Constructors and destructors */
 	Network::Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds): devices(move(devices)), nfs(move(nfs)), links(move(links)), bdds(move(bdds)) {}
 	
 	Network::~Network() = default;
 
+	/* Static methods */
  	std::unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
 		info("Loading all BDDs");
 
 		BDDs bdds;
 
+		// Loading all BDDs onto a map where the key is the path to the BDD file and the value is the BDD itself
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
 			auto& nf = it->second;
 
@@ -31,6 +35,8 @@ namespace Synergio {
 			else {
 				info("BDD already loaded for NF ", nf->get_id(), " at ", path);
 			}
+
+			nf->set_bdd(bdds.at(path));
 		}
 		
 		success("BDDs loaded");
@@ -38,6 +44,8 @@ namespace Synergio {
 		return std::unique_ptr<Network>(new Network(move(devices), move(nfs), move(links), move(bdds)));
 	}
 
+
+	/* Public methods */
 	void Network::print() {
 		debug("Printing Network");
 

@@ -5,7 +5,7 @@
 namespace Synergio {
 	class Device {
 	private:
-		std::string id = "";
+		const std::string id;
 	public:
 		Device(const std::string &id);
 		~Device();

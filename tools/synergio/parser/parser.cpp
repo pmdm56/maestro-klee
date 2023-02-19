@@ -28,10 +28,9 @@ namespace Synergio {
 			throw runtime_error("Invalid device at line ");
 		}
 
-		string id { words[1] };
-		unique_ptr<Device> device = unique_ptr<Device>(new Device(id));
+		const string id { words[1] };
 
-		return device;
+		return  unique_ptr<Device>(new Device(id));
 	}
 
 	unique_ptr<NF> parse_nf(const vector<string> &words) {
@@ -39,12 +38,10 @@ namespace Synergio {
 			throw runtime_error("Invalid network function at line ");
 		}
 
-		string id { words[1] };
-		string path { words[2] };
+		const string id { words[1] };
+		const string path { words[2] };
 
-		unique_ptr<NF> nf = unique_ptr<NF>(new NF(id, path));
-
-		return nf;
+		return unique_ptr<NF>(new NF(id, path));;
 	}
 
 	unique_ptr<Link> parse_link(const vector<string> &words, const Devices &devices, const NFs &nfs) {
@@ -52,25 +49,23 @@ namespace Synergio {
 			throw runtime_error("Invalid link at line: ");
 		}
 
-		string node1 { words[1] };
-		string sport1 { words[2] };
-		unsigned port1 { stoul(sport1) };
+		const string node1 { words[1] };
+		const string sport1 { words[2] };
+		const unsigned port1 { stoul(sport1) };
 
 		if (nfs.find(node1) == nfs.end() && devices.find(node1) == devices.end()) { 
 			throw runtime_error("Could not find node " + node1 + " at line: ");
 		}
 
-		string node2 { words[3] };
-		string sport2 { words[4] };
-		unsigned port2 { stoul(sport2) };
+		const string node2 { words[3] };
+		const string sport2 { words[4] };
+		const unsigned port2 { stoul(sport2) };
 
 		if (nfs.find(node2) == nfs.end() && devices.find(node2) == devices.end()) { 
 			throw runtime_error("Could not find node " + node2 + " at line: ");
 		}
 
-		unique_ptr<Link> link = unique_ptr<Link>(new Link(node1, port1, node2, port2));
-
-		return link;
+		return unique_ptr<Link>(new Link(node1, port1, node2, port2));
 	}
 
 	unique_ptr<Network> parse(const string &network_file) {
@@ -78,8 +73,9 @@ namespace Synergio {
 
 		ifstream fstream = open_file(network_file);
 
-		Links links;
 		NFs nfs;
+		BDDs bdds;
+		Links links;
 		Devices devices;
 		
 		string line;

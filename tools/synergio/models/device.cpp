@@ -1,7 +1,6 @@
 #include "device.hpp"
 
 #include "../pch.hpp"
-
 #include "../util/logger.hpp"
 
 

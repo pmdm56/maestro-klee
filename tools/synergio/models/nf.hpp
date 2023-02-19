@@ -9,8 +9,8 @@
 namespace Synergio {
 	class NF {
 	private:
-		std::string id {""};
-		std::string path {""};
+		const std::string id;
+		const std::string path;
 		
 		std::shared_ptr<BDD::BDD> bdd {nullptr};
 	public:
