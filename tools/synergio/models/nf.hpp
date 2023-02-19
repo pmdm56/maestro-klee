@@ -20,6 +20,7 @@ namespace Synergio {
 		std::string get_id() const;
 		std::string get_path() const;
 		
+		std::shared_ptr<BDD::BDD> get_bdd() const;
 		void set_bdd(std::shared_ptr<BDD::BDD> bdd);
 
 		void print();

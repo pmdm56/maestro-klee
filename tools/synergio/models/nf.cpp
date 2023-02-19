@@ -18,6 +18,10 @@ namespace Synergio {
 		return path;
 	}
 
+	shared_ptr<BDD::BDD> NF::get_bdd() const {
+		return bdd;
+	}
+
 	void NF::set_bdd(shared_ptr<BDD::BDD> bdd) {
 		this->bdd = move(bdd);
 	}
