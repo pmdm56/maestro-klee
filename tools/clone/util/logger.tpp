@@ -1,6 +1,6 @@
 #include "../pch.hpp"
 
-namespace Synergio {
+namespace Clone {
     template<typename T>
     void print_arg(T&& arg) {
         std::cout << arg;

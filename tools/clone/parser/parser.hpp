@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 
-namespace Synergio {
+namespace Clone {
 	class Network;
 	
 	/** 

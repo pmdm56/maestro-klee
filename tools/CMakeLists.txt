@@ -27,4 +27,4 @@ add_subdirectory(packet-modification-detector)
 
 ## Disabling warnings for my code
 add_compile_options(-w)
-add_subdirectory(synergio)
+add_subdirectory(clone)

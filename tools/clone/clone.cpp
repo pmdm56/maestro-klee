@@ -4,7 +4,7 @@
 #include "models/network.hpp"
 
 void usage() {
-	cout << "Usage: synergio [input-file]" << endl;
+	cout << "Usage: clone [input-file]" << endl;
 }
 
 int main(int argc, char **argv) {
@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 	}
 
 	const string input_file {argv[1]};
-	auto network = Synergio::parse(input_file);
+	auto network = Clone::parse(input_file);
 
 	network->print();
 	network->consolidate();

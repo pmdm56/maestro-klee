@@ -7,7 +7,7 @@
 
 #include "call-paths-to-bdd.h"
 
-namespace Synergio {
+namespace Clone {
 	class NF;
 	class Link;
 	class Device;

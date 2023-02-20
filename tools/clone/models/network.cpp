@@ -11,7 +11,7 @@
 
 #include "call-paths-to-bdd.h"
 
-namespace Synergio {
+namespace Clone {
 
 	/* Constructors and destructors */
 	Network::Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds): devices(move(devices)), nfs(move(nfs)), links(move(links)), bdds(move(bdds)) {}

@@ -11,7 +11,7 @@
 #include "../models/link.hpp"
 #include "../models/network.hpp"
 
-namespace Synergio {
+namespace Clone {
 	ifstream open_file(const string &path) {
 		ifstream fstream;
 		fstream.open(path);

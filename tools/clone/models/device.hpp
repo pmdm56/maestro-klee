@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace Synergio {
+namespace Clone {
 	class Device {
 	private:
 		const std::string id;

@@ -6,7 +6,7 @@
 # License. See LICENSE.TXT for details.
 #
 #===------------------------------------------------------------------------===#
-file(GLOB_RECURSE synergio-sources
+file(GLOB_RECURSE clone-sources
   "*.cpp"
 )
 
@@ -31,8 +31,8 @@ list(FILTER call-paths-to-bdd-sources EXCLUDE REGEX ".*main\\.cpp$")
 list(FILTER bdd-reorderer-sources EXCLUDE REGEX ".*main\\.cpp$")
 list(FILTER expr-printer-sources EXCLUDE REGEX ".*main\\.cpp$")
 
-add_executable(synergio
-  ${synergio-sources}
+add_executable(clone
+  ${clone-sources}
   ${load-call-paths-sources}
   ${bdd-reorderer-sources}
   ${call-paths-to-bdd-sources}
@@ -44,7 +44,7 @@ set(KLEE_LIBS
   kleeCore
 )
 
-target_include_directories(synergio PRIVATE ../load-call-paths ../call-paths-to-bdd ../expr-printer)
-target_link_libraries(synergio ${KLEE_LIBS})
+target_include_directories(clone PRIVATE ../load-call-paths ../call-paths-to-bdd ../expr-printer)
+target_link_libraries(clone ${KLEE_LIBS})
 
-install(TARGETS synergio RUNTIME DESTINATION bin)
+install(TARGETS clone RUNTIME DESTINATION bin)

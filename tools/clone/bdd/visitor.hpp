@@ -2,7 +2,7 @@
 
 #include "call-paths-to-bdd.h"
 
-namespace Synergio {
+namespace Clone {
 	class Visitor: public BDD::BDDVisitor {
 		protected:
 			virtual Action visitBranch(const BDD::Branch *node) override;

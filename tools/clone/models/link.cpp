@@ -4,7 +4,7 @@
 
 #include "../util/logger.hpp"
 
-namespace Synergio {
+namespace Clone {
 	size_t Link::id_counter = 0;
 
 	Link::Link(const string &node1, const unsigned port1, const string &node2, const unsigned port2): 

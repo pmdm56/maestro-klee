@@ -4,7 +4,7 @@
 #include "../util/logger.hpp"
 
 
-namespace Synergio {
+namespace Clone {
 	Device::Device(const std::string &id) : id(id) {}
 
 	Device::~Device() = default;

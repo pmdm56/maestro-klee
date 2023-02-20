@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace Synergio {
+namespace Clone {
 	class Link {
 	private:
 		static size_t id_counter;

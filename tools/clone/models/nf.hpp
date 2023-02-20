@@ -6,7 +6,7 @@
 
 #include "call-paths-to-bdd.h"
 
-namespace Synergio {
+namespace Clone {
 	class NF {
 	private:
 		const std::string id;

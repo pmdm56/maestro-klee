@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Synergio {
+namespace Clone {
 	template<typename... Args>
 	void info(Args&&... args);
 
