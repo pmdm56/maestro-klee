@@ -11,19 +11,39 @@ namespace Clone {
 	class NF;
 	class Link;
 	class Device;
+	class Node;
 
+	/** Typedefs **/
+
+	/* Value: Link */
 	typedef std::vector<std::unique_ptr<Link>> Links;
+	
+	/* Key: NF name/identifier; Value: NF */
 	typedef std::unordered_map<std::string, std::unique_ptr<NF>> NFs;
-	typedef std::unordered_map<std::string, std::shared_ptr<BDD::BDD>> BDDs;
+
+	/* Key: Device name/identifier; Value: Device */
 	typedef std::unordered_map<std::string, std::unique_ptr<Device>> Devices;
 
+	/* Key: path; Value: BDD */
+	typedef std::unordered_map<std::string, std::shared_ptr<BDD::BDD>> BDDs;
+
+	/* Key: Node name/identifier; Value: Node */
+	typedef std::unordered_map<std::string, std::shared_ptr<Node>> Nodes;
+
+	/**
+	 * This class represents a network.
+	 * 
+	 * It contains all the devices, NFs and links.
+	*/
 	class Network {
 	private:
 		const NFs nfs;
-		const BDDs bdds;
-		const Devices devices;
 		const Links links;
+		const Devices devices;
+		const BDDs bdds;
 
+		Nodes nodes;
+		
 		enum class NodeType {
 			DEVICE,
 			NF
@@ -32,18 +52,14 @@ namespace Clone {
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 
 		NodeType get_node_type(const std::string &node_str) const;
-
-		void consolidate_device_to_device(const std::string &device_from, const unsigned port_from, const std::string &device_to, const unsigned port_to);
-		void consolidate_nf_to_device(const std::string &nf_from, const unsigned port_from, const std::string &device_to, const unsigned port_to);
-		void consolidate_device_to_nf(const std::string &device_from, const unsigned port_from, const std::string &nf_to, const unsigned port_to);
-		void consolidate_nf_to_nf(const std::string &nf_from, const unsigned port_from, const std::string &nf_to, const unsigned port_to);
+		
+		void build_graph();
 	public:
 		~Network();
 
 		static std::unique_ptr<Network> create(Devices &&devices, NFs &&nfs, Links &&links);
-
+		
 		void consolidate();
-
 		void print() const;
 	};
 }

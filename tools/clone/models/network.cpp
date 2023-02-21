@@ -6,6 +6,7 @@
 #include "device.hpp"
 #include "nf.hpp"
 #include "link.hpp"
+#include "node.hpp"
 
 #include "../bdd/visitor.hpp"
 
@@ -31,39 +32,38 @@ namespace Clone {
 		}
 	}
 
-	void Network::consolidate_device_to_device(const string &device_from, const unsigned port_from, const string &device_to, const unsigned port_to) {
-		info("Consolidating device to device");
-	}
+	void Network::build_graph() {
+		for(auto &link: links) {
+			const string &node1_str = link->get_node1();
+			const string &node2_str = link->get_node2();
 
-	void Network::consolidate_nf_to_device(const string &nf_from, const unsigned port_from, const string &device_to, const unsigned port_to) {
-		info("Consolidating NF to device");
+			const NodeType node1_type = get_node_type(node1_str);
+			const NodeType node2_type = get_node_type(node2_str);
 
-		const auto &nf = nfs.at(nf_from);
-		const auto &device = devices.at(device_to);
+			const unsigned port1 = link->get_port1();
+			const unsigned port2 = link->get_port2();
 
-		const auto &bdd = nf->get_bdd();
+			if(nodes.find(node1_str) == nodes.end()) {
+				nodes.emplace(node1_str, shared_ptr<Node>(new Node(node1_str)));
+			}
 
-		auto init = bdd->get_init();
+			if(nodes.find(node2_str) == nodes.end()) {
+				nodes.emplace(node2_str, shared_ptr<Node>(new Node(node2_str)));
+			}
 
-		Visitor visitor();
+			shared_ptr<Node> node1 = nodes.at(node1_str);
+			shared_ptr<Node> node2 = nodes.at(node2_str);
 
-	}
-
-	void Network::consolidate_device_to_nf(const string &device_from, const unsigned port_from, const string &nf_to, const unsigned port_to) {
-		info("Consolidating device to NF");
-	}
-
-	void Network::consolidate_nf_to_nf(const string &nf_from, const unsigned port_from, const string &nf_to, const unsigned port_to) {
-		info("Consolidating NF to NF");
+			node1->add_neighbour(port1, node2);
+		}
 	}
 
 	/* Static methods */
- 	std::unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
+ 	unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
 		info("Loading all BDDs");
 
 		BDDs bdds;
 
-		// Loading all BDDs onto a map where the key is the path to the BDD file and the value is the BDD itself
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
 			auto& nf = it->second;
 
@@ -82,7 +82,7 @@ namespace Clone {
 		
 		success("BDDs loaded");
 
-		return std::unique_ptr<Network>(new Network(move(devices), move(nfs), move(links), move(bdds)));
+		return unique_ptr<Network>(new Network(move(devices), move(nfs), move(links), move(bdds)));
 	}
 
 
@@ -96,34 +96,13 @@ namespace Clone {
 			danger("No links found");
 		}
 
-		for(auto &link: links) {
-			const string &node1_str = link->get_node1();
-			const string &node2_str = link->get_node2();
+		build_graph();
 
-			const NodeType node1_type = get_node_type(node1_str);
-			const NodeType node2_type = get_node_type(node2_str);
-
-			const unsigned port1 = link->get_port1();
-			const unsigned port2 = link->get_port2();
-
-			if(node1_type == NodeType::DEVICE && node2_type == NodeType::DEVICE) {
-				consolidate_device_to_device(node1_str, port1, node2_str, port2);
-			}
-			else if(node1_type == NodeType::NF && node2_type == NodeType::NF) {
-				consolidate_nf_to_nf(node1_str, port1, node2_str, port2);
-			}
-			else if(node1_type == NodeType::DEVICE && node2_type == NodeType::NF) {
-				consolidate_device_to_nf(node1_str, port1, node2_str, port2);
-			}
-			else if(node1_type == NodeType::NF && node2_type == NodeType::DEVICE) {
-				consolidate_nf_to_device(node1_str, port1, node2_str, port2);
-			}
-			else {
-				danger("Should never happen");
-			}
+		debug("Printing graph with ", nodes.size(), " nodes");
+		for(auto &node: nodes) {
+			node.second->print();
+			//node.second->print();
 		}
-
-		success("Network consolidated");
 	}
 
 	void Network::print() const {

@@ -30,7 +30,7 @@ namespace Clone {
 
 		const string id { words[1] };
 
-		return  unique_ptr<Device>(new Device(id));
+		return unique_ptr<Device>(new Device(id));
 	}
 
 	unique_ptr<NF> parse_nf(const vector<string> &words) {
@@ -94,7 +94,7 @@ namespace Clone {
 				continue;
 			}
 
-			const string &type = words[0];
+			const string type { words[0] };
 
 			try {
 				if(type == STRING_DEVICE) {
@@ -113,14 +113,14 @@ namespace Clone {
 					danger("Invalid line: ", line);
 				}
 			}
-			catch(const runtime_error &e) {
-				danger(e.what(), line);
-			}
 			catch(const invalid_argument &e) {
 				danger("Provide a valid port at line ->", line);
 			}
 			catch(const out_of_range &e) {
 				danger("Provide a valid port at line ->", line);
+			}
+			catch(const runtime_error &e) {
+				danger(e.what(), line);
 			}
 			catch(const exception &e) {
 				danger(e.what(), line);
