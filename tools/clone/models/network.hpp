@@ -1,9 +1,10 @@
 #pragma once
 
-#include <unordered_map>
 #include <vector>
 #include <string>
 #include <memory>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "call-paths-to-bdd.h"
 
@@ -30,6 +31,8 @@ namespace Clone {
 	/* Key: Node name/identifier; Value: Node */
 	typedef std::unordered_map<std::string, std::shared_ptr<Node>> Nodes;
 
+	typedef std::unordered_set<std::shared_ptr<Node>> NodeSet;
+
 	/**
 	 * This class represents a network.
 	 * 
@@ -37,23 +40,31 @@ namespace Clone {
 	*/
 	class Network {
 	private:
-		const NFs nfs;
-		const Links links;
-		const Devices devices;
-		const BDDs bdds;
-
-		Nodes nodes;
-		
 		enum class NodeType {
 			DEVICE,
 			NF
 		};
 
+		const NFs nfs;
+		const Links links;
+		const Devices devices;
+		const BDDs bdds;
+
+		/* All the nodes in the network */
+		Nodes nodes;
+
+		/* Nodes where traffic can start */
+		NodeSet sources;
+
+		/* Nodes where traffic can end */
+		NodeSet sinks;
+	
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 
 		NodeType get_node_type(const std::string &node_str) const;
 		
 		void build_graph();
+		void print_graph() const;
 	public:
 		~Network();
 

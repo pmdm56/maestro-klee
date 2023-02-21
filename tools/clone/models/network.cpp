@@ -55,13 +55,49 @@ namespace Clone {
 			shared_ptr<Node> node2 = nodes.at(node2_str);
 
 			node1->add_neighbour(port1, node2);
+			
+			if(node1_type == NodeType::DEVICE) {
+				sources.insert(node1);
+			}
+
+			if(node2_type == NodeType::DEVICE) {
+				sinks.insert(node2);
+			}
+		}
+	}
+
+	void Network::print_graph() const {
+		for(auto &node: nodes) {
+			node.second->print();
+		}
+
+		debug("Sources: ");
+		for(auto &source: sources) {
+			debug(source->get_name());
+		}
+
+		debug("Sinks: ");
+		for(auto &sink: sinks) {
+			debug(sink->get_name());
 		}
 	}
 
 	/* Static methods */
  	unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
-		info("Loading all BDDs");
+		if(devices.size() == 0) {
+			danger("No devices found");
+		}
 
+		if(nfs.size() == 0) {
+			danger("No NFs found");
+		}
+
+		if(links.size() == 0) {
+			danger("No links found");
+		}
+
+		info("Loading all BDDs");
+		
 		BDDs bdds;
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
@@ -90,19 +126,10 @@ namespace Clone {
 	void Network::consolidate() {
 		info("Starting network consolidation");
 
-		const unique_ptr<BDD::BDD> global_bdd { nullptr };
-
-		if(links.size() == 0) {
-			danger("No links found");
-		}
-
 		build_graph();
+		print_graph();
 
-		debug("Printing graph with ", nodes.size(), " nodes");
-		for(auto &node: nodes) {
-			node.second->print();
-			//node.second->print();
-		}
+		success("Finished network consolidation");
 	}
 
 	void Network::print() const {
