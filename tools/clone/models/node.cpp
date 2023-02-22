@@ -4,7 +4,7 @@
 #include "../util/logger.hpp"
 
 namespace Clone {
-	Node::Node(const std::string &name): name(name), neighbours() {
+	Node::Node(const std::string &name, NodeType node_type): name(name), node_type(node_type), children(), parents() {
 		debug("Creating node for ", name);
 	}
 
@@ -16,18 +16,26 @@ namespace Clone {
 		return name;
 	}
 
-	unordered_map<unsigned, shared_ptr<Node>> Node::get_neighbours() const {
-		return neighbours;
+	unordered_map<unsigned, std::shared_ptr<Node>> Node::get_parents() const {
+		return parents;
 	}
 
-	void Node::add_neighbour(unsigned port, const shared_ptr<Node> &neighbour) {
-		neighbours[port] = neighbour;
+	unordered_map<unsigned, std::shared_ptr<Node>> Node::get_children() const {
+		return children;
+	}
+
+	void Node::add_parent(unsigned port, const shared_ptr<Node> &node) {
+		parents[port] = node;
+	}
+
+	void Node::add_child(unsigned port, const shared_ptr<Node> &node) {
+		children[port] = node;
 	}
 
 	void Node::print() const {
 		cout << "Node(" << name << ")" << endl;
 
-		for(auto &neighbour: this->get_neighbours()) {
+		for(auto &neighbour: this->get_children()) {
 			cout << " - Port " << neighbour.first << ": " << neighbour.second->get_name() << std::endl;
 		}
 	}

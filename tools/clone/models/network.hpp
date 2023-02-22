@@ -31,6 +31,7 @@ namespace Clone {
 	/* Key: Node name/identifier; Value: Node */
 	typedef std::unordered_map<std::string, std::shared_ptr<Node>> Nodes;
 
+	/* Set of nodes */
 	typedef std::unordered_set<std::shared_ptr<Node>> NodeSet;
 
 	/**
@@ -40,11 +41,6 @@ namespace Clone {
 	*/
 	class Network {
 	private:
-		enum class NodeType {
-			DEVICE,
-			NF
-		};
-
 		const NFs nfs;
 		const Links links;
 		const Devices devices;
@@ -60,10 +56,10 @@ namespace Clone {
 		NodeSet sinks;
 	
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
-
-		NodeType get_node_type(const std::string &node_str) const;
 		
 		void build_graph();
+		void traverse_tree(const std::shared_ptr<Node> &node);
+		void traverse_all_sources();
 		void print_graph() const;
 	public:
 		~Network();

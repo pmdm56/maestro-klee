@@ -20,41 +20,31 @@ namespace Clone {
 	Network::~Network() = default;
 
 	/* Private methods */
-	Network::NodeType Network::get_node_type(const string &node_str) const {
-		if(devices.find(node_str) != devices.end()) {
-			return NodeType::DEVICE;
-		}
-		else if(nfs.find(node_str) != nfs.end()) {
-			return NodeType::NF;
-		}
-		else {
-			throw runtime_error("Node " + node_str + " not found");
-		}
-	}
 
 	void Network::build_graph() {
 		for(auto &link: links) {
 			const string &node1_str = link->get_node1();
 			const string &node2_str = link->get_node2();
 
-			const NodeType node1_type = get_node_type(node1_str);
-			const NodeType node2_type = get_node_type(node2_str);
+			const NodeType node1_type = devices.find(node1_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
+			const NodeType node2_type = devices.find(node2_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
 
 			const unsigned port1 = link->get_port1();
 			const unsigned port2 = link->get_port2();
 
 			if(nodes.find(node1_str) == nodes.end()) {
-				nodes.emplace(node1_str, shared_ptr<Node>(new Node(node1_str)));
+				nodes.emplace(node1_str, shared_ptr<Node>(new Node(node1_str, node1_type)));
 			}
 
 			if(nodes.find(node2_str) == nodes.end()) {
-				nodes.emplace(node2_str, shared_ptr<Node>(new Node(node2_str)));
+				nodes.emplace(node2_str, shared_ptr<Node>(new Node(node2_str, node2_type)));
 			}
 
 			shared_ptr<Node> node1 = nodes.at(node1_str);
 			shared_ptr<Node> node2 = nodes.at(node2_str);
 
-			node1->add_neighbour(port1, node2);
+			node1->add_child(port1, node2);
+			node2->add_parent(port2, node1);
 			
 			if(node1_type == NodeType::DEVICE) {
 				sources.insert(node1);
@@ -64,7 +54,29 @@ namespace Clone {
 				sinks.insert(node2);
 			}
 		}
+
+		if(sources.size() == 0) {
+			danger("No sources found");
+		}
+
+		if(sinks.size() == 0) {
+			danger("No sinks found");
+		}
 	}
+
+	void Network::traverse_tree(const shared_ptr<Node> &node) {
+		for(auto &neighbour: node->get_children()) {
+
+		}
+	}
+	
+	void Network::traverse_all_sources() {
+		for(auto &source: sources) {
+			info("Now traversing flow starting at ", source->get_name());
+			traverse_tree(source);
+		}
+	}
+
 
 	void Network::print_graph() const {
 		for(auto &node: nodes) {
@@ -127,7 +139,7 @@ namespace Clone {
 		info("Starting network consolidation");
 
 		build_graph();
-		print_graph();
+		traverse_all_sources();
 
 		success("Finished network consolidation");
 	}

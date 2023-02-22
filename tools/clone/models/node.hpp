@@ -6,20 +6,30 @@
 
 
 namespace Clone {
+	enum class NodeType {
+		DEVICE,
+		NF
+	};
+
 	class Node {
 	private:
 		const std::string name;
-		std::unordered_map<unsigned, std::shared_ptr<Node>> neighbours;
+		const NodeType node_type;
+
+		std::unordered_map<unsigned, std::shared_ptr<Node>>  parents;
+		std::unordered_map<unsigned, std::shared_ptr<Node>>  children;
 
 	public:
-		Node(const std::string &name);
+		Node(const std::string &name, NodeType node_type);
 		~Node();
 
 		std::string get_name() const;
-		std::unordered_map<unsigned, std::shared_ptr<Node>> get_neighbours() const;
+		NodeType get_node_type() const;
+		std::unordered_map<unsigned, std::shared_ptr<Node>> get_parents() const;
+		std::unordered_map<unsigned, std::shared_ptr<Node>> get_children() const;
 
-		void add_neighbour(unsigned port, const std::shared_ptr<Node> &neighbour);
-
+		void add_parent(unsigned port, const std::shared_ptr<Node> &node);
+		void add_child(unsigned port, const std::shared_ptr<Node> &node);
 
 		void print() const;
 	};
