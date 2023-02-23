@@ -64,16 +64,26 @@ namespace Clone {
 		}
 	}
 
-	void Network::traverse_tree(const shared_ptr<Node> &node) {
-		for(auto &neighbour: node->get_children()) {
+	void Network::traverse_node(const shared_ptr<Node> &node, vector<unsigned> &input_ports) {
+		if(visited.find(node) != visited.end()) {
+			return;
+		}
 
+		visited.insert(node);
+
+		for(auto &child: node->get_children()) {
+			info("Traversing flow from ", node->get_name(), " to ", child.second->get_name(), " through port ", child.first);
+			vector<unsigned> ports{child.first};
+			traverse_node(child.second, ports);
 		}
 	}
 	
 	void Network::traverse_all_sources() {
 		for(auto &source: sources) {
 			info("Now traversing flow starting at ", source->get_name());
-			traverse_tree(source);
+			vector<unsigned> input_ports;
+			visited.clear();
+			traverse_node(source, input_ports);
 		}
 	}
 

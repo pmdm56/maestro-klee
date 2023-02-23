@@ -54,11 +54,13 @@ namespace Clone {
 
 		/* Nodes where traffic can end */
 		NodeSet sinks;
+
+		NodeSet visited;
 	
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 		
 		void build_graph();
-		void traverse_tree(const std::shared_ptr<Node> &node);
+		void traverse_node(const std::shared_ptr<Node> &node, std::vector<unsigned> &input_ports);
 		void traverse_all_sources();
 		void print_graph() const;
 	public:
