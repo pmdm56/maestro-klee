@@ -3,7 +3,7 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
-#include "call-paths-to-bdd.h"
+#include "../bdd/bdd.hpp"
 
 namespace Clone {
 	NF::NF(const std::string &id, const std::string &path) : id(id), path(path) {}
@@ -18,11 +18,11 @@ namespace Clone {
 		return path;
 	}
 
-	shared_ptr<BDD::BDD> NF::get_bdd() const {
+	shared_ptr<BDD> NF::get_bdd() const {
 		return bdd;
 	}
 
-	void NF::set_bdd(shared_ptr<BDD::BDD> bdd) {
+	void NF::set_bdd(shared_ptr<BDD> bdd) {
 		this->bdd = move(bdd);
 	}
 

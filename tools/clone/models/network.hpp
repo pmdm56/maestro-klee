@@ -6,13 +6,13 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "call-paths-to-bdd.h"
-
 namespace Clone {
 	class NF;
 	class Link;
 	class Device;
 	class Node;
+
+	class BDD;
 
 	/** Typedefs **/
 
@@ -26,7 +26,7 @@ namespace Clone {
 	typedef std::unordered_map<std::string, std::unique_ptr<Device>> Devices;
 
 	/* Key: path; Value: BDD */
-	typedef std::unordered_map<std::string, std::shared_ptr<BDD::BDD>> BDDs;
+	typedef std::unordered_map<std::string, std::shared_ptr<BDD>> BDDs;
 
 	/* Key: Node name/identifier; Value: Node */
 	typedef std::unordered_map<std::string, std::shared_ptr<Node>> Nodes;

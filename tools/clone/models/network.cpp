@@ -8,9 +8,7 @@
 #include "link.hpp"
 #include "node.hpp"
 
-#include "../bdd/visitor.hpp"
-
-#include "call-paths-to-bdd.h"
+#include "../bdd/bdd.hpp"
 
 namespace Clone {
 
@@ -43,8 +41,7 @@ namespace Clone {
 			shared_ptr<Node> node1 = nodes.at(node1_str);
 			shared_ptr<Node> node2 = nodes.at(node2_str);
 
-			node1->add_child(port1, node2);
-			node2->add_parent(port2, node1);
+			node1->add_child(port1, port2, node2);
 			
 			if(node1_type == NodeType::DEVICE) {
 				sources.insert(node1);
@@ -69,12 +66,25 @@ namespace Clone {
 			return;
 		}
 
+		switch(node->get_node_type()) {
+			case NodeType::DEVICE: {
+				break;
+			}
+			case NodeType::NF: {
+				break;
+			}
+		}
+
 		visited.insert(node);
 
-		for(auto &child: node->get_children()) {
-			info("Traversing flow from ", node->get_name(), " to ", child.second->get_name(), " through port ", child.first);
-			vector<unsigned> ports{child.first};
-			traverse_node(child.second, ports);
+		for(auto &p: node->get_children()) {
+			unsigned port_src = p.first;
+			unsigned port_dst = p.second.first;
+			auto &child = p.second.second;
+
+			info("Traversing from ", node->get_name(), " to ", child->get_name(), " on port ", port_src, " to port ", port_dst);
+			vector<unsigned> ports{port_dst};
+			traverse_node(child, ports);
 		}
 	}
 	
@@ -128,7 +138,7 @@ namespace Clone {
 			const string &path = nf->get_path();
 
 			if(bdds.find(path) == bdds.end()) {
-				bdds.emplace(path, shared_ptr<BDD::BDD>(new BDD::BDD(path)));
+				bdds.emplace(path, shared_ptr<BDD>(new BDD(path)));
 				info("BDD loaded for NF ", nf->get_id(), " at ", path);
 			}
 			else {

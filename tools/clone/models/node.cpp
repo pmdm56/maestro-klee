@@ -4,7 +4,7 @@
 #include "../util/logger.hpp"
 
 namespace Clone {
-	Node::Node(const std::string &name, NodeType node_type): name(name), node_type(node_type), children(), parents() {
+	Node::Node(const std::string &name, NodeType node_type): name(name), node_type(node_type), children() {
 		debug("Creating node for ", name);
 	}
 
@@ -16,27 +16,26 @@ namespace Clone {
 		return name;
 	}
 
-	unordered_map<unsigned, std::shared_ptr<Node>> Node::get_parents() const {
-		return parents;
+	NodeType Node::get_node_type() const {
+		return node_type;
 	}
 
-	unordered_map<unsigned, std::shared_ptr<Node>> Node::get_children() const {
+	std::unordered_map<unsigned, std::pair<unsigned, std::shared_ptr<Node>>> Node::get_children() const {
 		return children;
 	}
 
-	void Node::add_parent(unsigned port, const shared_ptr<Node> &node) {
-		parents[port] = node;
-	}
-
-	void Node::add_child(unsigned port, const shared_ptr<Node> &node) {
-		children[port] = node;
+	void Node::add_child(unsigned port_src, unsigned port_dst, const shared_ptr<Node> &node) {
+		children[port_src] = std::make_pair(port_dst, node);
 	}
 
 	void Node::print() const {
 		cout << "Node(" << name << ")" << endl;
 
-		for(auto &neighbour: this->get_children()) {
-			cout << " - Port " << neighbour.first << ": " << neighbour.second->get_name() << std::endl;
+		for(auto &child: this->get_children()) {
+			unsigned port_src = child.first;
+			unsigned port_dst = child.second.first;
+			auto &child_node = child.second.second;
+			cout << " - Port " << port_src << " -> " << child_node->get_name() << ":" << port_dst << std::endl;
 		}
 	}
 }

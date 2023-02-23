@@ -4,15 +4,16 @@
 #include <unordered_map>
 #include <memory>
 
-#include "call-paths-to-bdd.h"
-
 namespace Clone {
+	class BDD;
+
+
 	class NF {
 	private:
 		const std::string id;
 		const std::string path;
 		
-		std::shared_ptr<BDD::BDD> bdd {nullptr};
+		std::shared_ptr<BDD> bdd {nullptr};
 	public:
 		NF(const std::string &id, const std::string &path);
 		~NF();
@@ -20,8 +21,8 @@ namespace Clone {
 		std::string get_id() const;
 		std::string get_path() const;
 		
-		std::shared_ptr<BDD::BDD> get_bdd() const;
-		void set_bdd(std::shared_ptr<BDD::BDD> bdd);
+		std::shared_ptr<BDD> get_bdd() const;
+		void set_bdd(std::shared_ptr<BDD> bdd);
 
 		void print();
 	};

@@ -16,8 +16,7 @@ namespace Clone {
 		const std::string name;
 		const NodeType node_type;
 
-		std::unordered_map<unsigned, std::shared_ptr<Node>>  parents;
-		std::unordered_map<unsigned, std::shared_ptr<Node>>  children;
+		std::unordered_map<unsigned, std::pair<unsigned, std::shared_ptr<Node>>> children;
 
 	public:
 		Node(const std::string &name, NodeType node_type);
@@ -25,11 +24,10 @@ namespace Clone {
 
 		std::string get_name() const;
 		NodeType get_node_type() const;
-		std::unordered_map<unsigned, std::shared_ptr<Node>> get_parents() const;
-		std::unordered_map<unsigned, std::shared_ptr<Node>> get_children() const;
 
-		void add_parent(unsigned port, const std::shared_ptr<Node> &node);
-		void add_child(unsigned port, const std::shared_ptr<Node> &node);
+		std::unordered_map<unsigned, std::pair<unsigned, std::shared_ptr<Node>>> get_children() const;
+
+		void add_child(unsigned port_from, unsigned port_to, const std::shared_ptr<Node> &node);
 
 		void print() const;
 	};
