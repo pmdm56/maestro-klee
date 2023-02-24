@@ -33,3 +33,5 @@ using std::invalid_argument;
 using std::range_error;
 using std::out_of_range;
 using std::exception;
+
+constexpr int NO_CONSTRAINT = -1;

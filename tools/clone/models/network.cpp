@@ -61,18 +61,15 @@ namespace Clone {
 		}
 	}
 
-	void Network::traverse_node(const shared_ptr<Node> &node, vector<unsigned> &input_ports) {
+	void Network::traverse_node(const shared_ptr<Node> &node, int constraint) {
 		if(visited.find(node) != visited.end()) {
 			return;
 		}
 
-		switch(node->get_node_type()) {
-			case NodeType::DEVICE: {
-				break;
-			}
-			case NodeType::NF: {
-				break;
-			}
+		/* Only process BDD if it's a Network Function */
+		if(node->get_node_type() == NodeType::NF) {
+			auto &nf =nfs.at(node->get_name());
+			nf->process_bdd(constraint);
 		}
 
 		visited.insert(node);
@@ -83,8 +80,7 @@ namespace Clone {
 			auto &child = p.second.second;
 
 			info("Traversing from ", node->get_name(), " to ", child->get_name(), " on port ", port_src, " to port ", port_dst);
-			vector<unsigned> ports{port_dst};
-			traverse_node(child, ports);
+			traverse_node(child, port_dst);
 		}
 	}
 	
@@ -93,7 +89,7 @@ namespace Clone {
 			info("Now traversing flow starting at ", source->get_name());
 			vector<unsigned> input_ports;
 			visited.clear();
-			traverse_node(source, input_ports);
+			traverse_node(source, NO_CONSTRAINT);
 		}
 	}
 

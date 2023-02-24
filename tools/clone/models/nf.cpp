@@ -26,6 +26,13 @@ namespace Clone {
 		this->bdd = move(bdd);
 	}
 
+	void NF::process_bdd(int constraint) {
+		if(bdd == nullptr) 	danger("BDD is null");
+
+		bdd->init(constraint);
+		bdd->process(constraint);
+	}
+
 	void NF::print() {
 		debug("NF ", id, " from ", path);
 	}

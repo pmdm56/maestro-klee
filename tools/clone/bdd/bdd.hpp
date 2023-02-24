@@ -11,13 +11,13 @@ namespace Clone {
 	typedef std::unique_ptr<KleeBDD::BDD> kBDD;
 
 	class BDD {
-		/**
-		 * @brief BDD object
-		 * 
-		 * @note This is a wrapper around the BDD object from KleeBDD
-		 * 
-		 * @todo Add more methods to this class
-		 */
+	/**
+	 * @brief BDD object
+	 * 
+	 * @note This is a wrapper around the BDD object from KleeBDD
+	 * 
+	 * @todo Add more methods to this class
+	 */
 
 		private:
 			kBDD bdd;
@@ -25,5 +25,8 @@ namespace Clone {
 		public:
 			BDD(const std::string &path);
 			~BDD() = default;
+
+			void init(int constraint);
+			void process(int constraint);
 	};
 }

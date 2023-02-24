@@ -24,6 +24,7 @@ namespace Clone {
 		std::shared_ptr<BDD> get_bdd() const;
 		void set_bdd(std::shared_ptr<BDD> bdd);
 
+		void process_bdd(int constraint);
 		void print();
 	};
 
