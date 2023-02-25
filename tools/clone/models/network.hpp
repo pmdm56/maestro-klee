@@ -60,6 +60,7 @@ namespace Clone {
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 		
 		void build_graph();
+		void traverse_nf(const std::unique_ptr<NF> &nf, std::vector<unsigned> &constraints);
 		void traverse_node(const std::shared_ptr<Node> &node, std::vector<unsigned> &constraints);
 		void traverse_all_sources();
 		void print_graph() const;

@@ -22,8 +22,8 @@ namespace Clone {
 
 	/* Public Methods*/
 	
-	void BDD::traverse(vector<unsigned> &constraints) {
-		unique_ptr<Visitor> visitor(new Visitor(constraints));
-		visitor->visit(*bdd);
+	void BDD::visit(Visitor &visitor) const {
+		auto kbdd = this->bdd.get();
+		visitor.visit(*kbdd);
 	}
 }

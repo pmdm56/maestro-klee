@@ -25,7 +25,6 @@ namespace Clone {
 		std::shared_ptr<BDD> get_bdd() const;
 		void set_bdd(std::shared_ptr<BDD> bdd);
 
-		void traverse_bdd(std::vector<unsigned> &constraints);
 		void print();
 	};
 

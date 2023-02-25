@@ -9,6 +9,8 @@
 using KleeBDD = BDD::BDD;
 
 namespace Clone {
+	class Visitor;
+
 	/**
 	 * @brief BDD object
 	 * 
@@ -30,6 +32,7 @@ namespace Clone {
 			static std::unique_ptr<BDD> create(const std::string &path);
 
 			/* Public methods */
-			void traverse(std::vector<unsigned> &constraints);
+			void visit(Visitor &visitor) const;
+
 	};
 }

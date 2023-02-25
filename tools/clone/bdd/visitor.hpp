@@ -17,6 +17,8 @@ using BDD::BDDVisitor;
 using Action = BDD::BDDVisitor::Action;
 
 namespace Clone {
+	class BDD;
+	
 	class Visitor : public BDDVisitor {
 	private:
 		std::vector<unsigned> constraints;
@@ -27,13 +29,15 @@ namespace Clone {
 		Action visitReturnProcess(const ReturnProcess *node) override;
 		Action visitReturnRaw(const ReturnRaw *node) ;
 
-		void visitInitRoot(const Node *root) override;
-		void visitProcessRoot(const Node *root) override;
+		void visitBDD(const BDD *bdd);
+		void visitInitRoot(const Node *root) ;
+		void visitProcessRoot(const Node *root) ;
 	public:
 		Visitor();
 		Visitor(std::vector<unsigned> &constraintInputPort);
 		~Visitor();
 		
+		void visit(const BDD &bdd);
 		void visit(const KleeBDD &bdd) override;
 	};
 }

@@ -23,15 +23,7 @@ namespace Clone {
 	}
 
 	void NF::set_bdd(shared_ptr<BDD> bdd) {
-		this->bdd = move(bdd);
-	}
-
-	void NF::traverse_bdd(vector<unsigned> &constraints) {
-		if(bdd == nullptr) danger("BDD is null");
-
-		info("Traversing BDD for NF ", id);
-
-		bdd->traverse(constraints);
+		this->bdd = bdd;
 	}
 
 	void NF::print() {

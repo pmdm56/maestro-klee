@@ -3,6 +3,8 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
+#include "bdd.hpp"
+
 namespace Clone {
 	/* Constructors and destructors */
 
@@ -12,6 +14,9 @@ namespace Clone {
 
 
 	/* Protected methods */
+	void Visitor::visitBDD(const BDD *bdd) {
+		bdd->visit(*this);
+	}
 
 	void Visitor::visitInitRoot(const Node *root) {
 		debug("Visiting init root");
@@ -50,6 +55,10 @@ namespace Clone {
 
 
 	/* Public methods */
+
+	void Visitor::visit(const BDD &bdd) {
+		visitBDD(&bdd);
+	}
 
 	void Visitor::visit(const KleeBDD &bdd)  {
 		assert(bdd.get_init() != nullptr);

@@ -8,12 +8,15 @@
 #include "link.hpp"
 #include "node.hpp"
 
+
 #include "../bdd/bdd.hpp"
+#include "../bdd/visitor.hpp"
 
 namespace Clone {
 
 	/* Constructors and destructors */
-	Network::Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds): devices(move(devices)), nfs(move(nfs)), links(move(links)), bdds(move(bdds)) {}
+	Network::Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds): 
+						devices(move(devices)), nfs(move(nfs)), links(move(links)), bdds(move(bdds)) {}
 	
 	Network::~Network() = default;
 
@@ -61,15 +64,25 @@ namespace Clone {
 		}
 	}
 
-	void Network::traverse_node(const shared_ptr<Node> &node, vector<unsigned> &constraints) {
-		if(visited.find(node) != visited.end()) {
-			return;
+	void Network::traverse_nf(const unique_ptr<NF> &nf, vector<unsigned> &constraints) {
+		assert(nf->get_bdd() != nullptr);
+		const auto &bdd { nf->get_bdd() };
+
+		info("Traversing BDD for NF: " + nf->get_id() + " with constraints: ");
+		for(auto &constraint: constraints) {
+			info(" - Constraint " + to_string(constraint));
 		}
 
-		/* Only process BDD if it's a Network Function */
+		unique_ptr<Visitor> visitor(new Visitor(constraints));
+		visitor->visit(*bdd);
+	}
+
+	void Network::traverse_node(const shared_ptr<Node> &node, vector<unsigned> &constraints) {
 		if(node->get_node_type() == NodeType::NF) {
-			auto &nf =nfs.at(node->get_name());
-			nf->traverse_bdd(constraints);
+			assert(nfs.find(node->get_name()) != nfs.end());
+			const auto &nf { nfs.at(node->get_name()) };
+
+			traverse_nf(nf, constraints);
 		}
 
 		visited.insert(node);
@@ -78,6 +91,8 @@ namespace Clone {
 			unsigned port_src = p.first;
 			unsigned port_dst = p.second.first;
 			auto &child = p.second.second;
+
+			if(visited.find(child) != visited.end()) continue;
 			
 			constraints.push_back(port_dst);
 			traverse_node(child, constraints);
@@ -87,6 +102,7 @@ namespace Clone {
 	void Network::traverse_all_sources() {
 		for(auto &source: sources) {
 			vector<unsigned> constraints;
+			info("Traversing source: " + source->get_name());
 			traverse_node(source, constraints);
 
 			visited.clear();
