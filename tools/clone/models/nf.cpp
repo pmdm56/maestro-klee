@@ -28,9 +28,6 @@ namespace Clone {
 
 	void NF::process_bdd(int constraint) {
 		if(bdd == nullptr) 	danger("BDD is null");
-
-		bdd->init(constraint);
-		bdd->process(constraint);
 	}
 
 	void NF::print() {

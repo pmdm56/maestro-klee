@@ -40,13 +40,7 @@ namespace Clone {
 		root->visit(*this);
 	}
 
-	void Visitor::visit(const KleeBDD::BDD &bdd)  {
-		assert(bdd.get_init());
-		visitInitRoot(bdd.get_init().get());
-
-		assert(bdd.get_process());
-		visitProcessRoot(bdd.get_process().get());
-
+	void Visitor::visit(const KleeBDD &bdd)  {
+		info("Hello friend");
 	}
-
 }

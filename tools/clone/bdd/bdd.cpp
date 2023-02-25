@@ -6,22 +6,24 @@
 #include "visitor.hpp"
 
 namespace Clone {
-	BDD::BDD(unique_ptr<KleeBDD::BDD> bdd) : bdd(move(bdd)) {}
+	/* Constructors and destructors */
+
+	BDD::BDD(unique_ptr<KleeBDD> bdd) : bdd(move(bdd)) {}
 
 	BDD::~BDD() = default;
 
+
+	/* Static Methods */
+
 	unique_ptr<BDD> BDD::create(const std::string &path) {
-		return unique_ptr<BDD>(new BDD(unique_ptr<KleeBDD::BDD>(new KleeBDD::BDD(path))));
+		return unique_ptr<BDD>(new BDD(unique_ptr<KleeBDD>(new KleeBDD(path)))); 
 	}
+	
 
-	void BDD::init(int constraint) {
-		const auto &node = bdd->get_init();
-		//unique_ptr<Visitor> visitor(new Visitor());
-
-		//visitor->visit(bdd.get())
-	}
-
-	void BDD::process(int constraint) {
-
+	/* Public Methods*/
+	
+	void BDD::traverse() {
+		Visitor visitor;
+		visitor.visit(*bdd);
 	}
 }

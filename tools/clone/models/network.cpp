@@ -85,8 +85,6 @@ namespace Clone {
 	
 	void Network::traverse_all_sources() {
 		for(auto &source: sources) {
-			vector<unsigned> input_ports;
-			visited.clear();
 			traverse_node(source, NO_CONSTRAINT);
 		}
 	}

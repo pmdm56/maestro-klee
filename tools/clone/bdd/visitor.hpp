@@ -2,16 +2,15 @@
 
 #include "call-paths-to-bdd.h"
 
-namespace KleeBDD = BDD; // alias to avoid conflicts with the class name
+using KleeBDD = BDD::BDD;
 
-using KleeBDD::Branch;
-using KleeBDD::Call;
-using KleeBDD::ReturnInit;
-using KleeBDD::ReturnProcess;
-using KleeBDD::Node;
-using KleeBDD::ReturnRaw;
-using KleeBDD::BDD;
-using KleeBDD::BDDVisitor;
+using BDD::Branch;
+using BDD::Call;
+using BDD::ReturnInit;
+using BDD::ReturnProcess;
+using BDD::Node;
+using BDD::ReturnRaw;
+using BDD::BDDVisitor;
 
 namespace Clone {
 	class Visitor : public BDDVisitor {
@@ -28,6 +27,6 @@ namespace Clone {
 		Visitor();
 		~Visitor();
 
-		void visit(const KleeBDD::BDD &bdd) override;
+		void visit(const KleeBDD &bdd) override;
 	};
 }

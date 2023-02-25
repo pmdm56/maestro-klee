@@ -5,11 +5,9 @@
 
 #include "call-paths-to-bdd.h"
 
-namespace KleeBDD = BDD; // alias to avoid conflicts with the class name
+using KleeBDD = BDD::BDD;
 
 namespace Clone {
-	typedef const std::unique_ptr<KleeBDD::BDD> kBDD;
-
 	/**
 	 * @brief BDD object
 	 * 
@@ -18,14 +16,19 @@ namespace Clone {
 	*/
 	class BDD {
 		private:
-			kBDD bdd;
-			BDD(std::unique_ptr<KleeBDD::BDD> bdd);
+			/* Member variables */
+			const std::unique_ptr<KleeBDD> bdd;
+
+			/* Constructors and destructors */
+			BDD(std::unique_ptr<KleeBDD> bdd);
 		public:
+			/* Constructors and destructors */
 			~BDD();
 			
+			/* Static methods */
 			static std::unique_ptr<BDD> create(const std::string &path);
 
-			void init(int constraint);
-			void process(int constraint);
+			/* Public methods */
+			void traverse();
 	};
 }
