@@ -30,10 +30,5 @@ namespace Clone {
 		~Visitor();
 		
 		void visit(const KleeBDD &bdd) override;
-		void visit(const Branch *node);
-  		void visit(const Call *node);
-  		void visit(const ReturnInit *node);
-  		void visit(const ReturnProcess *node);
-  		void visit(const ReturnRaw *node);
 	};
 }
