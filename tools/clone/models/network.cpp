@@ -69,7 +69,7 @@ namespace Clone {
 		/* Only process BDD if it's a Network Function */
 		if(node->get_node_type() == NodeType::NF) {
 			auto &nf =nfs.at(node->get_name());
-			nf->process_bdd(constraint);
+			nf->traverse_bdd(constraint);
 		}
 
 		visited.insert(node);
@@ -86,6 +86,8 @@ namespace Clone {
 	void Network::traverse_all_sources() {
 		for(auto &source: sources) {
 			traverse_node(source, NO_CONSTRAINT);
+
+			visited.clear();
 		}
 	}
 

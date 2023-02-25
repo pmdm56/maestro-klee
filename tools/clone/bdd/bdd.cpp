@@ -23,7 +23,7 @@ namespace Clone {
 	/* Public Methods*/
 	
 	void BDD::traverse() {
-		Visitor visitor;
-		visitor.visit(*bdd);
+		unique_ptr<Visitor> visitor(new Visitor());
+		visitor->visit(*bdd);
 	}
 }
