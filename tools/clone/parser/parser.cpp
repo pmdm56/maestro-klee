@@ -69,8 +69,6 @@ namespace Clone {
 	}
 
 	unique_ptr<Network> parse(const string &network_file) {
-		info("Parsing network ", network_file);
-
 		ifstream fstream = open_file(network_file);
 
 		NFs nfs;
@@ -90,7 +88,6 @@ namespace Clone {
 			}
 
 			if(words.size() == 0) {
-				warn("Empty line found while parsing input");
 				continue;
 			}
 
@@ -129,8 +126,6 @@ namespace Clone {
 				danger("Unknown error while parsing line:", line);
 			}
 		}
-
-		success("Parsed network " + network_file);
 
 		return Network::create(move(devices), move(nfs), move(links));
 	}

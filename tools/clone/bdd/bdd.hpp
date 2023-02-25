@@ -22,6 +22,7 @@ namespace Clone {
 		private:
 			kBDD bdd;
 
+			void traverse(const KleeBDD::BDDNode_ptr &node);
 		public:
 			BDD(const std::string &path);
 			~BDD() = default;

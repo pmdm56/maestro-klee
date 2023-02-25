@@ -4,13 +4,9 @@
 #include "../util/logger.hpp"
 
 namespace Clone {
-	Node::Node(const std::string &name, NodeType node_type): name(name), node_type(node_type), children() {
-		debug("Creating node for ", name);
-	}
+	Node::Node(const std::string &name, NodeType node_type): name(name), node_type(node_type), children() {}
 
-	Node::~Node() {
-		info("Node destroyed");
-	}
+	Node::~Node() {}
 
 	string Node::get_name() const {
 		return name;

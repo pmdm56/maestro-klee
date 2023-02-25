@@ -79,14 +79,12 @@ namespace Clone {
 			unsigned port_dst = p.second.first;
 			auto &child = p.second.second;
 
-			info("Traversing from ", node->get_name(), " to ", child->get_name(), " on port ", port_src, " to port ", port_dst);
 			traverse_node(child, port_dst);
 		}
 	}
 	
 	void Network::traverse_all_sources() {
 		for(auto &source: sources) {
-			info("Now traversing flow starting at ", source->get_name());
 			vector<unsigned> input_ports;
 			visited.clear();
 			traverse_node(source, NO_CONSTRAINT);
@@ -112,19 +110,11 @@ namespace Clone {
 
 	/* Static methods */
  	unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
-		if(devices.size() == 0) {
-			danger("No devices found");
-		}
+		if(devices.size() == 0) danger("No devices found");
 
-		if(nfs.size() == 0) {
-			danger("No NFs found");
-		}
+		if(nfs.size() == 0)	danger("No NFs found");
 
-		if(links.size() == 0) {
-			danger("No links found");
-		}
-
-		info("Loading all BDDs");
+		if(links.size() == 0) danger("No links found");
 		
 		BDDs bdds;
 
@@ -135,29 +125,19 @@ namespace Clone {
 
 			if(bdds.find(path) == bdds.end()) {
 				bdds.emplace(path, shared_ptr<BDD>(new BDD(path)));
-				info("BDD loaded for NF ", nf->get_id(), " at ", path);
-			}
-			else {
-				info("BDD already loaded for NF ", nf->get_id(), " at ", path);
 			}
 
 			nf->set_bdd(bdds.at(path));
 		}
 		
-		success("BDDs loaded");
-
 		return unique_ptr<Network>(new Network(move(devices), move(nfs), move(links), move(bdds)));
 	}
 
 
 	/* Public methods */
 	void Network::consolidate() {
-		info("Starting network consolidation");
-
 		build_graph();
 		traverse_all_sources();
-
-		success("Finished network consolidation");
 	}
 
 	void Network::print() const {
