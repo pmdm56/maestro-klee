@@ -6,39 +6,19 @@
 #include "visitor.hpp"
 
 namespace Clone {
-	BDD::BDD(const string &path) {
-		bdd = unique_ptr<KleeBDD::BDD>(new KleeBDD::BDD(path));
-	}
+	BDD::BDD(unique_ptr<KleeBDD::BDD> bdd) : bdd(move(bdd)) {}
 
-	void BDD::traverse(const KleeBDD::BDDNode_ptr &node) {
-		if (node == nullptr) {
-			return;
-		}
+	BDD::~BDD() = default;
 
-		const auto &node_type = node->get_type();
-
-		info("Node type ", node_type, " at ", node->get_id());
-		
-		switch (node_type) {
-			case KleeBDD::Node::NodeType::BRANCH:
-				break;
-			case KleeBDD::Node::NodeType::CALL:
-				traverse(node->get_next());
-				break;
-			case KleeBDD::Node::NodeType::RETURN_INIT:
-				break;
-			case KleeBDD::Node::NodeType::RETURN_PROCESS:
-				break;
-			case KleeBDD::Node::NodeType::RETURN_RAW:
-				break;
-		}
+	unique_ptr<BDD> BDD::create(const std::string &path) {
+		return unique_ptr<BDD>(new BDD(unique_ptr<KleeBDD::BDD>(new KleeBDD::BDD(path))));
 	}
 
 	void BDD::init(int constraint) {
 		const auto &node = bdd->get_init();
-		unique_ptr<Visitor> visitor(new Visitor());
-		
-		traverse(node);
+		//unique_ptr<Visitor> visitor(new Visitor());
+
+		//visitor->visit(bdd.get())
 	}
 
 	void BDD::process(int constraint) {

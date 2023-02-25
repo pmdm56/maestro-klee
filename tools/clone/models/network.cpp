@@ -124,7 +124,7 @@ namespace Clone {
 			const string &path = nf->get_path();
 
 			if(bdds.find(path) == bdds.end()) {
-				bdds.emplace(path, shared_ptr<BDD>(new BDD(path)));
+				bdds.emplace(path, shared_ptr<BDD>(BDD::create(path)));
 			}
 
 			nf->set_bdd(bdds.at(path));

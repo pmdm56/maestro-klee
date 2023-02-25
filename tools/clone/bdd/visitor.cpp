@@ -26,29 +26,27 @@ namespace Clone {
 	BDDVisitor::Action Visitor::visitReturnRaw(const ReturnRaw *node) {
 		return Action::STOP;
 	}
+
 	
 	void Visitor::visitInitRoot(const Node *root) {
+		info("Visiting init root");
+
+		root->visit(*this);
 	}
 
 	void Visitor::visitProcessRoot(const Node *root) {
+		info("Visiting process root");
+
+		root->visit(*this);
 	}
 
-	void Visitor::visit(const Branch *node) {
-	}
+	void Visitor::visit(const KleeBDD::BDD &bdd)  {
+		assert(bdd.get_init());
+		visitInitRoot(bdd.get_init().get());
 
-	void Visitor::visit(const Call *node) {
-	}
+		assert(bdd.get_process());
+		visitProcessRoot(bdd.get_process().get());
 
-	void Visitor::visit(const ReturnInit *node) {
-	}
-
-	void Visitor::visit(const ReturnProcess *node) {
-	}
-
-	void Visitor::visit(const ReturnRaw *node) {
-	}
-
-	void Visitor::visit(const KleeBDD::BDD &bdd) {
 	}
 
 }
