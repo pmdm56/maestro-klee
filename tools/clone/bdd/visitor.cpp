@@ -7,6 +7,7 @@ namespace Clone {
 	/* Constructors and destructors */
 
 	Visitor::Visitor() = default;
+	Visitor::Visitor(vector<unsigned> &constraints) : constraints(constraints) {}
 	Visitor::~Visitor() = default;
 
 
@@ -52,6 +53,8 @@ namespace Clone {
 
 	void Visitor::visit(const KleeBDD &bdd)  {
 		assert(bdd.get_init() != nullptr);
-		visitInitRoot(bdd.get_init().get());
+		const auto &initRoot = bdd.get_init().get(); 
+		
+		visitInitRoot(initRoot);
 	}
 }

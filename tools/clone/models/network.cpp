@@ -61,7 +61,7 @@ namespace Clone {
 		}
 	}
 
-	void Network::traverse_node(const shared_ptr<Node> &node, int constraint) {
+	void Network::traverse_node(const shared_ptr<Node> &node, vector<unsigned> &constraints) {
 		if(visited.find(node) != visited.end()) {
 			return;
 		}
@@ -69,7 +69,7 @@ namespace Clone {
 		/* Only process BDD if it's a Network Function */
 		if(node->get_node_type() == NodeType::NF) {
 			auto &nf =nfs.at(node->get_name());
-			nf->traverse_bdd(constraint);
+			nf->traverse_bdd(constraints);
 		}
 
 		visited.insert(node);
@@ -78,14 +78,16 @@ namespace Clone {
 			unsigned port_src = p.first;
 			unsigned port_dst = p.second.first;
 			auto &child = p.second.second;
-
-			traverse_node(child, port_dst);
+			
+			constraints.push_back(port_dst);
+			traverse_node(child, constraints);
 		}
 	}
 	
 	void Network::traverse_all_sources() {
 		for(auto &source: sources) {
-			traverse_node(source, NO_CONSTRAINT);
+			vector<unsigned> constraints;
+			traverse_node(source, constraints);
 
 			visited.clear();
 		}

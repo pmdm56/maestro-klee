@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "call-paths-to-bdd.h"
 
 using KleeBDD = BDD::BDD;
@@ -16,6 +18,8 @@ using Action = BDD::BDDVisitor::Action;
 
 namespace Clone {
 	class Visitor : public BDDVisitor {
+	private:
+		std::vector<unsigned> constraints;
 	protected:
 		Action visitBranch(const Branch *node) override;
 		Action visitCall(const Call *node) override;
@@ -27,6 +31,7 @@ namespace Clone {
 		void visitProcessRoot(const Node *root) override;
 	public:
 		Visitor();
+		Visitor(std::vector<unsigned> &constraintInputPort);
 		~Visitor();
 		
 		void visit(const KleeBDD &bdd) override;

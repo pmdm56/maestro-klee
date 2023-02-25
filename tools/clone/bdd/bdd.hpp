@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "call-paths-to-bdd.h"
 
@@ -29,6 +30,6 @@ namespace Clone {
 			static std::unique_ptr<BDD> create(const std::string &path);
 
 			/* Public methods */
-			void traverse();
+			void traverse(std::vector<unsigned> &constraints);
 	};
 }
