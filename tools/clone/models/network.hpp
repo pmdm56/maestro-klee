@@ -19,16 +19,16 @@ namespace Clone {
 	/** Typedefs **/
 
 	/* Value: Link */
-	typedef std::vector<std::unique_ptr<Link>> Links;
+	typedef std::vector<std::unique_ptr<const Link>> Links;
 	
 	/* Key: NF name/identifier; Value: NF */
 	typedef std::unordered_map<std::string, std::unique_ptr<NF>> NFs;
 
 	/* Key: Device name/identifier; Value: Device */
-	typedef std::unordered_map<std::string, std::unique_ptr<Device>> Devices;
+	typedef std::unordered_map<std::string, std::unique_ptr<const Device>> Devices;
 
 	/* Key: path; Value: BDD */
-	typedef std::unordered_map<std::string, std::shared_ptr<BDD::BDD>> BDDs;
+	typedef std::unordered_map<std::string, std::shared_ptr<const BDD::BDD>> BDDs;
 
 	/* Key: Node name/identifier; Value: Node */
 	typedef std::unordered_map<std::string, std::shared_ptr<Node>> Nodes;

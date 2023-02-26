@@ -21,15 +21,15 @@ namespace Clone {
 		return path;
 	}
 
-	shared_ptr<BDD::BDD> NF::get_bdd() const {
+	shared_ptr<const BDD::BDD> NF::get_bdd() const {
 		return bdd;
 	}
 
-	void NF::set_bdd(shared_ptr<BDD::BDD> bdd) {
+	void NF::set_bdd(shared_ptr<const BDD::BDD> bdd) {
 		this->bdd = bdd;
 	}
 
-	void NF::print() {
+	void NF::print() const {
 		debug("NF ", id, " from ", path);
 	}
 }

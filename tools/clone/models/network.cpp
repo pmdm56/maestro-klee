@@ -39,8 +39,8 @@ namespace Clone {
 				nodes.emplace(node2_str, shared_ptr<Node>(new Node(node2_str, node2_type)));
 			}
 
-			shared_ptr<Node> node1 = nodes.at(node1_str);
-			shared_ptr<Node> node2 = nodes.at(node2_str);
+			shared_ptr<Node> &node1 = nodes.at(node1_str);
+			shared_ptr<Node> &node2 = nodes.at(node2_str);
 
 			node1->add_child(port1, port2, node2);
 			

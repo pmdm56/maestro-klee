@@ -12,6 +12,6 @@ namespace Clone {
 
 		std::string get_id() const;
 
-		void print();
+		void print() const;
 	};
 }

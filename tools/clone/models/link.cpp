@@ -32,7 +32,7 @@ namespace Clone {
 		return this->port2;
 	}
 
-	void Link::print() {
+	void Link::print() const {
 		debug("Link ", this->id, " ", this->node1, ":", this->port1, " <--> ", this->node2, ":", this->port2);
 	}
 }

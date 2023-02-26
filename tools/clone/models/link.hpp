@@ -23,6 +23,6 @@ namespace Clone {
 		unsigned get_port1() const;
 		unsigned get_port2() const;
 
-		void print();
+		void print() const;
 	};
 }

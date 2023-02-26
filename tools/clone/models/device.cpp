@@ -13,7 +13,7 @@ namespace Clone {
 		return id;
 	}
 
-	void Device::print() {
+	void Device::print() const {
 		debug("Device ", id);
 	}
 }

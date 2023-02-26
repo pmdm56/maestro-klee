@@ -29,7 +29,7 @@ namespace Clone {
 	BDD::BDDVisitor::Action Visitor::visitBranch(const BDD::Branch *node) {
 		debug("Visiting branch");
 
-		// TODO: evaluate branch condition according to constraints
+		auto &constraints = node->get_constraints();
 
 		return Action::VISIT_CHILDREN;
 	}
@@ -37,7 +37,6 @@ namespace Clone {
 	BDD::BDDVisitor::Action Visitor::visitCall(const BDD::Call *node) {
 		debug("Visiting call");
 
-		// TODO: copy/clone the node onto the global BDD
 
 		return Action::VISIT_CHILDREN;
 	}
