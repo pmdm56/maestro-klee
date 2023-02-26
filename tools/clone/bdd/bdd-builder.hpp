@@ -3,13 +3,13 @@
 #include <memory>
 
 namespace Clone {
-	class
+	class BDD;
 
 	class BDDBuilder { 
 	private:
 
 	public:
-		BDDBuilder(std::unique_ptr<BDD> bdd);
+		BDDBuilder();
 		~BDDBuilder();
 	};
 }
