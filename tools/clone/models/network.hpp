@@ -6,13 +6,15 @@
 #include <unordered_set>
 #include <unordered_map>
 
+namespace BDD {
+	class BDD;
+}
+
 namespace Clone {
 	class NF;
 	class Link;
 	class Device;
 	class Node;
-
-	class BDD;
 
 	/** Typedefs **/
 
@@ -26,7 +28,7 @@ namespace Clone {
 	typedef std::unordered_map<std::string, std::unique_ptr<Device>> Devices;
 
 	/* Key: path; Value: BDD */
-	typedef std::unordered_map<std::string, std::shared_ptr<BDD>> BDDs;
+	typedef std::unordered_map<std::string, std::shared_ptr<BDD::BDD>> BDDs;
 
 	/* Key: Node name/identifier; Value: Node */
 	typedef std::unordered_map<std::string, std::shared_ptr<Node>> Nodes;
@@ -60,9 +62,9 @@ namespace Clone {
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 		
 		void build_graph();
-		void traverse_nf(const std::unique_ptr<NF> &nf, std::vector<unsigned> &constraints);
-		void traverse_node(const std::shared_ptr<Node> &node, std::vector<unsigned> &constraints);
-		void traverse_all_sources();
+		void explore_nf(const std::unique_ptr<NF> &nf, std::vector<unsigned> &constraints);
+		void explore_node(const std::shared_ptr<Node> &node, std::vector<unsigned> &constraints);
+		void traverse_all_flows();
 		void print_graph() const;
 	public:
 		~Network();

@@ -3,8 +3,6 @@
 #include <memory>
 
 namespace Clone {
-	class BDD;
-
 	class BDDBuilder { 
 	private:
 

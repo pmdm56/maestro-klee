@@ -4,40 +4,24 @@
 
 #include "call-paths-to-bdd.h"
 
-using KleeBDD = BDD::BDD;
-
-using BDD::Branch;
-using BDD::Call;
-using BDD::ReturnInit;
-using BDD::ReturnProcess;
-using BDD::Node;
-using BDD::ReturnRaw;
-using BDD::BDDVisitor;
-
-using Action = BDD::BDDVisitor::Action;
-
-namespace Clone {
-	class BDD;
-	
-	class Visitor : public BDDVisitor {
+namespace Clone {	
+	class Visitor : public BDD::BDDVisitor {
 	private:
 		std::vector<unsigned> constraints;
 	protected:
-		Action visitBranch(const Branch *node) override;
-		Action visitCall(const Call *node) override;
-		Action visitReturnInit(const ReturnInit *node) override;
-		Action visitReturnProcess(const ReturnProcess *node) override;
-		Action visitReturnRaw(const ReturnRaw *node) ;
+		BDD::BDDVisitor::Action visitBranch(const BDD::Branch *node) override;
+		BDD::BDDVisitor::Action visitCall(const BDD::Call *node) override;
+		BDD::BDDVisitor::Action visitReturnInit(const BDD::ReturnInit *node) override;
+		BDD::BDDVisitor::Action visitReturnProcess(const BDD::ReturnProcess *node) override;
+		BDD::BDDVisitor::Action visitReturnRaw(const BDD::ReturnRaw *node) ;
 
-		void visitBDD(const BDD *bdd);
-		void visitInitRoot(const Node *root) ;
-		void visitProcessRoot(const Node *root) ;
+		void visitInitRoot(const BDD::Node *root) ;
+		void visitProcessRoot(const BDD::Node *root) ;
 	public:
 		Visitor();
 		Visitor(std::vector<unsigned> &constraintInputPort);
 		~Visitor();
 		
-		void visit(const BDD &bdd);
-		void visit(const KleeBDD &bdd) override;
+		void visit(const BDD::BDD &bdd) override;
 	};
 }

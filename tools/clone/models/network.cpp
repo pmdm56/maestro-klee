@@ -1,15 +1,13 @@
 #include "network.hpp"
-
 #include "../pch.hpp"
 #include "../util/logger.hpp"
+
+#include "call-paths-to-bdd.h"
 
 #include "device.hpp"
 #include "nf.hpp"
 #include "link.hpp"
 #include "node.hpp"
-
-
-#include "../bdd/bdd.hpp"
 #include "../bdd/visitor.hpp"
 
 namespace Clone {
@@ -64,25 +62,25 @@ namespace Clone {
 		}
 	}
 
-	void Network::traverse_nf(const unique_ptr<NF> &nf, vector<unsigned> &constraints) {
-		assert(nf->get_bdd() != nullptr);
-		const auto &bdd { nf->get_bdd() };
+	void Network::explore_nf(const unique_ptr<NF> &nf, vector<unsigned> &constraints) {
+		 assert(nf->get_bdd() != nullptr);
+		 const auto &bdd { nf->get_bdd() };
 
-		info("Traversing BDD for NF: " + nf->get_id() + " with constraints: ");
-		for(auto &constraint: constraints) {
-			info(" - Constraint " + to_string(constraint));
-		}
+		 info("Traversing BDD for NF: " + nf->get_id() + " with constraints: ");
+		 for(auto &constraint: constraints) {
+		 	info(" - Constraint " + to_string(constraint));
+		 }
 
-		unique_ptr<Visitor> visitor(new Visitor(constraints));
-		visitor->visit(*bdd);
+		 unique_ptr<Visitor> visitor(new Visitor(constraints));
+		 visitor->visit(*bdd);
 	}
 
-	void Network::traverse_node(const shared_ptr<Node> &node, vector<unsigned> &constraints) {
+	void Network::explore_node(const shared_ptr<Node> &node, vector<unsigned> &constraints) {
 		if(node->get_node_type() == NodeType::NF) {
 			assert(nfs.find(node->get_name()) != nfs.end());
 			const auto &nf { nfs.at(node->get_name()) };
 
-			traverse_nf(nf, constraints);
+			explore_nf(nf, constraints);
 		}
 
 		visited.insert(node);
@@ -95,15 +93,16 @@ namespace Clone {
 			if(visited.find(child) != visited.end()) continue;
 			
 			constraints.push_back(port_dst);
-			traverse_node(child, constraints);
+			explore_node(child, constraints);
 		}
 	}
 	
-	void Network::traverse_all_sources() {
+	void Network::traverse_all_flows() {
 		for(auto &source: sources) {
 			vector<unsigned> constraints;
+			
 			info("Traversing source: " + source->get_name());
-			traverse_node(source, constraints);
+			explore_node(source, constraints);
 
 			visited.clear();
 		}
@@ -129,9 +128,7 @@ namespace Clone {
 	/* Static methods */
  	unique_ptr<Network> Network::create(Devices &&devices, NFs &&nfs, Links &&links) {
 		if(devices.size() == 0) danger("No devices found");
-
 		if(nfs.size() == 0)	danger("No NFs found");
-
 		if(links.size() == 0) danger("No links found");
 		
 		BDDs bdds;
@@ -142,7 +139,7 @@ namespace Clone {
 			const string &path = nf->get_path();
 
 			if(bdds.find(path) == bdds.end()) {
-				bdds.emplace(path, shared_ptr<BDD>(BDD::create(path)));
+				bdds.emplace(path, shared_ptr<BDD::BDD>(new BDD::BDD(path)));
 			}
 
 			nf->set_bdd(bdds.at(path));
@@ -155,7 +152,7 @@ namespace Clone {
 	/* Public methods */
 	void Network::consolidate() {
 		build_graph();
-		traverse_all_sources();
+		traverse_all_flows();
 	}
 
 	void Network::print() const {

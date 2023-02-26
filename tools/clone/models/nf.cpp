@@ -1,14 +1,17 @@
 #include "nf.hpp"
-
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
-#include "../bdd/bdd.hpp"
+#include "call-paths-to-bdd.h"
 
 namespace Clone {
-	NF::NF(const std::string &id, const std::string &path) : id(id), path(path) {}
+	NF::NF(const std::string &id, const std::string &path) : id(id), path(path) {
 
-	NF::~NF() {}
+	}
+
+	NF::~NF() {
+		
+	}
 
 	string NF::get_id() const {
 		return id;
@@ -18,11 +21,11 @@ namespace Clone {
 		return path;
 	}
 
-	shared_ptr<BDD> NF::get_bdd() const {
+	shared_ptr<BDD::BDD> NF::get_bdd() const {
 		return bdd;
 	}
 
-	void NF::set_bdd(shared_ptr<BDD> bdd) {
+	void NF::set_bdd(shared_ptr<BDD::BDD> bdd) {
 		this->bdd = bdd;
 	}
 
