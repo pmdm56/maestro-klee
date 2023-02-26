@@ -13,14 +13,14 @@ namespace Clone {
 	BDD::~BDD() = default;
 
 
-	/* Static Methods */
+	/* Static methods */
 
 	unique_ptr<BDD> BDD::create(const std::string &path) {
 		return unique_ptr<BDD>(new BDD(unique_ptr<KleeBDD>(new KleeBDD(path)))); 
 	}
 	
 
-	/* Public Methods*/
+	/* Public methods*/
 	
 	void BDD::visit(Visitor &visitor) const {
 		auto kbdd = this->bdd.get();

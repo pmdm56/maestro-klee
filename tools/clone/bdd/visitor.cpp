@@ -4,6 +4,7 @@
 #include "../util/logger.hpp"
 
 #include "bdd.hpp"
+#include "bdd-builder.hpp"
 
 namespace Clone {
 	/* Constructors and destructors */
@@ -30,11 +31,17 @@ namespace Clone {
 
 	Action Visitor::visitBranch(const Branch *node) {
 		debug("Visiting branch");
+
+		// TODO: evaluate branch condition according to constraints
+
 		return Action::VISIT_CHILDREN;
 	}
 
 	Action Visitor::visitCall(const Call *node) {
 		debug("Visiting call");
+
+		// TODO: just copy/clone the node onto the global BDD
+
 		return Action::VISIT_CHILDREN;
 	}
 
@@ -61,9 +68,14 @@ namespace Clone {
 	}
 
 	void Visitor::visit(const KleeBDD &bdd)  {
+		info("Visiting BDD init");
 		assert(bdd.get_init() != nullptr);
 		const auto &initRoot = bdd.get_init().get(); 
-		
 		visitInitRoot(initRoot);
+
+		// info("Visiting BDD process");
+		// assert(bdd.get_process() != nullptr);
+		// const auto &processRoot = bdd.get_process().get(); 
+		//visitProcessRoot(processRoot);
 	}
 }
