@@ -10,8 +10,7 @@
 namespace Clone {
 	/* Constructors and destructors */
 
-	Visitor::Visitor() = default;
-	Visitor::Visitor(vector<unsigned> &constraints) : constraints(constraints) {}
+	Visitor::Visitor(vector<unsigned> &constraints, const unique_ptr<BDDBuilder> &builder) : constraints(constraints), builder(builder) {}
 	Visitor::~Visitor() = default;
 
 

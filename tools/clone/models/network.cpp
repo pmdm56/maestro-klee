@@ -9,6 +9,7 @@
 #include "link.hpp"
 #include "node.hpp"
 #include "../bdd/visitor.hpp"
+#include "../bdd/bdd-builder.hpp"
 
 namespace Clone {
 
@@ -22,14 +23,14 @@ namespace Clone {
 
 	void Network::build_graph() {
 		for(auto &link: links) {
-			const string &node1_str = link->get_node1();
-			const string &node2_str = link->get_node2();
+			const string &node1_str { link->get_node1() };
+			const string &node2_str { link->get_node2() };
 
-			const NodeType node1_type = devices.find(node1_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
-			const NodeType node2_type = devices.find(node2_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
+			const NodeType &node1_type { devices.find(node1_str) != devices.end() ? NodeType::DEVICE : NodeType::NF };
+			const NodeType &node2_type { devices.find(node2_str) != devices.end() ? NodeType::DEVICE : NodeType::NF };
 
-			const unsigned port1 = link->get_port1();
-			const unsigned port2 = link->get_port2();
+			const unsigned &port1 { link->get_port1() };
+			const unsigned &port2 { link->get_port2() };
 
 			if(nodes.find(node1_str) == nodes.end()) {
 				nodes.emplace(node1_str, shared_ptr<Node>(new Node(node1_str, node1_type)));
@@ -39,8 +40,8 @@ namespace Clone {
 				nodes.emplace(node2_str, shared_ptr<Node>(new Node(node2_str, node2_type)));
 			}
 
-			shared_ptr<Node> &node1 = nodes.at(node1_str);
-			shared_ptr<Node> &node2 = nodes.at(node2_str);
+			shared_ptr<Node> &node1 { nodes.at(node1_str) };
+			shared_ptr<Node> &node2 { nodes.at(node2_str) };
 
 			node1->add_child(port1, port2, node2);
 			
@@ -62,47 +63,40 @@ namespace Clone {
 		}
 	}
 
-	void Network::explore_nf(const unique_ptr<NF> &nf, vector<unsigned> &constraints) {
-		 assert(nf->get_bdd() != nullptr);
-		 const auto &bdd { nf->get_bdd() };
-
-		 info("Traversing BDD for NF: " + nf->get_id() + " with constraints: ");
-		 for(auto &constraint: constraints) {
-		 	info(" - Constraint " + to_string(constraint));
-		 }
-
-		 unique_ptr<Visitor> visitor(new Visitor(constraints));
-		 visitor->visit(*bdd);
-	}
-
-	void Network::explore_node(const shared_ptr<Node> &node, vector<unsigned> &constraints) {
+	void Network::explore_node(const shared_ptr<Node> &node, const unique_ptr<BDDBuilder> &builder, vector<unsigned> &constraints) {
 		if(node->get_node_type() == NodeType::NF) {
 			assert(nfs.find(node->get_name()) != nfs.end());
 			const auto &nf { nfs.at(node->get_name()) };
 
-			explore_nf(nf, constraints);
+ 			assert(nf->get_bdd() != nullptr);
+			const auto &bdd { nf->get_bdd() };
+
+			const unique_ptr<Visitor> visitor {new Visitor(constraints, builder)};
+			visitor->visit(*bdd);		
 		}
 
 		visited.insert(node);
 
 		for(auto &p: node->get_children()) {
-			unsigned port_src = p.first;
-			unsigned port_dst = p.second.first;
-			auto &child = p.second.second;
+			unsigned port_src { p.first };
+			unsigned port_dst { p.second.first };
+			const auto &child { p.second.second };
 
 			if(visited.find(child) != visited.end()) continue;
-			
+
 			constraints.push_back(port_dst);
-			explore_node(child, constraints);
+			explore_node(child, builder, constraints);
 		}
 	}
 	
 	void Network::traverse_all_flows() {
+		const unique_ptr<BDDBuilder> builder { new BDDBuilder() };
+
 		for(auto &source: sources) {
-			vector<unsigned> constraints;
+			vector<unsigned> constraints {};
 			
-			info("Traversing source: " + source->get_name());
-			explore_node(source, constraints);
+			info("Traversing source: ", source->get_name());
+			explore_node(source, builder, constraints);
 
 			visited.clear();
 		}
@@ -134,9 +128,9 @@ namespace Clone {
 		BDDs bdds;
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
-			auto& nf = it->second;
+			auto & nf { it->second };
 
-			const string &path = nf->get_path();
+			const string &path { nf->get_path() };
 
 			if(bdds.find(path) == bdds.end()) {
 				bdds.emplace(path, shared_ptr<BDD::BDD>(new BDD::BDD(path)));
@@ -159,13 +153,11 @@ namespace Clone {
 		debug("Printing Network");
 
 		for (auto it = devices.begin(); it != devices.end(); ++it) {
-			auto& device = it->second;
-			device->print();
+			it->second->print();
 		}
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
-			auto& nf = it->second;
-			nf->print();
+			it->second->print();
 		}
 
 		for (auto& link : links) {
