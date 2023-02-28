@@ -52,8 +52,8 @@ void fill_arrays(klee::ref<klee::Expr> expr,
     assert(root->isSymbolicArray());
     auto found_it = std::find_if(arrays.begin(), arrays.end(),
                                  [&](const klee::Array *array) {
-      return array->getName() == root->getName();
-    });
+                                   return array->getName() == root->getName();
+                                 });
 
     if (found_it == arrays.end()) {
       arrays.push_back(root);
@@ -255,7 +255,7 @@ void BDD::serialize(std::string out_file) const {
   std::stringstream nodes_stream;
   std::stringstream edges_stream;
 
-  std::vector<const Node *> nodes{ nf_init.get(), nf_process.get() };
+  std::vector<const Node *> nodes{nf_init.get(), nf_process.get()};
   while (nodes.size()) {
     auto node = nodes[0];
     nodes.erase(nodes.begin());
@@ -380,7 +380,9 @@ void BDD::serialize(std::string out_file) const {
       assert(!node->get_next());
       break;
     }
-    case Node::NodeType::RETURN_RAW: { assert(false); }
+    case Node::NodeType::RETURN_RAW: {
+      assert(false);
+    }
     }
 
     nodes_stream << ")";
@@ -875,9 +877,9 @@ void BDD::deserialize(const std::string &file_path) {
   std::ifstream bdd_file(file_path);
 
   if (!bdd_file.is_open()) {
-	std::cerr << "Unable to open BDD file.\n";
-	assert(false);
-	exit(1);
+    std::cerr << "Unable to open BDD file.\n";
+    assert(false);
+    exit(1);
   }
 
   enum {

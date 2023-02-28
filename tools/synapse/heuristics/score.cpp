@@ -19,9 +19,9 @@ int Score::get_nr_merged_tables() const {
 
     auto module = node->get_module();
     if (module->get_type() ==
-        Module::ModuleType::BMv2SimpleSwitchgRPC_TableLookup) {
+        Module::ModuleType::BMv2_TableLookup) {
       auto tableLookup =
-          static_cast<targets::BMv2SimpleSwitchgRPC::TableLookup *>(
+          static_cast<targets::bmv2::TableLookup *>(
               module.get());
 
       auto merged = tableLookup->get_keys().size();
@@ -45,7 +45,7 @@ int Score::get_nr_switch_nodes() const {
   auto switch_nodes = 0;
 
   const auto &nodes_per_target = execution_plan.get_nodes_per_target();
-  auto switch_nodes_it = nodes_per_target.find(Target::BMv2SimpleSwitchgRPC);
+  auto switch_nodes_it = nodes_per_target.find(Target::BMv2);
 
   if (switch_nodes_it != nodes_per_target.end()) {
     switch_nodes = switch_nodes_it->second;
@@ -58,7 +58,7 @@ int Score::get_nr_controller_nodes() const {
   auto controller_nodes = 0;
 
   const auto &nodes_per_target = execution_plan.get_nodes_per_target();
-  auto controller_nodes_it = nodes_per_target.find(Target::x86);
+  auto controller_nodes_it = nodes_per_target.find(Target::x86_BMv2);
 
   if (controller_nodes_it != nodes_per_target.end()) {
     controller_nodes = controller_nodes_it->second;

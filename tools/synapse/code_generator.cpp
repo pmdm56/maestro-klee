@@ -14,7 +14,7 @@ bool all_x86_no_controller(const ExecutionPlan &execution_plan) {
     assert(node);
     auto module = node->get_module();
 
-    if (module->get_target() != Target::x86) {
+    if (module->get_target() != Target::x86_BMv2) {
       return false;
     }
 
@@ -128,9 +128,9 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
     }
 
     if (module->get_type() ==
-        Module::ModuleType::BMv2SimpleSwitchgRPC_SendToController) {
+        Module::ModuleType::BMv2_SendToController) {
       auto send_to_controller =
-          static_cast<targets::BMv2SimpleSwitchgRPC::SendToController *>(
+          static_cast<targets::bmv2::SendToController *>(
               module.get());
 
       auto path_id = send_to_controller->get_metadata_code_path();
@@ -158,7 +158,7 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
 
   auto metadata = BDD::solver_toolbox.create_new_symbol("metadata", 32);
   auto packet_get_metadata =
-      std::make_shared<targets::x86::PacketGetMetadata>(nullptr, metadata);
+      std::make_shared<targets::x86_bmv2::PacketGetMetadata>(nullptr, metadata);
 
   auto new_root = ExecutionPlanNode::build(packet_get_metadata);
   auto new_leaf = new_root;
@@ -175,13 +175,13 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
         BDD::solver_toolbox.exprBuilder->Eq(metadata, path_id);
 
     auto if_meta_eq_path_id =
-        std::make_shared<targets::x86::If>(nullptr, meta_eq_path_id);
+        std::make_shared<targets::x86_bmv2::If>(nullptr, meta_eq_path_id);
     auto if_ep_node = ExecutionPlanNode::build(if_meta_eq_path_id);
 
-    auto then_module = std::make_shared<targets::x86::Then>(nullptr);
+    auto then_module = std::make_shared<targets::x86_bmv2::Then>(nullptr);
     auto then_ep_node = ExecutionPlanNode::build(then_module);
 
-    auto else_module = std::make_shared<targets::x86::Else>(nullptr);
+    auto else_module = std::make_shared<targets::x86_bmv2::Else>(nullptr);
     auto else_ep_node = ExecutionPlanNode::build(else_module);
 
     Branches then_else_ep_nodes{then_ep_node, else_ep_node};
@@ -198,7 +198,7 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
     root.node->set_prev(then_ep_node);
 
     if (i == roots.size() - 1) {
-      auto drop_module = std::make_shared<targets::x86::Drop>(nullptr);
+      auto drop_module = std::make_shared<targets::x86_bmv2::Drop>(nullptr);
       auto drop_ep_node = ExecutionPlanNode::build(drop_module);
 
       else_ep_node->set_next(drop_ep_node);
@@ -229,10 +229,10 @@ ExecutionPlan CodeGenerator::bmv2SimpleSwitchgRPC_extractor(
 
     auto module = node->get_module();
     assert(module);
-    assert(module->get_target() == Target::BMv2SimpleSwitchgRPC);
+    assert(module->get_target() == Target::BMv2);
 
     if (module->get_type() ==
-        Module::ModuleType::BMv2SimpleSwitchgRPC_SendToController) {
+        Module::ModuleType::BMv2_SendToController) {
       auto no_next = Branches();
       node->set_next(no_next);
     }

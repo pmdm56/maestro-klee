@@ -43,11 +43,11 @@ private:
 
   void populate_target_helpers_bank() {
     target_helpers_bank = {
-        {Target::x86, target_helper_t(&CodeGenerator::x86_extractor,
+        {Target::x86_BMv2, target_helper_t(&CodeGenerator::x86_extractor,
                                       std::make_shared<x86_Generator>())},
-        {Target::BMv2SimpleSwitchgRPC,
+        {Target::BMv2,
          target_helper_t(&CodeGenerator::bmv2SimpleSwitchgRPC_extractor,
-                         std::make_shared<BMv2SimpleSwitchgRPC_Generator>())},
+                         std::make_shared<BMv2Generator>())},
         {Target::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
         {Target::Tofino, target_helper_t(&CodeGenerator::tofino_extractor)},
         {Target::Netronome,
@@ -74,10 +74,10 @@ public:
     }
 
     switch (target) {
-    case Target::x86:
+    case Target::x86_BMv2:
       found_it->second.generator->output_to_file(directory + "/x86.c");
       break;
-    case Target::BMv2SimpleSwitchgRPC:
+    case Target::BMv2:
       found_it->second.generator->output_to_file(directory + "/bmv2.p4");
       break;
     case Target::FPGA:

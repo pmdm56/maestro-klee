@@ -10,11 +10,11 @@
 namespace synapse {
 
 enum Target {
-  x86,
+  x86_BMv2,
   Tofino,
   Netronome,
   FPGA,
-  BMv2SimpleSwitchgRPC,
+  BMv2,
 };
 
 class ExecutionPlan;
@@ -30,48 +30,48 @@ struct processing_result_t {
 class Module {
 public:
   enum ModuleType {
-    x86_CurrentTime,
-    x86_IfThen,
-    x86_If,
-    x86_Then,
-    x86_Else,
-    x86_MapGet,
-    x86_PacketBorrowNextChunk,
-    x86_PacketGetMetadata,
-    x86_PacketReturnChunk,
-    x86_Forward,
-    x86_Drop,
-    x86_Broadcast,
-    x86_ExpireItemsSingleMap,
-    x86_RteEtherAddrHash,
-    x86_DchainRejuvenateIndex,
-    x86_VectorBorrow,
-    x86_VectorReturn,
-    x86_DchainAllocateNewIndex,
-    x86_MapPut,
-    x86_PacketGetUnreadLength,
-    x86_SetIpv4UdpTcpChecksum,
-    x86_DchainIsIndexAllocated,
-    BMv2SimpleSwitchgRPC_SendToController,
-    BMv2SimpleSwitchgRPC_Ignore,
-    BMv2SimpleSwitchgRPC_SetupExpirationNotifications,
-    BMv2SimpleSwitchgRPC_If,
-    BMv2SimpleSwitchgRPC_Then,
-    BMv2SimpleSwitchgRPC_Else,
-    BMv2SimpleSwitchgRPC_EthernetConsume,
-    BMv2SimpleSwitchgRPC_EthernetModify,
-    BMv2SimpleSwitchgRPC_TableLookup,
-    BMv2SimpleSwitchgRPC_TableMatch,
-    BMv2SimpleSwitchgRPC_TableMiss,
-    BMv2SimpleSwitchgRPC_IPv4Consume,
-    BMv2SimpleSwitchgRPC_IPv4Modify,
-    BMv2SimpleSwitchgRPC_TcpUdpConsume,
-    BMv2SimpleSwitchgRPC_TcpUdpModify,
-    BMv2SimpleSwitchgRPC_IPOptionsConsume,
-    BMv2SimpleSwitchgRPC_IPOptionsModify,
-    BMv2SimpleSwitchgRPC_Drop,
-    BMv2SimpleSwitchgRPC_Forward,
-    BMv2SimpleSwitchgRPC_VectorReturn,
+    x86_BMv2_CurrentTime,
+    x86_BMv2_IfThen,
+    x86_BMv2_If,
+    x86_BMv2_Then,
+    x86_BMv2_Else,
+    x86_BMv2_MapGet,
+    x86_BMv2_PacketBorrowNextChunk,
+    x86_BMv2_PacketGetMetadata,
+    x86_BMv2_PacketReturnChunk,
+    x86_BMv2_Forward,
+    x86_BMv2_Drop,
+    x86_BMv2_Broadcast,
+    x86_BMv2_ExpireItemsSingleMap,
+    x86_BMv2_RteEtherAddrHash,
+    x86_BMv2_DchainRejuvenateIndex,
+    x86_BMv2_VectorBorrow,
+    x86_BMv2_VectorReturn,
+    x86_BMv2_DchainAllocateNewIndex,
+    x86_BMv2_MapPut,
+    x86_BMv2_PacketGetUnreadLength,
+    x86_BMv2_SetIpv4UdpTcpChecksum,
+    x86_BMv2_DchainIsIndexAllocated,
+    BMv2_SendToController,
+    BMv2_Ignore,
+    BMv2_SetupExpirationNotifications,
+    BMv2_If,
+    BMv2_Then,
+    BMv2_Else,
+    BMv2_EthernetConsume,
+    BMv2_EthernetModify,
+    BMv2_TableLookup,
+    BMv2_TableMatch,
+    BMv2_TableMiss,
+    BMv2_IPv4Consume,
+    BMv2_IPv4Modify,
+    BMv2_TcpUdpConsume,
+    BMv2_TcpUdpModify,
+    BMv2_IPOptionsConsume,
+    BMv2_IPOptionsModify,
+    BMv2_Drop,
+    BMv2_Forward,
+    BMv2_VectorReturn,
     Tofino_EthernetConsume,
     Tofino_Drop,
     Tofino_Forward,
@@ -149,16 +149,16 @@ public:
 
   static std::string target_to_string(Target target) {
     switch (target) {
-    case x86:
-      return "x86";
+    case x86_BMv2:
+      return "x86_BMv2";
     case Tofino:
       return "Tofino";
     case Netronome:
       return "Netronome";
     case FPGA:
       return "FPGA";
-    case BMv2SimpleSwitchgRPC:
-      return "BMv2SimpleSwitchgRPC";
+    case BMv2:
+      return "BMv2";
     }
 
     assert(false && "I should not be here");

@@ -24,8 +24,8 @@ public:
     std::vector<Module_ptr> _modules;
 
     switch (target) {
-    case Target::x86:
-      _modules = targets::x86::get_modules();
+    case Target::x86_BMv2:
+      _modules = targets::x86_bmv2::get_modules();
       break;
     case Target::Tofino:
       _modules = targets::tofino::get_modules();
@@ -36,8 +36,8 @@ public:
     case Target::FPGA:
       _modules = targets::fpga::get_modules();
       break;
-    case Target::BMv2SimpleSwitchgRPC:
-      _modules = targets::BMv2SimpleSwitchgRPC::get_modules();
+    case Target::BMv2:
+      _modules = targets::bmv2::get_modules();
       break;
     }
 
@@ -57,7 +57,7 @@ public:
       auto next_node = next_ep.get_next_node();
       assert(next_node);
 
-      printf("Search space %lu\r", available);
+      printf("Search space %d\r", available);
       fflush(stdout);
 
       // Graphviz::visualize(next_ep);

@@ -40,8 +40,9 @@ llvm::cl::list<synapse::Target>
     TargetList(llvm::cl::desc("Available targets:"), llvm::cl::Required,
                llvm::cl::OneOrMore,
                llvm::cl::values(
-                   clEnumValN(synapse::Target::x86, "x86", "x86"),
-                   clEnumValN(synapse::Target::BMv2SimpleSwitchgRPC, "bmv2",
+                   clEnumValN(synapse::Target::x86_BMv2, "x86-bmv2",
+                              "x86 (as a controller for BMv2)"),
+                   clEnumValN(synapse::Target::BMv2, "bmv2",
                               "P4 (BMv2 Simple Switch with gRPC)"),
                    clEnumValN(synapse::Target::FPGA, "fpga", "VeriLog (FPGA)"),
                    clEnumValN(synapse::Target::Netronome, "netronome",
@@ -98,7 +99,7 @@ int main(int argc, char **argv) {
 
   for (unsigned i = 0; i != TargetList.size(); ++i) {
     search_engine.add_target(TargetList[i]);
-    // code_generator.add_target(TargetList[i]);
+    code_generator.add_target(TargetList[i]);
   }
 
   synapse::Biggest biggest;
@@ -114,7 +115,7 @@ int main(int argc, char **argv) {
   // auto winner = search_engine.search(most_compact);
   // auto winner = search_engine.search(maximize_switch_nodes);
 
-  // code_generator.generate(winner);
+  code_generator.generate(winner);
 
   return 0;
 }

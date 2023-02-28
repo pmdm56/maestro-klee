@@ -86,11 +86,11 @@ public:
   Graphviz(const std::string &path, const SearchSpace *_search_space)
       : fpath(path), search_space(_search_space) {
     node_colors = std::map<Target, std::string>{
-        {Target::x86, "cornflowerblue"},
+        {Target::x86_BMv2, "cornflowerblue"},
         {Target::Tofino, "darkolivegreen2"},
         {Target::Netronome, "gold"},
         {Target::FPGA, "coral1"},
-        {Target::BMv2SimpleSwitchgRPC, "firebrick2"},
+        {Target::BMv2, "firebrick2"},
     };
 
     ofs.open(fpath);
@@ -397,27 +397,27 @@ public:
    *                  x86
    *
    ********************************************/
-  VISIT_PRINT_MODULE_NAME(targets::x86::MapGet)
-  VISIT_PRINT_MODULE_NAME(targets::x86::CurrentTime)
-  VISIT_PRINT_MODULE_NAME(targets::x86::PacketBorrowNextChunk)
-  VISIT_PRINT_MODULE_NAME(targets::x86::PacketGetMetadata)
-  VISIT_PRINT_MODULE_NAME(targets::x86::PacketReturnChunk)
-  VISIT_PRINT_MODULE_NAME(targets::x86::If)
-  VISIT_PRINT_MODULE_NAME(targets::x86::Then)
-  VISIT_PRINT_MODULE_NAME(targets::x86::Else)
-  VISIT_PRINT_MODULE_NAME(targets::x86::Forward)
-  VISIT_PRINT_MODULE_NAME(targets::x86::Broadcast)
-  VISIT_PRINT_MODULE_NAME(targets::x86::Drop)
-  VISIT_PRINT_MODULE_NAME(targets::x86::ExpireItemsSingleMap)
-  VISIT_PRINT_MODULE_NAME(targets::x86::RteEtherAddrHash)
-  VISIT_PRINT_MODULE_NAME(targets::x86::DchainRejuvenateIndex)
-  VISIT_PRINT_MODULE_NAME(targets::x86::VectorBorrow)
-  VISIT_PRINT_MODULE_NAME(targets::x86::VectorReturn)
-  VISIT_PRINT_MODULE_NAME(targets::x86::DchainAllocateNewIndex)
-  VISIT_PRINT_MODULE_NAME(targets::x86::MapPut)
-  VISIT_PRINT_MODULE_NAME(targets::x86::PacketGetUnreadLength)
-  VISIT_PRINT_MODULE_NAME(targets::x86::SetIpv4UdpTcpChecksum)
-  VISIT_PRINT_MODULE_NAME(targets::x86::DchainIsIndexAllocated)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::MapGet)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::CurrentTime)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketBorrowNextChunk)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketGetMetadata)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketReturnChunk)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::If)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Then)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Else)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Forward)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Broadcast)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Drop)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::ExpireItemsSingleMap)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::RteEtherAddrHash)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainRejuvenateIndex)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::VectorBorrow)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::VectorReturn)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainAllocateNewIndex)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::MapPut)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketGetUnreadLength)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::SetIpv4UdpTcpChecksum)
+  VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainIsIndexAllocated)
 
   /********************************************
    *
@@ -425,25 +425,25 @@ public:
    *
    ********************************************/
 
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::SendToController)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::Ignore)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::SendToController)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::Ignore)
   VISIT_PRINT_MODULE_NAME(
-      targets::BMv2SimpleSwitchgRPC::SetupExpirationNotifications)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::If)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::Then)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::Else)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::EthernetConsume)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::EthernetModify)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::TableLookup)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::IPv4Consume)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::IPv4Modify)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::TcpUdpConsume)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::TcpUdpModify)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::IPOptionsConsume)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::IPOptionsModify)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::Drop)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::Forward)
-  VISIT_PRINT_MODULE_NAME(targets::BMv2SimpleSwitchgRPC::VectorReturn)
+      targets::bmv2::SetupExpirationNotifications)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::If)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::Then)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::Else)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::EthernetConsume)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::EthernetModify)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::TableLookup)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::IPv4Consume)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::IPv4Modify)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::TcpUdpConsume)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::TcpUdpModify)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::IPOptionsConsume)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::IPOptionsModify)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::Drop)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::Forward)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::VectorReturn)
 
   /********************************************
    *

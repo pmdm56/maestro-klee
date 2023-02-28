@@ -8,7 +8,7 @@ class ExecutionPlan;
 class ExecutionPlanNode;
 
 namespace targets {
-namespace x86 {
+namespace x86_bmv2 {
 class MapGet;
 class CurrentTime;
 class PacketBorrowNextChunk;
@@ -30,9 +30,9 @@ class MapPut;
 class PacketGetUnreadLength;
 class SetIpv4UdpTcpChecksum;
 class DchainIsIndexAllocated;
-} // namespace x86
+} // namespace x86_bmv2
 
-namespace BMv2SimpleSwitchgRPC {
+namespace bmv2 {
 class SendToController;
 class ParserConsume;
 class Ignore;
@@ -52,7 +52,7 @@ class IPOptionsModify;
 class Drop;
 class Forward;
 class VectorReturn;
-} // namespace BMv2SimpleSwitchgRPC
+} // namespace bmv2
 
 namespace tofino {
 class Drop;
@@ -88,27 +88,27 @@ public:
    *
    * **********************************/
 
-  virtual void visit(const targets::x86::MapGet *node) {}
-  virtual void visit(const targets::x86::CurrentTime *node) {}
-  virtual void visit(const targets::x86::PacketBorrowNextChunk *node) {}
-  virtual void visit(const targets::x86::PacketReturnChunk *node) {}
-  virtual void visit(const targets::x86::PacketGetMetadata *node) {}
-  virtual void visit(const targets::x86::If *node) {}
-  virtual void visit(const targets::x86::Then *node) {}
-  virtual void visit(const targets::x86::Else *node) {}
-  virtual void visit(const targets::x86::Forward *node) {}
-  virtual void visit(const targets::x86::Broadcast *node) {}
-  virtual void visit(const targets::x86::Drop *node) {}
-  virtual void visit(const targets::x86::ExpireItemsSingleMap *node) {}
-  virtual void visit(const targets::x86::RteEtherAddrHash *node) {}
-  virtual void visit(const targets::x86::DchainRejuvenateIndex *node) {}
-  virtual void visit(const targets::x86::VectorBorrow *node) {}
-  virtual void visit(const targets::x86::VectorReturn *node) {}
-  virtual void visit(const targets::x86::DchainAllocateNewIndex *node) {}
-  virtual void visit(const targets::x86::MapPut *node) {}
-  virtual void visit(const targets::x86::PacketGetUnreadLength *node) {}
-  virtual void visit(const targets::x86::SetIpv4UdpTcpChecksum *node) {}
-  virtual void visit(const targets::x86::DchainIsIndexAllocated *node) {}
+  virtual void visit(const targets::x86_bmv2::MapGet *node) {}
+  virtual void visit(const targets::x86_bmv2::CurrentTime *node) {}
+  virtual void visit(const targets::x86_bmv2::PacketBorrowNextChunk *node) {}
+  virtual void visit(const targets::x86_bmv2::PacketReturnChunk *node) {}
+  virtual void visit(const targets::x86_bmv2::PacketGetMetadata *node) {}
+  virtual void visit(const targets::x86_bmv2::If *node) {}
+  virtual void visit(const targets::x86_bmv2::Then *node) {}
+  virtual void visit(const targets::x86_bmv2::Else *node) {}
+  virtual void visit(const targets::x86_bmv2::Forward *node) {}
+  virtual void visit(const targets::x86_bmv2::Broadcast *node) {}
+  virtual void visit(const targets::x86_bmv2::Drop *node) {}
+  virtual void visit(const targets::x86_bmv2::ExpireItemsSingleMap *node) {}
+  virtual void visit(const targets::x86_bmv2::RteEtherAddrHash *node) {}
+  virtual void visit(const targets::x86_bmv2::DchainRejuvenateIndex *node) {}
+  virtual void visit(const targets::x86_bmv2::VectorBorrow *node) {}
+  virtual void visit(const targets::x86_bmv2::VectorReturn *node) {}
+  virtual void visit(const targets::x86_bmv2::DchainAllocateNewIndex *node) {}
+  virtual void visit(const targets::x86_bmv2::MapPut *node) {}
+  virtual void visit(const targets::x86_bmv2::PacketGetUnreadLength *node) {}
+  virtual void visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) {}
+  virtual void visit(const targets::x86_bmv2::DchainIsIndexAllocated *node) {}
 
   /*************************************
    *
@@ -117,31 +117,31 @@ public:
    * **********************************/
 
   virtual void
-  visit(const targets::BMv2SimpleSwitchgRPC::SendToController *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::Ignore *node) {}
+  visit(const targets::bmv2::SendToController *node) {}
+  virtual void visit(const targets::bmv2::Ignore *node) {}
   virtual void visit(
-      const targets::BMv2SimpleSwitchgRPC::SetupExpirationNotifications *node) {
+      const targets::bmv2::SetupExpirationNotifications *node) {
   }
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::If *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::Then *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::Else *node) {}
+  virtual void visit(const targets::bmv2::If *node) {}
+  virtual void visit(const targets::bmv2::Then *node) {}
+  virtual void visit(const targets::bmv2::Else *node) {}
   virtual void
-  visit(const targets::BMv2SimpleSwitchgRPC::EthernetConsume *node) {}
+  visit(const targets::bmv2::EthernetConsume *node) {}
   virtual void
-  visit(const targets::BMv2SimpleSwitchgRPC::EthernetModify *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::TableLookup *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::IPv4Consume *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::IPv4Modify *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::TcpUdpConsume *node) {
+  visit(const targets::bmv2::EthernetModify *node) {}
+  virtual void visit(const targets::bmv2::TableLookup *node) {}
+  virtual void visit(const targets::bmv2::IPv4Consume *node) {}
+  virtual void visit(const targets::bmv2::IPv4Modify *node) {}
+  virtual void visit(const targets::bmv2::TcpUdpConsume *node) {
   }
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::TcpUdpModify *node) {}
+  virtual void visit(const targets::bmv2::TcpUdpModify *node) {}
   virtual void
-  visit(const targets::BMv2SimpleSwitchgRPC::IPOptionsConsume *node) {}
+  visit(const targets::bmv2::IPOptionsConsume *node) {}
   virtual void
-  visit(const targets::BMv2SimpleSwitchgRPC::IPOptionsModify *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::Drop *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::Forward *node) {}
-  virtual void visit(const targets::BMv2SimpleSwitchgRPC::VectorReturn *node) {}
+  visit(const targets::bmv2::IPOptionsModify *node) {}
+  virtual void visit(const targets::bmv2::Drop *node) {}
+  virtual void visit(const targets::bmv2::Forward *node) {}
+  virtual void visit(const targets::bmv2::VectorReturn *node) {}
 
   /*************************************
    *
