@@ -73,24 +73,6 @@ public:
     BMv2_Forward,
     BMv2_VectorReturn,
     Tofino_EthernetConsume,
-    Tofino_Drop,
-    Tofino_Forward,
-    Tofino_IPv4Consume,
-    Tofino_TcpUdpConsume,
-    Tofino_Ignore,
-    Tofino_SetupExpirationNotifications,
-    Tofino_If,
-    Tofino_Then,
-    Tofino_Else,
-    Tofino_EthernetModify,
-    Tofino_IPv4Modify,
-    Tofino_TcpUdpModify,
-    Tofino_IPOptionsConsume,
-    Tofino_IPOptionsModify,
-    Tofino_TableLookup,
-    Tofino_UpdateIpv4TcpUdpChecksum,
-    Tofino_PortAllocatorAllocate,
-    Tofino_CachedTableLookup,
   };
 
 protected:
@@ -168,7 +150,7 @@ public:
   std::string get_target_name() const { return target_to_string(target); }
 
   processing_result_t process_node(const ExecutionPlan &_ep,
-                                   BDD::BDDNode_ptr node);
+                                   BDD::BDDNode_ptr node, int max_reordered);
 
   virtual void visit(ExecutionPlanVisitor &visitor) const = 0;
   virtual Module_ptr clone() const = 0;

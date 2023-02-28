@@ -13,9 +13,16 @@ private:
   std::vector<synapse::Module_ptr> modules;
   BDD::BDD bdd;
 
+  // Maximum number of reordered nodes on the BDD
+  // -1 => unlimited
+  int max_reordered;
+
 public:
-  SearchEngine(BDD::BDD _bdd) : bdd(_bdd) {}
-  SearchEngine(const SearchEngine &se) : SearchEngine(se.bdd) {
+  SearchEngine(BDD::BDD _bdd, int _max_reordered)
+      : bdd(_bdd), max_reordered(_max_reordered) {}
+
+  SearchEngine(const SearchEngine &se)
+      : SearchEngine(se.bdd, se.max_reordered) {
     modules = se.modules;
   }
 
@@ -50,15 +57,11 @@ public:
 
     h.add(std::vector<ExecutionPlan>{first_execution_plan});
 
-    puts("");
     while (!h.finished()) {
       auto available = h.size();
       auto next_ep = h.pop();
       auto next_node = next_ep.get_next_node();
       assert(next_node);
-
-      printf("Search space %d\r", available);
-      fflush(stdout);
 
       // Graphviz::visualize(next_ep);
 
@@ -71,7 +74,7 @@ public:
       report_t report;
 
       for (auto module : modules) {
-        auto result = module->process_node(next_ep, next_node);
+        auto result = module->process_node(next_ep, next_node, max_reordered);
 
         if (result.next_eps.size()) {
           report.target_name.push_back(module->get_target_name());

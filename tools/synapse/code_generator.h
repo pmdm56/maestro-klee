@@ -32,35 +32,33 @@ private:
   std::map<Target, target_helper_t> target_helpers_bank;
 
 private:
-  ExecutionPlan x86_extractor(const ExecutionPlan &execution_plan) const;
-  ExecutionPlan
-  bmv2SimpleSwitchgRPC_extractor(const ExecutionPlan &execution_plan) const;
+  ExecutionPlan x86_bmv2_extractor(const ExecutionPlan &execution_plan) const;
+  ExecutionPlan bmv2_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan fpga_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan tofino_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan netronome_extractor(const ExecutionPlan &execution_plan) const;
 
   std::string directory;
 
-  void populate_target_helpers_bank() {
+public:
+  CodeGenerator(const std::string &_directory) : directory(_directory) {
     target_helpers_bank = {
-        {Target::x86_BMv2, target_helper_t(&CodeGenerator::x86_extractor,
-                                      std::make_shared<x86_Generator>())},
-        {Target::BMv2,
-         target_helper_t(&CodeGenerator::bmv2SimpleSwitchgRPC_extractor,
-                         std::make_shared<BMv2Generator>())},
+        {Target::x86_BMv2,
+         target_helper_t(&CodeGenerator::x86_bmv2_extractor,
+                         std::make_shared<x86BMv2Generator>())},
+
+        {Target::BMv2, target_helper_t(&CodeGenerator::bmv2_extractor,
+                                       std::make_shared<BMv2Generator>())},
+
         {Target::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
-        {Target::Tofino, target_helper_t(&CodeGenerator::tofino_extractor)},
+
+        {Target::Tofino, target_helper_t(&CodeGenerator::tofino_extractor,
+                                         std::make_shared<TofinoGenerator>())},
+
         {Target::Netronome,
          target_helper_t(&CodeGenerator::netronome_extractor)},
     };
   }
-
-public:
-  CodeGenerator(const std::string &_directory) : directory(_directory) {
-    populate_target_helpers_bank();
-  }
-
-  CodeGenerator() : CodeGenerator(std::string()) {}
 
   void add_target(Target target) {
     auto found_it = target_helpers_bank.find(target);
@@ -75,7 +73,7 @@ public:
 
     switch (target) {
     case Target::x86_BMv2:
-      found_it->second.generator->output_to_file(directory + "/x86.c");
+      found_it->second.generator->output_to_file(directory + "/x86-bmv2.c");
       break;
     case Target::BMv2:
       found_it->second.generator->output_to_file(directory + "/bmv2.p4");

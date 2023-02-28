@@ -39,8 +39,8 @@ struct stack_t {
   stack_t() : pattern("^(.*)(_\\d+?)$") {
     push();
 
-    cp_var_to_code_translation = { { "rte_ether_addr_hash", "hash" },
-                                   { "VIGOR_DEVICE", "device" } };
+    cp_var_to_code_translation = {{"rte_ether_addr_hash", "hash"},
+                                  {"VIGOR_DEVICE", "device"}};
   }
 
   void push() { frames.emplace_back(); }
@@ -308,7 +308,7 @@ struct stack_t {
   }
 };
 
-class x86_Generator : public TargetCodeGenerator {
+class x86BMv2Generator : public TargetCodeGenerator {
 private:
   struct p4_table {
     std::string name;
@@ -360,7 +360,7 @@ private:
                     std::ostream &buffer);
 
 public:
-  x86_Generator()
+  x86BMv2Generator()
       : TargetCodeGenerator(GET_BOILERPLATE_PATH("boilerplate.c")), lvl(0),
         stack() {}
 

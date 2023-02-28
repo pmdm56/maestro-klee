@@ -26,7 +26,7 @@ bool all_x86_no_controller(const ExecutionPlan &execution_plan) {
 }
 
 ExecutionPlan
-CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
+CodeGenerator::x86_bmv2_extractor(const ExecutionPlan &execution_plan) const {
   if (all_x86_no_controller(execution_plan)) {
     return execution_plan;
   }
@@ -127,11 +127,9 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
       }
     }
 
-    if (module->get_type() ==
-        Module::ModuleType::BMv2_SendToController) {
+    if (module->get_type() == Module::ModuleType::BMv2_SendToController) {
       auto send_to_controller =
-          static_cast<targets::bmv2::SendToController *>(
-              module.get());
+          static_cast<targets::bmv2::SendToController *>(module.get());
 
       auto path_id = send_to_controller->get_metadata_code_path();
 
@@ -216,8 +214,8 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
   return extracted;
 }
 
-ExecutionPlan CodeGenerator::bmv2SimpleSwitchgRPC_extractor(
-    const ExecutionPlan &execution_plan) const {
+ExecutionPlan
+CodeGenerator::bmv2_extractor(const ExecutionPlan &execution_plan) const {
   auto extracted = execution_plan.clone(true);
   auto nodes = std::vector<ExecutionPlanNode_ptr>{extracted.get_root()};
 
@@ -231,8 +229,7 @@ ExecutionPlan CodeGenerator::bmv2SimpleSwitchgRPC_extractor(
     assert(module);
     assert(module->get_target() == Target::BMv2);
 
-    if (module->get_type() ==
-        Module::ModuleType::BMv2_SendToController) {
+    if (module->get_type() == Module::ModuleType::BMv2_SendToController) {
       auto no_next = Branches();
       node->set_next(no_next);
     }

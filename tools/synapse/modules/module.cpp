@@ -6,13 +6,13 @@
 
 namespace synapse {
 
-std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep) {
+std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
+                                         int max_reordered) {
   std::vector<ExecutionPlan> reordered;
 
-  // FIXME: comment this to enable node reordering
-  // if (ep.get_reordered_nodes() >= 0) {
-  //   return reordered;
-  // }
+  if (max_reordered >= 0 && ep.get_reordered_nodes() >= max_reordered) {
+    return reordered;
+  }
 
   auto next_node = ep.get_next_node();
 
@@ -76,7 +76,8 @@ bool can_process_platform(const ExecutionPlan &ep, Target target) {
 }
 
 processing_result_t Module::process_node(const ExecutionPlan &ep,
-                                         BDD::BDDNode_ptr node) {
+                                         BDD::BDDNode_ptr node,
+                                         int max_reordered) {
   assert(node);
   processing_result_t result;
 
@@ -110,7 +111,7 @@ processing_result_t Module::process_node(const ExecutionPlan &ep,
   std::vector<ExecutionPlan> reordered;
 
   for (auto ep : result.next_eps) {
-    auto ep_reodered = get_reordered(ep);
+    auto ep_reodered = get_reordered(ep, max_reordered);
     reordered.insert(reordered.end(), ep_reodered.begin(), ep_reodered.end());
   }
 

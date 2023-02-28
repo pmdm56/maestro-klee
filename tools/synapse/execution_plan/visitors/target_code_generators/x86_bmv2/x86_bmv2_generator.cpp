@@ -850,7 +850,7 @@ std::string transpile(const klee::ref<klee::Expr> &e, stack_t &stack) {
   return transpile(e, stack, false);
 }
 
-int x86_Generator::close_if_clauses() {
+int x86BMv2Generator::close_if_clauses() {
   int closed = 0;
 
   assert(pending_ifs.size());
@@ -874,7 +874,7 @@ int x86_Generator::close_if_clauses() {
   return closed;
 }
 
-void x86_Generator::allocate_map(call_t call, std::ostream &global_state,
+void x86BMv2Generator::allocate_map(call_t call, std::ostream &global_state,
                                  std::ostream &buffer) {
   assert(call.args["keq"].fn_ptr_name.first);
   assert(call.args["khash"].fn_ptr_name.first);
@@ -908,7 +908,7 @@ void x86_Generator::allocate_map(call_t call, std::ostream &global_state,
   buffer << ")";
 }
 
-void x86_Generator::allocate_vector(call_t call, std::ostream &global_state,
+void x86BMv2Generator::allocate_vector(call_t call, std::ostream &global_state,
                                     std::ostream &buffer) {
   assert(!call.args["elem_size"].expr.isNull());
   assert(!call.args["capacity"].expr.isNull());
@@ -940,7 +940,7 @@ void x86_Generator::allocate_vector(call_t call, std::ostream &global_state,
   buffer << ")";
 }
 
-void x86_Generator::allocate_dchain(call_t call, std::ostream &global_state,
+void x86BMv2Generator::allocate_dchain(call_t call, std::ostream &global_state,
                                     std::ostream &buffer) {
   assert(!call.args["index_range"].expr.isNull());
   assert(!call.args["chain_out"].out.isNull());
@@ -965,7 +965,7 @@ void x86_Generator::allocate_dchain(call_t call, std::ostream &global_state,
   buffer << ")";
 }
 
-void x86_Generator::allocate_cht(call_t call, std::ostream &global_state,
+void x86BMv2Generator::allocate_cht(call_t call, std::ostream &global_state,
                                  std::ostream &buffer) {
   assert(!call.args["cht"].expr.isNull());
   assert(!call.args["cht_height"].expr.isNull());
@@ -982,7 +982,7 @@ void x86_Generator::allocate_cht(call_t call, std::ostream &global_state,
   buffer << ")";
 }
 
-void x86_Generator::allocate(const ExecutionPlan &ep) {
+void x86BMv2Generator::allocate(const ExecutionPlan &ep) {
   auto node = ep.get_bdd().get_init();
 
   while (node) {
@@ -1035,7 +1035,7 @@ void x86_Generator::allocate(const ExecutionPlan &ep) {
 }
 
 std::pair<bool, uint64_t>
-x86_Generator::get_expiration_time(klee::ref<klee::Expr> libvig_obj) const {
+x86BMv2Generator::get_expiration_time(klee::ref<klee::Expr> libvig_obj) const {
   for (auto et : expiration_times) {
     auto obj = et.first;
     auto time = et.second;
@@ -1051,9 +1051,9 @@ x86_Generator::get_expiration_time(klee::ref<klee::Expr> libvig_obj) const {
   return std::make_pair(false, 0);
 }
 
-std::vector<x86_Generator::p4_table> x86_Generator::get_associated_p4_tables(
+std::vector<x86BMv2Generator::p4_table> x86BMv2Generator::get_associated_p4_tables(
     klee::ref<klee::Expr> libvig_obj) const {
-  std::vector<x86_Generator::p4_table> tables;
+  std::vector<x86BMv2Generator::p4_table> tables;
 
   assert(original_ep);
   assert(original_ep->get_root());
@@ -1100,7 +1100,7 @@ std::vector<x86_Generator::p4_table> x86_Generator::get_associated_p4_tables(
       tag_name << "_tag";
 
       auto found_it = std::find_if(tables.begin(), tables.end(),
-                                   [&](x86_Generator::p4_table table) {
+                                   [&](x86BMv2Generator::p4_table table) {
         return table.name == table_label;
       });
 
@@ -1108,7 +1108,7 @@ std::vector<x86_Generator::p4_table> x86_Generator::get_associated_p4_tables(
         goto skip;
       }
 
-      x86_Generator::p4_table table;
+      x86BMv2Generator::p4_table table;
       table.name = table_name;
       table.label = table_label;
       table.tag = tag_name.str();
@@ -1148,7 +1148,7 @@ get_readLSB_vigor_device(std::vector<klee::ConstraintManager> managers) {
   assert(false && "Could not find VIGOR_DEVICE in constraints");
 }
 
-void x86_Generator::fill_is_controller() {
+void x86BMv2Generator::fill_is_controller() {
   assert(original_ep);
   assert(original_ep->get_root());
 
@@ -1170,7 +1170,7 @@ void x86_Generator::fill_is_controller() {
   }
 }
 
-void x86_Generator::build_runtime_configure() {
+void x86BMv2Generator::build_runtime_configure() {
   assert(original_ep);
   assert(original_ep->get_root());
 
@@ -1371,7 +1371,7 @@ void x86_Generator::build_runtime_configure() {
   runtime_configure_stream << "}";
 }
 
-void x86_Generator::visit(ExecutionPlan ep) {
+void x86BMv2Generator::visit(ExecutionPlan ep) {
   fill_is_controller();
 
   lvl = code_builder.get_indentation_level(MARKER_NF_INIT);
@@ -1411,7 +1411,7 @@ void x86_Generator::visit(ExecutionPlan ep) {
   code_builder.fill_mark(MARKER_NF_PROCESS, nf_process_stream.str());
 }
 
-void x86_Generator::visit(const ExecutionPlanNode *ep_node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
   auto mod = ep_node->get_module();
   auto next = ep_node->get_next();
 
@@ -1425,7 +1425,7 @@ void x86_Generator::visit(const ExecutionPlanNode *ep_node) {
   }
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::MapGet *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::MapGet *node) {
   auto map_addr = node->get_map_addr();
   auto key = node->get_key();
   auto map_has_this_key = node->get_map_has_this_key();
@@ -1475,7 +1475,7 @@ void x86_Generator::visit(const targets::x86_bmv2::MapGet *node) {
   nf_process_stream << ");\n";
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::CurrentTime *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::CurrentTime *node) {
   auto generated_symbols = node->get_generated_symbols();
   assert(generated_symbols.size() == 1);
 
@@ -1485,7 +1485,7 @@ void x86_Generator::visit(const targets::x86_bmv2::CurrentTime *node) {
   stack.set_value(next_time_label, node->get_time());
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::PacketBorrowNextChunk *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::PacketBorrowNextChunk *node) {
   auto p_addr = node->get_p_addr();
   auto chunk = node->get_chunk();
   auto chunk_addr = node->get_chunk_addr();
@@ -1518,7 +1518,7 @@ void x86_Generator::visit(const targets::x86_bmv2::PacketBorrowNextChunk *node) 
   chunk_counter++;
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::PacketGetMetadata *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::PacketGetMetadata *node) {
   auto metadata = node->get_metadata();
 
   assert(!metadata.isNull());
@@ -1554,7 +1554,7 @@ void x86_Generator::visit(const targets::x86_bmv2::PacketGetMetadata *node) {
   nf_process_stream << ");\n";
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::PacketReturnChunk *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::PacketReturnChunk *node) {
   auto chunk_addr = node->get_chunk_addr();
   assert(!chunk_addr.isNull());
 
@@ -1593,7 +1593,7 @@ void x86_Generator::visit(const targets::x86_bmv2::PacketReturnChunk *node) {
   nf_process_stream << ");\n";
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::If *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::If *node) {
   auto condition = node->get_condition();
 
   pad(nf_process_stream);
@@ -1606,9 +1606,9 @@ void x86_Generator::visit(const targets::x86_bmv2::If *node) {
   pending_ifs.push(true);
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::Then *node) {}
+void x86BMv2Generator::visit(const targets::x86_bmv2::Then *node) {}
 
-void x86_Generator::visit(const targets::x86_bmv2::Else *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::Else *node) {
   pad(nf_process_stream);
   nf_process_stream << "else {\n";
   lvl++;
@@ -1616,7 +1616,7 @@ void x86_Generator::visit(const targets::x86_bmv2::Else *node) {
   stack.push();
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::Forward *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::Forward *node) {
   pad(nf_process_stream);
   nf_process_stream << "return " << node->get_port() << ";\n";
 
@@ -1626,7 +1626,7 @@ void x86_Generator::visit(const targets::x86_bmv2::Forward *node) {
   }
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::Broadcast *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::Broadcast *node) {
   pad(nf_process_stream);
   nf_process_stream << "return 65535;\n";
 
@@ -1636,7 +1636,7 @@ void x86_Generator::visit(const targets::x86_bmv2::Broadcast *node) {
   }
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::Drop *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::Drop *node) {
   pad(nf_process_stream);
   nf_process_stream << "return device;\n";
 
@@ -1671,7 +1671,7 @@ uint64_t get_expiration_time_value(klee::ref<klee::Expr> time) {
   return expiration_time;
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::ExpireItemsSingleMap *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::ExpireItemsSingleMap *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto vector_addr = node->get_vector_addr();
   auto map_addr = node->get_map_addr();
@@ -1747,7 +1747,7 @@ void x86_Generator::visit(const targets::x86_bmv2::ExpireItemsSingleMap *node) {
   nf_process_stream << ");\n";
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::RteEtherAddrHash *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::RteEtherAddrHash *node) {
   auto obj = node->get_obj();
   auto hash = node->get_hash();
   auto generated_symbols = node->get_generated_symbols();
@@ -1776,7 +1776,7 @@ void x86_Generator::visit(const targets::x86_bmv2::RteEtherAddrHash *node) {
   nf_process_stream << ");\n";
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::DchainRejuvenateIndex *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::DchainRejuvenateIndex *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto time = node->get_time();
   auto index = node->get_index();
@@ -1838,7 +1838,7 @@ klee::ref<klee::Expr> get_future_vector_value(BDD::BDDNode_ptr root,
   assert(false && "vector_return not found");
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::VectorBorrow *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::VectorBorrow *node) {
   auto vector_addr = node->get_vector_addr();
   auto index = node->get_index();
   auto value_out = node->get_value_out();
@@ -1887,7 +1887,7 @@ void x86_Generator::visit(const targets::x86_bmv2::VectorBorrow *node) {
   }
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::VectorReturn *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::VectorReturn *node) {
   auto vector_addr = node->get_vector_addr();
   auto index = node->get_index();
   auto value_addr = node->get_value_addr();
@@ -1927,7 +1927,7 @@ void x86_Generator::visit(const targets::x86_bmv2::VectorReturn *node) {
   }
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::DchainAllocateNewIndex *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::DchainAllocateNewIndex *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto time = node->get_time();
   auto index_out = node->get_index_out();
@@ -1977,7 +1977,7 @@ void x86_Generator::visit(const targets::x86_bmv2::DchainAllocateNewIndex *node)
   nf_process_stream << ";\n";
 }
 
-void x86_Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
+void x86BMv2Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
                                           klee::ref<klee::Expr> key,
                                           klee::ref<klee::Expr> value) {
   auto tables = get_associated_p4_tables(libvig_obj);
@@ -2162,7 +2162,7 @@ void x86_Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
   }
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::MapPut *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::MapPut *node) {
   auto map_addr = node->get_map_addr();
   auto key_addr = node->get_key_addr();
   auto key = node->get_key();
@@ -2202,7 +2202,7 @@ void x86_Generator::visit(const targets::x86_bmv2::MapPut *node) {
   }
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::PacketGetUnreadLength *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::PacketGetUnreadLength *node) {
   auto p_addr = node->get_p_addr();
   auto unread_length = node->get_unread_length();
   auto generated_symbols = node->get_generated_symbols();
@@ -2224,7 +2224,7 @@ void x86_Generator::visit(const targets::x86_bmv2::PacketGetUnreadLength *node) 
   nf_process_stream << ");\n";
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) {
   auto ip_header_addr = node->get_ip_header_addr();
   auto l4_header_addr = node->get_l4_header_addr();
   auto p_addr = node->get_p_addr();
@@ -2259,7 +2259,7 @@ void x86_Generator::visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) 
   nf_process_stream << ");\n";
 }
 
-void x86_Generator::visit(const targets::x86_bmv2::DchainIsIndexAllocated *node) {
+void x86BMv2Generator::visit(const targets::x86_bmv2::DchainIsIndexAllocated *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto index = node->get_index();
   auto is_allocated = node->get_is_allocated();

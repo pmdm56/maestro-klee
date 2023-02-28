@@ -41,13 +41,12 @@ llvm::cl::list<synapse::Target>
                llvm::cl::OneOrMore,
                llvm::cl::values(
                    clEnumValN(synapse::Target::x86_BMv2, "x86-bmv2",
-                              "x86 (as a controller for BMv2)"),
-                   clEnumValN(synapse::Target::BMv2, "bmv2",
-                              "P4 (BMv2 Simple Switch with gRPC)"),
-                   clEnumValN(synapse::Target::FPGA, "fpga", "VeriLog (FPGA)"),
+                              "x86 controller for BMv2 (C)"),
+                   clEnumValN(synapse::Target::BMv2, "bmv2", "BMv2 (P4)"),
+                   clEnumValN(synapse::Target::FPGA, "fpga", "FPGA (veriLog)"),
                    clEnumValN(synapse::Target::Netronome, "netronome",
-                              "Micro C (Netronome)"),
-                   clEnumValN(synapse::Target::Tofino, "tofino", "P4 (Tofino)"),
+                              "Netronome (micro C)"),
+                   clEnumValN(synapse::Target::Tofino, "tofino", "Tofino (P4)"),
                    clEnumValEnd),
                llvm::cl::cat(SyNAPSE));
 
@@ -58,6 +57,12 @@ llvm::cl::opt<std::string>
 llvm::cl::opt<std::string>
     Out("out", llvm::cl::desc("Output directory for every generated file."),
         llvm::cl::cat(SyNAPSE));
+
+llvm::cl::opt<int> MaxReordered(
+    "max-reordered",
+    llvm::cl::desc(
+        "Maximum number of reordenations on the BDD (-1 for unlimited)."),
+    llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
 } // namespace
 
 BDD::BDD build_bdd() {
@@ -94,7 +99,7 @@ int main(int argc, char **argv) {
 
   BDD::BDD bdd = build_bdd();
 
-  synapse::SearchEngine search_engine(bdd);
+  synapse::SearchEngine search_engine(bdd, MaxReordered);
   synapse::CodeGenerator code_generator(Out);
 
   for (unsigned i = 0; i != TargetList.size(); ++i) {

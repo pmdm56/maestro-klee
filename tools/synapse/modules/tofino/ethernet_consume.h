@@ -14,12 +14,12 @@ private:
 
 public:
   EthernetConsume()
-      : Module(ModuleType::Tofino_EthernetConsume, Target::Tofino,
-               "EthernetConsume") {}
+      : Module(ModuleType::Tofino_EthernetConsume,
+               Target::Tofino, "EthernetConsume") {}
 
   EthernetConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::Tofino_EthernetConsume, Target::Tofino,
-               "EthernetConsume", node),
+      : Module(ModuleType::Tofino_EthernetConsume,
+               Target::Tofino, "EthernetConsume", node),
         chunk(_chunk) {}
 
 private:
@@ -76,6 +76,6 @@ public:
 
   const klee::ref<klee::Expr> &get_chunk() const { return chunk; }
 };
-} // namespace tofino
+} // namespace bmv2
 } // namespace targets
 } // namespace synapse

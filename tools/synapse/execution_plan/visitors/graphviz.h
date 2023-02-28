@@ -451,24 +451,6 @@ public:
    *
    ********************************************/
 
-  VISIT_PRINT_MODULE_NAME(targets::tofino::Drop)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
   VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetConsume)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4Consume)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::TcpUdpConsume)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::Ignore)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::If)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::Then)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetModify)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4Modify)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::TcpUdpModify)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::IPOptionsConsume)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::IPOptionsModify)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::TableLookup)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::UpdateIpv4TcpUdpChecksum)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::PortAllocatorAllocate)
-  VISIT_PRINT_MODULE_NAME(targets::tofino::CachedTableLookup)
 };
 } // namespace synapse
