@@ -88,27 +88,27 @@ public:
 
     auto other_cast = static_cast<const ExpireItemsSingleMap *>(other);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              dchain_addr, other_cast->get_dchain_addr())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              vector_addr, other_cast->get_vector_addr())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              map_addr, other_cast->get_map_addr())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(time,
+    if (!util::solver_toolbox.are_exprs_always_equal(time,
                                                     other_cast->get_time())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              number_of_freed_flows, other_cast->get_number_of_freed_flows())) {
       return false;
     }

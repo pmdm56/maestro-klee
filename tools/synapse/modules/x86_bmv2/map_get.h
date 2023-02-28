@@ -78,22 +78,22 @@ public:
 
     auto other_cast = static_cast<const MapGet *>(other);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              map_addr, other_cast->get_map_addr())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(key,
+    if (!util::solver_toolbox.are_exprs_always_equal(key,
                                                     other_cast->get_key())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              map_has_this_key, other_cast->get_map_has_this_key())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              value_out, other_cast->get_value_out())) {
       return false;
     }

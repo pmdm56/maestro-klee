@@ -90,7 +90,7 @@ public:
       std::cerr << "calls:     " << calls.size() << "\n";
       for (const auto &call : calls) {
         std::cerr << "call:      " << call.function_name << " "
-                  << expr_to_string(call.ret) << "\n";
+                  << util::expr_to_string(call.ret) << "\n";
       }
     }
 
@@ -131,7 +131,9 @@ public:
       std::cerr << "FAILURE";
       break;
     }
-    default: { assert(false); }
+    default: {
+      assert(false);
+    }
     }
     std::cerr << "\n";
     std::cerr << "==========================================="

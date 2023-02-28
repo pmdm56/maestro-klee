@@ -62,7 +62,7 @@ public:
 
     auto other_cast = static_cast<const CurrentTime *>(other);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(time,
+    if (!util::solver_toolbox.are_exprs_always_equal(time,
                                                     other_cast->get_time())) {
       return false;
     }

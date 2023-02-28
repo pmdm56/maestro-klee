@@ -48,16 +48,16 @@ std::string Call::dump(bool one_liner) const {
     if (!first)
       ss << ", ";
     ss << arg.first << ":";
-    ss << expr_to_string(arg.second.expr, one_liner);
+    ss << util::expr_to_string(arg.second.expr, one_liner);
     if (!arg.second.in.isNull() || !arg.second.out.isNull()) {
       ss << "[";
     }
     if (!arg.second.in.isNull()) {
-      ss << expr_to_string(arg.second.in, one_liner);
+      ss << util::expr_to_string(arg.second.in, one_liner);
     }
     if (!arg.second.out.isNull()) {
       ss << " -> ";
-      ss << expr_to_string(arg.second.out, one_liner);
+      ss << util::expr_to_string(arg.second.out, one_liner);
     }
     if (!arg.second.in.isNull() || !arg.second.out.isNull()) {
       ss << "]";

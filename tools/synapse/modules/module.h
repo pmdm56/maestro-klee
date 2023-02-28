@@ -72,6 +72,11 @@ public:
     BMv2_Drop,
     BMv2_Forward,
     BMv2_VectorReturn,
+    Tofino_Ignore,
+    Tofino_If,
+    Tofino_Then,
+    Tofino_Else,
+    Tofino_Forward,
     Tofino_EthernetConsume,
   };
 

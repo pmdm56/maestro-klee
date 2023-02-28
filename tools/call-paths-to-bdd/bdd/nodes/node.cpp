@@ -42,7 +42,7 @@ void Node::update_id(uint64_t new_id) {
     return;
   }
 
-  RenameSymbols renamer;
+  util::RenameSymbols renamer;
   for (auto symbol : symbols) {
     auto new_label = factory.translate_label(symbol.label_base, this);
 

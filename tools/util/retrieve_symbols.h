@@ -1,30 +1,12 @@
 #pragma once
 
 #include "klee/ExprBuilder.h"
-#include "klee/perf-contracts.h"
-#include "klee/util/ArrayCache.h"
 #include "klee/util/ExprSMTLIBPrinter.h"
 #include "klee/util/ExprVisitor.h"
-#include "llvm/Support/CommandLine.h"
-#include <klee/Constraints.h>
-#include <klee/Solver.h>
 
-#include <algorithm>
-#include <dlfcn.h>
-#include <expr/Parser.h>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <memory>
-#include <regex>
-#include <sstream>
-#include <stack>
 #include <unordered_set>
-#include <utility>
-#include <vector>
 
-std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner = false);
-std::string pretty_print_expr(klee::ref<klee::Expr> expr);
+namespace util {
 
 bool get_bytes_read(klee::ref<klee::Expr> expr, std::vector<unsigned> &bytes);
 bool is_readLSB_complete(klee::ref<klee::Expr> expr);
@@ -91,3 +73,5 @@ public:
     return found_it != symbols.end();
   }
 };
+
+} // namespace util

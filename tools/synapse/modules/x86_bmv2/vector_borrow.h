@@ -79,22 +79,22 @@ public:
 
     auto other_cast = static_cast<const VectorBorrow *>(other);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              vector_addr, other_cast->get_vector_addr())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(index,
+    if (!util::solver_toolbox.are_exprs_always_equal(index,
                                                     other_cast->get_index())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              value_out, other_cast->get_value_out())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              borrowed_cell, other_cast->get_borrowed_cell())) {
       return false;
     }

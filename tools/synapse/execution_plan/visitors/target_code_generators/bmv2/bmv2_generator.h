@@ -2,7 +2,6 @@
 
 #include "../../../../log.h"
 #include "../../../execution_plan.h"
-
 #include "../../visitor.h"
 #include "../target_code_generator.h"
 
@@ -12,12 +11,15 @@
 #include <regex>
 #include <unistd.h>
 
+#define BMV2_BOILERPLATE_FILE "boilerplate.p4"
+
 namespace synapse {
+namespace synthesizer {
 
 class KleeExprToP4;
 class KeysFromKleeExpr;
 
-class BMv2Generator : public TargetCodeGenerator {
+class BMv2Generator : public Target {
   friend class KleeExprToP4;
   friend class KeysFromKleeExpr;
 
@@ -304,11 +306,7 @@ private:
   };
 
   struct parser_t : stage_t {
-    enum stage_type {
-      CONDITIONAL,
-      EXTRACTOR,
-      TERMINATOR
-    };
+    enum stage_type { CONDITIONAL, EXTRACTOR, TERMINATOR };
 
     struct parsing_stage {
       stage_type type;
@@ -583,35 +581,29 @@ private:
 
 public:
   BMv2Generator()
-      : TargetCodeGenerator(GET_BOILERPLATE_PATH("boilerplate.p4")),
-        parsing_headers(true) {}
+      : Target(GET_BOILERPLATE_PATH(BMV2_BOILERPLATE_FILE)), parsing_headers(true) {}
 
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
 
   void visit(const targets::bmv2::Drop *node) override;
   void visit(const targets::bmv2::Else *node) override;
-  void
-  visit(const targets::bmv2::EthernetConsume *node) override;
-  void
-  visit(const targets::bmv2::EthernetModify *node) override;
+  void visit(const targets::bmv2::EthernetConsume *node) override;
+  void visit(const targets::bmv2::EthernetModify *node) override;
   void visit(const targets::bmv2::Forward *node) override;
   void visit(const targets::bmv2::If *node) override;
   void visit(const targets::bmv2::Ignore *node) override;
   void visit(const targets::bmv2::IPv4Consume *node) override;
   void visit(const targets::bmv2::IPv4Modify *node) override;
-  void
-  visit(const targets::bmv2::IPOptionsConsume *node) override;
-  void
-  visit(const targets::bmv2::IPOptionsModify *node) override;
+  void visit(const targets::bmv2::IPOptionsConsume *node) override;
+  void visit(const targets::bmv2::IPOptionsModify *node) override;
   void visit(const targets::bmv2::TcpUdpConsume *node) override;
   void visit(const targets::bmv2::TcpUdpModify *node) override;
-  void
-  visit(const targets::bmv2::SendToController *node) override;
-  void
-  visit(const targets::bmv2::SetupExpirationNotifications *node)
-      override;
+  void visit(const targets::bmv2::SendToController *node) override;
+  void visit(const targets::bmv2::SetupExpirationNotifications *node) override;
   void visit(const targets::bmv2::TableLookup *node) override;
   void visit(const targets::bmv2::Then *node) override;
 };
+
+} // namespace synthesizer
 } // namespace synapse

@@ -1,6 +1,10 @@
-#include "solver-toolbox.h"
+#include "solver_toolbox.h"
+#include "retrieve_symbols.h"
+#include "exprs.h"
 
-namespace BDD {
+#include <iostream>
+
+namespace util {
 
 solver_toolbox_t solver_toolbox;
 
@@ -207,19 +211,19 @@ bool solver_toolbox_t::are_exprs_values_always_equal(
   auto always_v2 = are_exprs_always_equal(v2_const, expr2);
 
   if (!always_v1) {
-	std::cerr << "are_exprs_values_always_equal error\n";
-	std::cerr << "expr1 not always = " << expr_to_string(v1_const) << "\n";
-	std::cerr << "expr1: " << expr_to_string(expr1) << "\n";
-	assert(false && "are_exprs_values_always_equal error");
-	exit(1);
+    std::cerr << "are_exprs_values_always_equal error\n";
+    std::cerr << "expr1 not always = " << expr_to_string(v1_const) << "\n";
+    std::cerr << "expr1: " << expr_to_string(expr1) << "\n";
+    assert(false && "are_exprs_values_always_equal error");
+    exit(1);
   }
 
   if (!always_v2) {
-	std::cerr << "are_exprs_values_always_equal error\n";
-	std::cerr << "expr2 not always = " << expr_to_string(v2_const) << "\n";
-	std::cerr << "expr2: " << expr_to_string(expr2) << "\n";
-	assert(false && "are_exprs_values_always_equal error");
-	exit(1);
+    std::cerr << "are_exprs_values_always_equal error\n";
+    std::cerr << "expr2 not always = " << expr_to_string(v2_const) << "\n";
+    std::cerr << "expr2: " << expr_to_string(expr2) << "\n";
+    assert(false && "are_exprs_values_always_equal error");
+    exit(1);
   }
 
   return v1 == v2;
@@ -296,4 +300,4 @@ bool solver_toolbox_t::are_calls_equal(call_t c1, call_t c2) const {
   return true;
 }
 
-} // namespace BDD
+} // namespace util

@@ -29,8 +29,8 @@
 #include <stack>
 #include <vector>
 
-#include "../expr-printer/expr-printer.h"
-#include "../load-call-paths/load-call-paths.h"
+#include "load-call-paths.h"
+#include "util.h"
 
 namespace {
 llvm::cl::list<std::string> InputCallPathFiles(llvm::cl::desc("<call paths>"),
@@ -165,7 +165,7 @@ public:
         break;
 
       else if (!success) {
-        std::cerr << RED << "expression: " << expr_to_string(expr) << "\n"
+        std::cerr << RED << "expression: " << util::expr_to_string(expr) << "\n"
                   << RESET;
         assert(false && "Solver unable to obtain value for given expression");
       }
@@ -704,7 +704,7 @@ struct packet_chunk_t {
       if (i > 0)
         std::cerr << "               ";
       std::cerr << "offset " << fragment.offset;
-      std::cerr << " expression " << expr_to_string(fragment.expr);
+      std::cerr << " expression " << util::expr_to_string(fragment.expr);
       std::cerr << "\n";
     }
 
@@ -1477,7 +1477,7 @@ public:
     std::cerr << "  object       " << obj.second << "\n";
 
     if (read_arg.is_name_set()) {
-      std::cerr << "  read         " << expr_to_string(read_arg.get_expr())
+      std::cerr << "  read         " << util::expr_to_string(read_arg.get_expr())
                 << "\n";
 
       if (read_arg.has_packet_dependencies()) {
@@ -1487,7 +1487,7 @@ public:
     }
 
     if (write_arg.is_name_set()) {
-      std::cerr << "  write        " << expr_to_string(write_arg.get_expr())
+      std::cerr << "  write        " << util::expr_to_string(write_arg.get_expr())
                 << "\n";
 
       if (write_arg.has_packet_dependencies()) {
@@ -1498,7 +1498,7 @@ public:
     }
 
     if (result_arg.is_name_set()) {
-      std::cerr << "  result       " << expr_to_string(result_arg.get_expr())
+      std::cerr << "  result       " << util::expr_to_string(result_arg.get_expr())
                 << "\n";
 
       if (result_arg.has_packet_dependencies()) {
@@ -1781,7 +1781,7 @@ struct CallPathConstraint {
   }
 
   bool expr_has_connector(klee::expr::ExprHandle expr) const {
-    auto expr_str = expr_to_string(expr);
+    auto expr_str = util::expr_to_string(expr);
     return expr_str.find(chunks_connector) != std::string::npos;
   }
 };
@@ -1835,7 +1835,7 @@ struct ConstraintBetweenCallPaths {
     std::cerr << "  source     " << source_call_path_filename << "\n";
     std::cerr << "  pair      " << pair_call_path_filename << "\n";
 
-    std::cerr << "  constraint " << expr_to_string(expression) << "\n";
+    std::cerr << "  constraint " << util::expr_to_string(expression) << "\n";
 
     std::cerr << "  source dependencies"
               << "\n";
@@ -2054,10 +2054,10 @@ public:
     }
 
     for (const klee::expr::ExprHandle &constraint : call_path->constraints) {
-      if (expr_to_string(constraint).find("packet_chunks") == std::string::npos)
+      if (util::expr_to_string(constraint).find("packet_chunks") == std::string::npos)
         continue;
 
-      if (expr_to_string(constraint).find("vector_data_reset") ==
+      if (util::expr_to_string(constraint).find("vector_data_reset") ==
           std::string::npos)
         continue;
 
@@ -2255,7 +2255,7 @@ private:
         for (auto inserted : replacements) {
           // hack
           auto replacement_expr = inserted.get_expr();
-          if (expr_to_string(replacement_expr) == expr_to_string(expr)) {
+          if (util::expr_to_string(replacement_expr) == util::expr_to_string(expr)) {
             return true;
           }
         }

@@ -77,17 +77,17 @@ public:
 
     auto other_cast = static_cast<const DchainIsIndexAllocated *>(other);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              dchain_addr, other_cast->get_dchain_addr())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(index,
+    if (!util::solver_toolbox.are_exprs_always_equal(index,
                                                     other_cast->get_index())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              is_allocated, other_cast->get_is_allocated())) {
       return false;
     }

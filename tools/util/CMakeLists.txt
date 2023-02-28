@@ -6,13 +6,19 @@
 # License. See LICENSE.TXT for details.
 #
 #===------------------------------------------------------------------------===#
-
-file(GLOB_RECURSE expr-printer-sources
+file(GLOB_RECURSE util-sources
   "*.cpp"
 )
 
-add_executable(expr-printer
-  ${expr-printer-sources}
+file(GLOB_RECURSE load-call-paths-sources
+  "../load-call-paths/*.cpp"
+)
+
+list(FILTER load-call-paths-sources EXCLUDE REGEX ".*main\\.cpp$")
+
+add_executable(util
+  ${util-sources}
+  ${load-call-paths-sources}
 )
 
 set(KLEE_LIBS
@@ -20,6 +26,7 @@ set(KLEE_LIBS
   kleeCore
 )
 
-target_link_libraries(expr-printer ${KLEE_LIBS})
+target_include_directories(util PRIVATE ../load-call-paths)
+target_link_libraries(util ${KLEE_LIBS})
 
-install(TARGETS expr-printer RUNTIME DESTINATION bin)
+install(TARGETS util RUNTIME DESTINATION bin)

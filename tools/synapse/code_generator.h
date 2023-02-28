@@ -14,7 +14,7 @@ class CodeGenerator {
 private:
   typedef ExecutionPlan (CodeGenerator::*ExecutionPlanTargetExtractor)(
       const ExecutionPlan &) const;
-  typedef std::shared_ptr<TargetCodeGenerator> TargetCodeGenerator_ptr;
+  typedef std::shared_ptr<synapse::synthesizer::Target> TargetCodeGenerator_ptr;
 
   struct target_helper_t {
     ExecutionPlanTargetExtractor extractor;
@@ -44,16 +44,21 @@ public:
   CodeGenerator(const std::string &_directory) : directory(_directory) {
     target_helpers_bank = {
         {Target::x86_BMv2,
-         target_helper_t(&CodeGenerator::x86_bmv2_extractor,
-                         std::make_shared<x86BMv2Generator>())},
+         target_helper_t(
+             &CodeGenerator::x86_bmv2_extractor,
+             std::make_shared<synapse::synthesizer::x86BMv2Generator>())},
 
-        {Target::BMv2, target_helper_t(&CodeGenerator::bmv2_extractor,
-                                       std::make_shared<BMv2Generator>())},
+        {Target::BMv2,
+         target_helper_t(
+             &CodeGenerator::bmv2_extractor,
+             std::make_shared<synapse::synthesizer::BMv2Generator>())},
 
         {Target::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
 
-        {Target::Tofino, target_helper_t(&CodeGenerator::tofino_extractor,
-                                         std::make_shared<TofinoGenerator>())},
+        {Target::Tofino,
+         target_helper_t(
+             &CodeGenerator::tofino_extractor,
+             std::make_shared<synapse::synthesizer::TofinoGenerator>())},
 
         {Target::Netronome,
          target_helper_t(&CodeGenerator::netronome_extractor)},
@@ -71,24 +76,27 @@ public:
       return;
     }
 
+    auto output_file = directory + "/";
+
     switch (target) {
     case Target::x86_BMv2:
-      found_it->second.generator->output_to_file(directory + "/x86-bmv2.c");
+      output_file += "x86-bmv2.c";
       break;
     case Target::BMv2:
-      found_it->second.generator->output_to_file(directory + "/bmv2.p4");
+      output_file += "bmv2.p4";
       break;
     case Target::FPGA:
-      found_it->second.generator->output_to_file(directory + "/fpga.v");
+      output_file += "fpga.v";
       break;
     case Target::Tofino:
-      found_it->second.generator->output_to_file(directory + "/tofino.p4");
+      output_file += "tofino.p4";
       break;
     case Target::Netronome:
-      found_it->second.generator->output_to_file(directory + "/netronome.c");
+      output_file += "netronome.c";
       break;
     }
 
+    found_it->second.generator->output_to_file(output_file);
     target_helpers_loaded.push_back(found_it->second);
   }
 

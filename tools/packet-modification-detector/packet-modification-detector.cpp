@@ -29,8 +29,8 @@
 #include <stack>
 #include <vector>
 
+#include "util.h"
 #include "call-paths-to-bdd.h"
-#include "expr-printer.h"
 #include "load-call-paths.h"
 
 namespace {
@@ -74,8 +74,8 @@ struct chunk_t {
       : in(_in), constraints(_constraints), label(_label) {}
 
   bool was_chunk_modified() const {
-    auto eq = BDD::solver_toolbox.exprBuilder->Eq(in, out);
-    auto always_eq = BDD::solver_toolbox.is_expr_always_true(constraints, eq);
+    auto eq = util::solver_toolbox.exprBuilder->Eq(in, out);
+    auto always_eq = util::solver_toolbox.is_expr_always_true(constraints, eq);
     return !always_eq;
   }
 
@@ -86,13 +86,13 @@ struct chunk_t {
     auto width = in->getWidth(); // bits
 
     for (auto byte = 0u; byte < width / 8; byte++) {
-      auto in_byte = BDD::solver_toolbox.exprBuilder->Extract(in, byte * 8,
+      auto in_byte = util::solver_toolbox.exprBuilder->Extract(in, byte * 8,
                                                               klee::Expr::Int8);
-      auto out_byte = BDD::solver_toolbox.exprBuilder->Extract(
+      auto out_byte = util::solver_toolbox.exprBuilder->Extract(
           out, byte * 8, klee::Expr::Int8);
-      auto eq_bytes = BDD::solver_toolbox.exprBuilder->Eq(in_byte, out_byte);
+      auto eq_bytes = util::solver_toolbox.exprBuilder->Eq(in_byte, out_byte);
       auto always_eq =
-          BDD::solver_toolbox.is_expr_always_true(constraints, eq_bytes);
+          util::solver_toolbox.is_expr_always_true(constraints, eq_bytes);
 
       if (!always_eq) {
         modified_bytes.push_back(byte);
@@ -156,7 +156,7 @@ get_chunks_per_call_path(std::vector<call_path_t *> call_paths) {
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
-  BDD::solver_toolbox.build();
+  util::solver_toolbox.build();
   std::vector<call_path_t *> call_paths;
 
   for (auto file : InputCallPathFiles) {
@@ -179,8 +179,8 @@ int main(int argc, char **argv) {
     for (auto chunk : call_path_chunks.chunks) {
       std::cerr << "\n";
       std::cerr << "  label    : " << chunk.label << "\n";
-      std::cerr << "  in       : " << expr_to_string(chunk.in, true) << "\n";
-      std::cerr << "  out      : " << expr_to_string(chunk.out, true) << "\n";
+      std::cerr << "  in       : " << util::expr_to_string(chunk.in, true) << "\n";
+      std::cerr << "  out      : " << util::expr_to_string(chunk.out, true) << "\n";
 
       std::cerr << "  modified : ";
       auto modified = chunk.was_chunk_modified();

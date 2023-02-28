@@ -4,6 +4,9 @@
 
 #include "llvm/Support/MemoryBuffer.h"
 
+#include <iostream>
+#include <fstream>
+
 namespace BDD {
 
 struct kQuery_t {
@@ -41,7 +44,7 @@ struct kQuery_t {
 
 void fill_arrays(klee::ref<klee::Expr> expr,
                  std::vector<const klee::Array *> &arrays) {
-  RetrieveSymbols retriever;
+  util::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto reads = retriever.get_retrieved();
@@ -65,7 +68,7 @@ std::string serialize_expr(klee::ref<klee::Expr> expr, kQuery_t &kQuery) {
   assert(!expr.isNull());
   fill_arrays(expr, kQuery.arrays);
 
-  auto expr_str = expr_to_string(expr);
+  auto expr_str = util::expr_to_string(expr);
 
   while (1) {
     auto delim = expr_str.find(":");

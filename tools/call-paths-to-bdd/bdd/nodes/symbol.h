@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../solver-toolbox.h"
 #include "load-call-paths.h"
+#include "util.h"
 
 namespace BDD {
 struct symbol_t {
@@ -28,11 +28,11 @@ inline bool operator==(const symbol_t &lhs, const symbol_t &rhs) {
     return false;
   }
 
-  if (!solver_toolbox.are_exprs_always_equal(lhs.expr, rhs.expr)) {
+  if (!util::solver_toolbox.are_exprs_always_equal(lhs.expr, rhs.expr)) {
     return false;
   }
 
-  if (!solver_toolbox.are_exprs_always_equal(lhs.addr, rhs.addr)) {
+  if (!util::solver_toolbox.are_exprs_always_equal(lhs.addr, rhs.addr)) {
     return false;
   }
 

@@ -9,6 +9,7 @@
 #define MARKER_NF_PROCESS "nf_process"
 
 namespace synapse {
+namespace synthesizer {
 
 std::string build_table_label(std::string bdd_function, uint64_t table_id) {
   std::stringstream table_label;
@@ -49,7 +50,7 @@ private:
   bool is_signed;
 
   bool is_read_lsb(klee::ref<klee::Expr> e) const {
-    RetrieveSymbols retriever;
+    util::RetrieveSymbols retriever;
     retriever.visit(e);
 
     if (retriever.get_retrieved_strings().size() != 1) {
@@ -117,7 +118,7 @@ public:
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
     klee::ref<klee::Expr> eref = const_cast<klee::ReadExpr *>(&e);
 
-    RetrieveSymbols retriever;
+    util::RetrieveSymbols retriever;
     retriever.visit(eref);
 
     auto symbols = retriever.get_retrieved_strings();
@@ -129,9 +130,9 @@ public:
       auto offset = e.index;
 
       assert(offset->getKind() == klee::Expr::Kind::Constant);
-      auto offset_value = BDD::solver_toolbox.value_from_expr(offset);
+      auto offset_value = util::solver_toolbox.value_from_expr(offset);
 
-      auto extracted = BDD::solver_toolbox.exprBuilder->Extract(
+      auto extracted = util::solver_toolbox.exprBuilder->Extract(
           value, offset_value, eref->getWidth());
       code << transpile(extracted, stack, is_signed);
 
@@ -155,7 +156,7 @@ public:
     klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
     if (is_read_lsb(eref)) {
-      RetrieveSymbols retriever;
+      util::RetrieveSymbols retriever;
       retriever.visit(eref);
 
       auto symbols = retriever.get_retrieved_strings();
@@ -170,7 +171,7 @@ public:
       klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
       Log::err() << "\n";
-      Log::err() << expr_to_string(eref, true) << "\n";
+      Log::err() << util::expr_to_string(eref, true) << "\n";
       Log::err() << "symbol " << symbol << " not in set\n";
       stack.err_dump();
       assert(false && "Not in stack");
@@ -242,18 +243,18 @@ public:
     }
 
     if (expr->getKind() == klee::Expr::Kind::Constant) {
-      auto extract = BDD::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
-      auto value = BDD::solver_toolbox.value_from_expr(extract);
+      auto extract = util::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
+      auto value = util::solver_toolbox.value_from_expr(extract);
 
       // checking if this is really the ONLY answer
-      assert(BDD::solver_toolbox.are_exprs_always_equal(
-          extract, BDD::solver_toolbox.exprBuilder->Constant(value, sz)));
+      assert(util::solver_toolbox.are_exprs_always_equal(
+          extract, util::solver_toolbox.exprBuilder->Constant(value, sz)));
 
       code << value;
       return klee::ExprVisitor::Action::skipChildren();
     }
 
-    std::cerr << "expr   " << expr_to_string(expr, true) << "\n";
+    std::cerr << "expr   " << util::expr_to_string(expr, true) << "\n";
     std::cerr << "offset " << offset << "\n";
     std::cerr << "sz     " << sz << "\n";
     assert(false && "expr size > 64 but not constant");
@@ -745,11 +746,11 @@ void apply_changes(const klee::ref<klee::Expr> &before,
 
   for (unsigned int b = 0; b < size; b += 8) {
     auto before_byte =
-        BDD::solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
+        util::solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
     auto after_byte =
-        BDD::solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
+        util::solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
 
-    if (BDD::solver_toolbox.are_exprs_always_equal(before_byte, after_byte)) {
+    if (util::solver_toolbox.are_exprs_always_equal(before_byte, after_byte)) {
       continue;
     }
 
@@ -780,7 +781,7 @@ std::string build(const klee::ref<klee::Expr> &e, stack_t &stack,
 
   for (unsigned int b = 0; b < size; b += 8) {
     auto extract =
-        BDD::solver_toolbox.exprBuilder->Extract(e, b, klee::Expr::Int8);
+        util::solver_toolbox.exprBuilder->Extract(e, b, klee::Expr::Int8);
     assignment_stream << var_label.str() << "[" << b / 8 << "] = (uint8_t) ("
                       << transpile(extract, stack) << ");";
     assignments.push_back(assignment_stream.str());
@@ -839,7 +840,7 @@ std::string transpile(const klee::ref<klee::Expr> &e, stack_t &stack,
   if (!code.size()) {
     // error
     Log::err() << "Unable to transpile expression:\n";
-    Log::err() << expr_to_string(e, true);
+    Log::err() << util::expr_to_string(e, true);
     exit(1);
   }
 
@@ -875,7 +876,7 @@ int x86BMv2Generator::close_if_clauses() {
 }
 
 void x86BMv2Generator::allocate_map(call_t call, std::ostream &global_state,
-                                 std::ostream &buffer) {
+                                    std::ostream &buffer) {
   assert(call.args["keq"].fn_ptr_name.first);
   assert(call.args["khash"].fn_ptr_name.first);
   assert(!call.args["capacity"].expr.isNull());
@@ -909,7 +910,7 @@ void x86BMv2Generator::allocate_map(call_t call, std::ostream &global_state,
 }
 
 void x86BMv2Generator::allocate_vector(call_t call, std::ostream &global_state,
-                                    std::ostream &buffer) {
+                                       std::ostream &buffer) {
   assert(!call.args["elem_size"].expr.isNull());
   assert(!call.args["capacity"].expr.isNull());
   assert(call.args["init_elem"].fn_ptr_name.first);
@@ -941,7 +942,7 @@ void x86BMv2Generator::allocate_vector(call_t call, std::ostream &global_state,
 }
 
 void x86BMv2Generator::allocate_dchain(call_t call, std::ostream &global_state,
-                                    std::ostream &buffer) {
+                                       std::ostream &buffer) {
   assert(!call.args["index_range"].expr.isNull());
   assert(!call.args["chain_out"].out.isNull());
 
@@ -966,7 +967,7 @@ void x86BMv2Generator::allocate_dchain(call_t call, std::ostream &global_state,
 }
 
 void x86BMv2Generator::allocate_cht(call_t call, std::ostream &global_state,
-                                 std::ostream &buffer) {
+                                    std::ostream &buffer) {
   assert(!call.args["cht"].expr.isNull());
   assert(!call.args["cht_height"].expr.isNull());
   assert(!call.args["backend_capacity"].expr.isNull());
@@ -1011,7 +1012,9 @@ void x86BMv2Generator::allocate(const ExecutionPlan &ep) {
       break;
     }
 
-    case BDD::Node::NodeType::BRANCH: { break; }
+    case BDD::Node::NodeType::BRANCH: {
+      break;
+    }
 
     case BDD::Node::NodeType::RETURN_INIT: {
       pad(nf_init_stream);
@@ -1040,10 +1043,10 @@ x86BMv2Generator::get_expiration_time(klee::ref<klee::Expr> libvig_obj) const {
     auto obj = et.first;
     auto time = et.second;
 
-    auto obj_extracted = BDD::solver_toolbox.exprBuilder->Extract(
+    auto obj_extracted = util::solver_toolbox.exprBuilder->Extract(
         obj, 0, libvig_obj->getWidth());
 
-    if (BDD::solver_toolbox.are_exprs_always_equal(obj_extracted, libvig_obj)) {
+    if (util::solver_toolbox.are_exprs_always_equal(obj_extracted, libvig_obj)) {
       return std::make_pair(true, time);
     }
   }
@@ -1051,14 +1054,15 @@ x86BMv2Generator::get_expiration_time(klee::ref<klee::Expr> libvig_obj) const {
   return std::make_pair(false, 0);
 }
 
-std::vector<x86BMv2Generator::p4_table> x86BMv2Generator::get_associated_p4_tables(
+std::vector<x86BMv2Generator::p4_table>
+x86BMv2Generator::get_associated_p4_tables(
     klee::ref<klee::Expr> libvig_obj) const {
   std::vector<x86BMv2Generator::p4_table> tables;
 
   assert(original_ep);
   assert(original_ep->get_root());
 
-  std::vector<ExecutionPlanNode_ptr> nodes = { original_ep->get_root() };
+  std::vector<ExecutionPlanNode_ptr> nodes = {original_ep->get_root()};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -1066,11 +1070,9 @@ std::vector<x86BMv2Generator::p4_table> x86BMv2Generator::get_associated_p4_tabl
 
     auto module = node->get_module();
 
-    if (module->get_type() ==
-        Module::ModuleType::BMv2_TableLookup) {
+    if (module->get_type() == Module::ModuleType::BMv2_TableLookup) {
       auto table_lookup =
-          static_cast<targets::bmv2::TableLookup *>(
-              module.get());
+          static_cast<targets::bmv2::TableLookup *>(module.get());
 
       auto bdd_node = module->get_node();
 
@@ -1083,7 +1085,7 @@ std::vector<x86BMv2Generator::p4_table> x86BMv2Generator::get_associated_p4_tabl
       auto obj = table_lookup->get_obj();
       assert(!obj.isNull());
 
-      if (!BDD::solver_toolbox.are_exprs_always_equal(libvig_obj, obj)) {
+      if (!util::solver_toolbox.are_exprs_always_equal(libvig_obj, obj)) {
         goto skip;
       }
 
@@ -1101,8 +1103,8 @@ std::vector<x86BMv2Generator::p4_table> x86BMv2Generator::get_associated_p4_tabl
 
       auto found_it = std::find_if(tables.begin(), tables.end(),
                                    [&](x86BMv2Generator::p4_table table) {
-        return table.name == table_label;
-      });
+                                     return table.name == table_label;
+                                   });
 
       if (found_it != tables.end()) {
         goto skip;
@@ -1130,7 +1132,7 @@ klee::ref<klee::Expr>
 get_readLSB_vigor_device(std::vector<klee::ConstraintManager> managers) {
   for (auto manager : managers) {
     for (auto constraint : manager) {
-      RetrieveSymbols retriever(true);
+      util::RetrieveSymbols retriever(true);
       retriever.visit(constraint);
 
       auto symbols = retriever.get_retrieved_strings();
@@ -1152,7 +1154,7 @@ void x86BMv2Generator::fill_is_controller() {
   assert(original_ep);
   assert(original_ep->get_root());
 
-  std::vector<ExecutionPlanNode_ptr> nodes = { original_ep->get_root() };
+  std::vector<ExecutionPlanNode_ptr> nodes = {original_ep->get_root()};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -1160,7 +1162,7 @@ void x86BMv2Generator::fill_is_controller() {
 
     auto module = node->get_module();
 
-    if (module->get_target() != Target::x86_BMv2) {
+    if (module->get_target() != synapse::Target::x86_BMv2) {
       is_controller = std::make_pair(true, module->get_target());
       return;
     }
@@ -1178,11 +1180,7 @@ void x86BMv2Generator::build_runtime_configure() {
 
   struct table_t {
     struct libvig_obj_t {
-      enum obj_type_t {
-        MAP,
-        VECTOR,
-        DCHAIN
-      };
+      enum obj_type_t { MAP, VECTOR, DCHAIN };
 
       std::string obj_label;
       obj_type_t obj_type;
@@ -1194,7 +1192,7 @@ void x86BMv2Generator::build_runtime_configure() {
 
   std::vector<table_t> tables;
 
-  std::vector<ExecutionPlanNode_ptr> nodes = { original_ep->get_root() };
+  std::vector<ExecutionPlanNode_ptr> nodes = {original_ep->get_root()};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -1209,23 +1207,21 @@ void x86BMv2Generator::build_runtime_configure() {
       auto vigor_device = get_readLSB_vigor_device(constraint_managers);
 
       for (auto manager : constraint_managers) {
-        auto value = BDD::solver_toolbox.value_from_expr(vigor_device, manager);
-        auto eq = BDD::solver_toolbox.exprBuilder->Eq(
-            vigor_device, BDD::solver_toolbox.exprBuilder->Constant(
+        auto value = util::solver_toolbox.value_from_expr(vigor_device, manager);
+        auto eq = util::solver_toolbox.exprBuilder->Eq(
+            vigor_device, util::solver_toolbox.exprBuilder->Constant(
                               value, vigor_device->getWidth()));
 
-        auto always_eq = BDD::solver_toolbox.is_expr_always_true(manager, eq);
+        auto always_eq = util::solver_toolbox.is_expr_always_true(manager, eq);
         assert(always_eq);
 
         devices.insert(value);
       }
     }
 
-    if (module->get_type() ==
-        Module::ModuleType::BMv2_TableLookup) {
+    if (module->get_type() == Module::ModuleType::BMv2_TableLookup) {
       auto table_lookup =
-          static_cast<targets::bmv2::TableLookup *>(
-              module.get());
+          static_cast<targets::bmv2::TableLookup *>(module.get());
 
       auto bdd_function = table_lookup->get_bdd_function();
       auto table_id = table_lookup->get_table_id();
@@ -1248,9 +1244,8 @@ void x86BMv2Generator::build_runtime_configure() {
         assert(false && "TODO");
       }
 
-      table_t table{ table_name, std::vector<table_t::libvig_obj_t>{
-                                   table_t::libvig_obj_t{ obj_label, type }
-                                 } };
+      table_t table{table_name, std::vector<table_t::libvig_obj_t>{
+                                    table_t::libvig_obj_t{obj_label, type}}};
 
       tables.push_back(table);
     }
@@ -1378,8 +1373,7 @@ void x86BMv2Generator::visit(ExecutionPlan ep) {
 
   allocate(ep);
 
-  if (is_controller.first &&
-      is_controller.second == Target::BMv2) {
+  if (is_controller.first && is_controller.second == synapse::Target::BMv2) {
     lvl = code_builder.get_indentation_level(MARKER_RUNTIME_CONFIGURE);
     build_runtime_configure();
   }
@@ -1417,8 +1411,8 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
 
   mod->visit(*this);
 
-  assert(next.size() <= 1 ||
-         next[1]->get_module()->get_type() == Module::ModuleType::x86_BMv2_Else);
+  assert(next.size() <= 1 || next[1]->get_module()->get_type() ==
+                                 Module::ModuleType::x86_BMv2_Else);
 
   for (auto branch : next) {
     branch->visit(*this);
@@ -1481,11 +1475,12 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::CurrentTime *node) {
 
   auto next_time_label = get_label(generated_symbols, "next_time");
 
-  stack.cp_var_to_code_translation.insert({ next_time_label, "now" });
+  stack.cp_var_to_code_translation.insert({next_time_label, "now"});
   stack.set_value(next_time_label, node->get_time());
 }
 
-void x86BMv2Generator::visit(const targets::x86_bmv2::PacketBorrowNextChunk *node) {
+void x86BMv2Generator::visit(
+    const targets::x86_bmv2::PacketBorrowNextChunk *node) {
   auto p_addr = node->get_p_addr();
   auto chunk = node->get_chunk();
   auto chunk_addr = node->get_chunk_addr();
@@ -1570,11 +1565,11 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::PacketReturnChunk *node) {
   auto size = chunk->getWidth();
   for (unsigned b = 0; b < size; b += 8) {
     auto chunk_byte =
-        BDD::solver_toolbox.exprBuilder->Extract(chunk, b, klee::Expr::Int8);
-    auto before_chunk_byte = BDD::solver_toolbox.exprBuilder->Extract(
+        util::solver_toolbox.exprBuilder->Extract(chunk, b, klee::Expr::Int8);
+    auto before_chunk_byte = util::solver_toolbox.exprBuilder->Extract(
         before_chunk, b, klee::Expr::Int8);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(chunk_byte,
+    if (!util::solver_toolbox.are_exprs_always_equal(chunk_byte,
                                                     before_chunk_byte)) {
       pad(nf_process_stream);
       nf_process_stream << label << "[" << b / 8 << "]";
@@ -1647,7 +1642,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::Drop *node) {
 }
 
 uint64_t get_expiration_time_value(klee::ref<klee::Expr> time) {
-  RetrieveSymbols retriever(true);
+  util::RetrieveSymbols retriever(true);
   retriever.visit(time);
 
   auto readLSBs = retriever.get_retrieved_readLSB();
@@ -1655,12 +1650,12 @@ uint64_t get_expiration_time_value(klee::ref<klee::Expr> time) {
 
   auto next_time = readLSBs[0];
   auto expiration_time_expr =
-      BDD::solver_toolbox.exprBuilder->Sub(time, next_time);
+      util::solver_toolbox.exprBuilder->Sub(time, next_time);
   auto expiration_time =
-      BDD::solver_toolbox.value_from_expr(expiration_time_expr);
+      util::solver_toolbox.value_from_expr(expiration_time_expr);
 
-  auto always_eq = BDD::solver_toolbox.are_exprs_always_equal(
-      BDD::solver_toolbox.exprBuilder->Constant(
+  auto always_eq = util::solver_toolbox.are_exprs_always_equal(
+      util::solver_toolbox.exprBuilder->Constant(
           expiration_time, expiration_time_expr->getWidth()),
       expiration_time_expr);
   assert(always_eq);
@@ -1671,7 +1666,8 @@ uint64_t get_expiration_time_value(klee::ref<klee::Expr> time) {
   return expiration_time;
 }
 
-void x86BMv2Generator::visit(const targets::x86_bmv2::ExpireItemsSingleMap *node) {
+void x86BMv2Generator::visit(
+    const targets::x86_bmv2::ExpireItemsSingleMap *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto vector_addr = node->get_vector_addr();
   auto map_addr = node->get_map_addr();
@@ -1715,8 +1711,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::ExpireItemsSingleMap *node
   // expiration is controlled by the switch
   // TODO: if a specific object is not on the switch, its expiration time
   // must be controlled by the controller
-  if (is_controller.first &&
-      is_controller.second == Target::BMv2) {
+  if (is_controller.first && is_controller.second == synapse::Target::BMv2) {
     return;
   }
 
@@ -1776,7 +1771,8 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::RteEtherAddrHash *node) {
   nf_process_stream << ");\n";
 }
 
-void x86BMv2Generator::visit(const targets::x86_bmv2::DchainRejuvenateIndex *node) {
+void x86BMv2Generator::visit(
+    const targets::x86_bmv2::DchainRejuvenateIndex *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto time = node->get_time();
   auto index = node->get_index();
@@ -1801,7 +1797,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::DchainRejuvenateIndex *nod
 
 klee::ref<klee::Expr> get_future_vector_value(BDD::BDDNode_ptr root,
                                               klee::ref<klee::Expr> vector) {
-  std::vector<BDD::BDDNode_ptr> nodes{ root };
+  std::vector<BDD::BDDNode_ptr> nodes{root};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -1823,7 +1819,7 @@ klee::ref<klee::Expr> get_future_vector_value(BDD::BDDNode_ptr root,
         continue;
       }
 
-      auto eq = BDD::solver_toolbox.are_exprs_always_equal(
+      auto eq = util::solver_toolbox.are_exprs_always_equal(
           vector, call.args["vector"].expr);
 
       if (!eq) {
@@ -1909,7 +1905,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::VectorReturn *node) {
     assert(node->get_node());
 
     Log::err() << "Node:  " << node->get_node()->dump(true) << "\n";
-    Log::err() << "Expr: " << expr_to_string(value_addr, true) << "\n";
+    Log::err() << "Expr: " << util::expr_to_string(value_addr, true) << "\n";
     Log::err() << "Label:  " << value_label << "\n";
     assert(false && "Not found in stack");
   }
@@ -1921,13 +1917,13 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::VectorReturn *node) {
   nf_process_stream << ", (void *)" << value_label;
   nf_process_stream << ");\n";
 
-  if (is_controller.first &&
-      is_controller.second == Target::BMv2) {
+  if (is_controller.first && is_controller.second == synapse::Target::BMv2) {
     issue_write_to_switch(vector_addr, index, value);
   }
 }
 
-void x86BMv2Generator::visit(const targets::x86_bmv2::DchainAllocateNewIndex *node) {
+void x86BMv2Generator::visit(
+    const targets::x86_bmv2::DchainAllocateNewIndex *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto time = node->get_time();
   auto index_out = node->get_index_out();
@@ -1978,8 +1974,8 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::DchainAllocateNewIndex *no
 }
 
 void x86BMv2Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
-                                          klee::ref<klee::Expr> key,
-                                          klee::ref<klee::Expr> value) {
+                                             klee::ref<klee::Expr> key,
+                                             klee::ref<klee::Expr> value) {
   auto tables = get_associated_p4_tables(libvig_obj);
 
   for (auto table : tables) {
@@ -2000,7 +1996,7 @@ void x86BMv2Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
       std::stringstream key_byte_name;
       key_byte_name << "key_byte_" << byte;
 
-      auto key_byte_expr = BDD::solver_toolbox.exprBuilder->Extract(
+      auto key_byte_expr = util::solver_toolbox.exprBuilder->Extract(
           key, byte * 8, klee::Expr::Int8);
       auto key_byte_expr_transpiled = transpile(key_byte_expr, stack);
 
@@ -2065,7 +2061,7 @@ void x86BMv2Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
       nf_process_stream << " };\n";
 
       for (auto byte = 0u; byte < value->getWidth() / 8; byte++) {
-        auto extracted = BDD::solver_toolbox.exprBuilder->Extract(
+        auto extracted = util::solver_toolbox.exprBuilder->Extract(
             value, byte * 8, klee::Expr::Int8);
 
         auto extracted_transpiled = transpile(extracted, stack);
@@ -2182,7 +2178,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::MapPut *node) {
   auto key_label = stack.get_by_value(key);
 
   if (key_label.size() == 0) {
-    std::cerr << "key " << expr_to_string(key, true) << "\n";
+    std::cerr << "key " << util::expr_to_string(key, true) << "\n";
     stack.err_dump();
     exit(1);
   }
@@ -2196,13 +2192,13 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::MapPut *node) {
   nf_process_stream << ", " << transpiled_value;
   nf_process_stream << ");\n";
 
-  if (is_controller.first &&
-      is_controller.second == Target::BMv2) {
+  if (is_controller.first && is_controller.second == synapse::Target::BMv2) {
     issue_write_to_switch(map_addr, key, value);
   }
 }
 
-void x86BMv2Generator::visit(const targets::x86_bmv2::PacketGetUnreadLength *node) {
+void x86BMv2Generator::visit(
+    const targets::x86_bmv2::PacketGetUnreadLength *node) {
   auto p_addr = node->get_p_addr();
   auto unread_length = node->get_unread_length();
   auto generated_symbols = node->get_generated_symbols();
@@ -2224,7 +2220,8 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::PacketGetUnreadLength *nod
   nf_process_stream << ");\n";
 }
 
-void x86BMv2Generator::visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) {
+void x86BMv2Generator::visit(
+    const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) {
   auto ip_header_addr = node->get_ip_header_addr();
   auto l4_header_addr = node->get_l4_header_addr();
   auto p_addr = node->get_p_addr();
@@ -2242,7 +2239,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *nod
   assert(generated_symbols.size() == 1);
   auto checksum_label = get_label(generated_symbols, "checksum");
   auto ip_hdr = stack.get_value(ip_header_addr);
-  auto checksum_expr = BDD::solver_toolbox.exprBuilder->Extract(ip_hdr, 80, 16);
+  auto checksum_expr = util::solver_toolbox.exprBuilder->Extract(ip_hdr, 80, 16);
 
   pad(nf_process_stream);
   nf_process_stream << "uint16_t " << checksum_label;
@@ -2259,7 +2256,8 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *nod
   nf_process_stream << ");\n";
 }
 
-void x86BMv2Generator::visit(const targets::x86_bmv2::DchainIsIndexAllocated *node) {
+void x86BMv2Generator::visit(
+    const targets::x86_bmv2::DchainIsIndexAllocated *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto index = node->get_index();
   auto is_allocated = node->get_is_allocated();
@@ -2292,4 +2290,5 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::DchainIsIndexAllocated *no
   nf_process_stream << ");\n";
 }
 
+} // namespace synthesizer
 } // namespace synapse

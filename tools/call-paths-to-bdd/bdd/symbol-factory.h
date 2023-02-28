@@ -6,8 +6,6 @@
 #include "nodes/branch.h"
 #include "nodes/call.h"
 
-#include "../solver-toolbox.h"
-
 namespace BDD {
 
 class SymbolFactory {
@@ -142,9 +140,9 @@ private:
   current_time(call_t call, bool save,
                const std::vector<klee::ConstraintManager> &constraint_managers);
 
-  symbols_t
-  rte_lcore_count(call_t call, bool save,
-                  const std::vector<klee::ConstraintManager> &constraint_managers);
+  symbols_t rte_lcore_count(
+      call_t call, bool save,
+      const std::vector<klee::ConstraintManager> &constraint_managers);
 
   symbols_t nf_set_rte_ipv4_udptcp_checksum(
       call_t call, bool save,
@@ -157,50 +155,50 @@ private:
 public:
   SymbolFactory() {
     call_processor_lookup_table = {
-      { "start_time", &SymbolFactory::no_process },
-      { "current_time", &SymbolFactory::current_time },
-	  { "rte_lcore_count", &SymbolFactory::rte_lcore_count },
-      { "loop_invariant_consume", &SymbolFactory::no_process },
-      { "loop_invariant_produce", &SymbolFactory::no_process },
-      { "packet_receive", &SymbolFactory::no_process },
-      { "packet_borrow_next_chunk", &SymbolFactory::packet_borrow_next_chunk },
-      { "packet_insert_new_chunk", &SymbolFactory::no_process },
-      { "packet_shrink_chunk", &SymbolFactory::no_process },
-      { "packet_get_unread_length", &SymbolFactory::no_process },
-      { "packet_state_total_length", &SymbolFactory::no_process },
-      { "packet_return_chunk", &SymbolFactory::no_process },
-      { "packet_send", &SymbolFactory::no_process },
-      { "packet_free", &SymbolFactory::no_process },
-      { "map_allocate", &SymbolFactory::map_allocate },
-      { "map_get", &SymbolFactory::map_get },
-      { "map_put", &SymbolFactory::no_process },
-      { "vector_allocate", &SymbolFactory::vector_allocate },
-      { "vector_borrow", &SymbolFactory::vector_borrow },
-      { "vector_return", &SymbolFactory::no_process },
-      { "map_erase", &SymbolFactory::no_process },
-      { "dchain_allocate", &SymbolFactory::dchain_allocate },
-      { "dchain_allocate_new_index",
-        &SymbolFactory::dchain_allocate_new_index },
-      { "dchain_is_index_allocated",
-        &SymbolFactory::dchain_is_index_allocated },
-      { "dchain_rejuvenate_index", &SymbolFactory::no_process },
-      { "dchain_free_index", &SymbolFactory::no_process },
-      { "expire_items_single_map", &SymbolFactory::expire_items_single_map },
-      { "expire_items_single_map_iteratively",
-        &SymbolFactory::expire_items_single_map_iteratively },
-      { "sketch_allocate", &SymbolFactory::sketch_allocate },
-      { "sketch_compute_hashes", &SymbolFactory::no_process },
-      { "sketch_refresh", &SymbolFactory::no_process },
-      { "sketch_fetch", &SymbolFactory::sketch_fetch },
-      { "sketch_touch_buckets", &SymbolFactory::sketch_touch_buckets },
-      { "sketch_expire", &SymbolFactory::no_process },
-      { "cht_fill_cht", &SymbolFactory::cht_fill_cht },
-      { "LoadBalancedFlow_hash", &SymbolFactory::LoadBalancedFlow_hash },
-      { "cht_find_preferred_available_backend",
-        &SymbolFactory::cht_find_preferred_available_backend },
-      { "rte_ether_addr_hash", &SymbolFactory::rte_ether_addr_hash },
-      { "nf_set_rte_ipv4_udptcp_checksum",
-        &SymbolFactory::nf_set_rte_ipv4_udptcp_checksum },
+        {"start_time", &SymbolFactory::no_process},
+        {"current_time", &SymbolFactory::current_time},
+        {"rte_lcore_count", &SymbolFactory::rte_lcore_count},
+        {"loop_invariant_consume", &SymbolFactory::no_process},
+        {"loop_invariant_produce", &SymbolFactory::no_process},
+        {"packet_receive", &SymbolFactory::no_process},
+        {"packet_borrow_next_chunk", &SymbolFactory::packet_borrow_next_chunk},
+        {"packet_insert_new_chunk", &SymbolFactory::no_process},
+        {"packet_shrink_chunk", &SymbolFactory::no_process},
+        {"packet_get_unread_length", &SymbolFactory::no_process},
+        {"packet_state_total_length", &SymbolFactory::no_process},
+        {"packet_return_chunk", &SymbolFactory::no_process},
+        {"packet_send", &SymbolFactory::no_process},
+        {"packet_free", &SymbolFactory::no_process},
+        {"map_allocate", &SymbolFactory::map_allocate},
+        {"map_get", &SymbolFactory::map_get},
+        {"map_put", &SymbolFactory::no_process},
+        {"vector_allocate", &SymbolFactory::vector_allocate},
+        {"vector_borrow", &SymbolFactory::vector_borrow},
+        {"vector_return", &SymbolFactory::no_process},
+        {"map_erase", &SymbolFactory::no_process},
+        {"dchain_allocate", &SymbolFactory::dchain_allocate},
+        {"dchain_allocate_new_index",
+         &SymbolFactory::dchain_allocate_new_index},
+        {"dchain_is_index_allocated",
+         &SymbolFactory::dchain_is_index_allocated},
+        {"dchain_rejuvenate_index", &SymbolFactory::no_process},
+        {"dchain_free_index", &SymbolFactory::no_process},
+        {"expire_items_single_map", &SymbolFactory::expire_items_single_map},
+        {"expire_items_single_map_iteratively",
+         &SymbolFactory::expire_items_single_map_iteratively},
+        {"sketch_allocate", &SymbolFactory::sketch_allocate},
+        {"sketch_compute_hashes", &SymbolFactory::no_process},
+        {"sketch_refresh", &SymbolFactory::no_process},
+        {"sketch_fetch", &SymbolFactory::sketch_fetch},
+        {"sketch_touch_buckets", &SymbolFactory::sketch_touch_buckets},
+        {"sketch_expire", &SymbolFactory::no_process},
+        {"cht_fill_cht", &SymbolFactory::cht_fill_cht},
+        {"LoadBalancedFlow_hash", &SymbolFactory::LoadBalancedFlow_hash},
+        {"cht_find_preferred_available_backend",
+         &SymbolFactory::cht_find_preferred_available_backend},
+        {"rte_ether_addr_hash", &SymbolFactory::rte_ether_addr_hash},
+        {"nf_set_rte_ipv4_udptcp_checksum",
+         &SymbolFactory::nf_set_rte_ipv4_udptcp_checksum},
     };
 
     stack.emplace_back();
@@ -222,7 +220,7 @@ public:
   }
 
   void translate(Node *current, Node *translation_source,
-                 RenameSymbols renamer);
+                 util::RenameSymbols renamer);
 
   void translate(call_t call, BDDNode_ptr node);
 

@@ -62,7 +62,7 @@ public:
       auto next_ep = h.pop();
       auto next_node = next_ep.get_next_node();
       assert(next_node);
-
+      
       // Graphviz::visualize(next_ep);
 
       struct report_t {

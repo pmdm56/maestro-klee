@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../solver-toolbox.h"
-
 #include <assert.h>
 
 namespace BDD {

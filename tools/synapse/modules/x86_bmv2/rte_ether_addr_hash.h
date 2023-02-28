@@ -70,12 +70,12 @@ public:
 
     auto other_cast = static_cast<const RteEtherAddrHash *>(other);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(obj,
+    if (!util::solver_toolbox.are_exprs_always_equal(obj,
                                                     other_cast->get_obj())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(hash,
+    if (!util::solver_toolbox.are_exprs_always_equal(hash,
                                                     other_cast->get_hash())) {
       return false;
     }

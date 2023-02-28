@@ -15,30 +15,29 @@
 #define MARKER_DEPARSER_APPLY "deparser_apply"
 
 namespace synapse {
+namespace synthesizer {
 
-void BMv2Generator::err_label_from_chunk(
-    klee::ref<klee::Expr> expr) const {
+void BMv2Generator::err_label_from_chunk(klee::ref<klee::Expr> expr) const {
   Log::err() << "label_from_chunk error\n";
-  Log::err() << "expr   " << expr_to_string(expr, true) << "\n";
+  Log::err() << "expr   " << util::expr_to_string(expr, true) << "\n";
   for (auto header : headers) {
     Log::err() << "header " << header.label << " "
-               << expr_to_string(header.chunk, true) << "\n";
+               << util::expr_to_string(header.chunk, true) << "\n";
   }
   Log::err() << "\n";
 
   assert(false);
 }
 
-void BMv2Generator::err_label_from_vars(
-    klee::ref<klee::Expr> expr) const {
+void BMv2Generator::err_label_from_vars(klee::ref<klee::Expr> expr) const {
   Log::err() << "label_from_vars error\n";
-  Log::err() << "expr   " << expr_to_string(expr, true) << "\n";
+  Log::err() << "expr   " << util::expr_to_string(expr, true) << "\n";
 
   for (auto meta : metadata.get()) {
     std::stringstream meta_stream;
     meta_stream << "meta   " << meta.label << " ";
     for (auto expr : meta.exprs) {
-      meta_stream << expr_to_string(expr, true) << " ";
+      meta_stream << util::expr_to_string(expr, true) << " ";
     }
     meta_stream << "\n";
     Log::err() << meta_stream.str();
@@ -54,8 +53,7 @@ void BMv2Generator::err_label_from_vars(
   assert(false);
 }
 
-std::string BMv2Generator::p4_type_from_expr(
-    klee::ref<klee::Expr> expr) const {
+std::string BMv2Generator::p4_type_from_expr(klee::ref<klee::Expr> expr) const {
   auto sz = expr->getWidth();
   std::stringstream label;
   label << "bit<" << sz << ">";
@@ -90,10 +88,10 @@ std::string get_bytes_of_label(std::string label, unsigned size,
   return code.str();
 }
 
-void BMv2Generator::field_header_from_packet_chunk(
-    klee::ref<klee::Expr> expr, std::string &field_str,
-    unsigned &bit_offset) const {
-  RetrieveSymbols retriever;
+void BMv2Generator::field_header_from_packet_chunk(klee::ref<klee::Expr> expr,
+                                                   std::string &field_str,
+                                                   unsigned &bit_offset) const {
+  util::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -111,10 +109,10 @@ void BMv2Generator::field_header_from_packet_chunk(
     for (auto field : header.fields) {
 
       for (unsigned byte = 0; byte * 8 + sz <= field.sz; byte++) {
-        auto field_expr = BDD::solver_toolbox.exprBuilder->Extract(
+        auto field_expr = util::solver_toolbox.exprBuilder->Extract(
             chunk, offset + byte * 8, sz);
 
-        if (BDD::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
+        if (util::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
           field_str = std::string("hdr." + header.label + "." + field.label);
           bit_offset = byte * 8;
           return;
@@ -128,9 +126,9 @@ void BMv2Generator::field_header_from_packet_chunk(
   return;
 }
 
-std::string BMv2Generator::label_from_packet_chunk(
-    klee::ref<klee::Expr> expr) const {
-  RetrieveSymbols retriever;
+std::string
+BMv2Generator::label_from_packet_chunk(klee::ref<klee::Expr> expr) const {
+  util::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -151,10 +149,10 @@ std::string BMv2Generator::label_from_packet_chunk(
           continue;
         }
 
-        auto field_expr = BDD::solver_toolbox.exprBuilder->Extract(
+        auto field_expr = util::solver_toolbox.exprBuilder->Extract(
             chunk, offset + byte * 8, sz);
 
-        if (BDD::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
+        if (util::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
           auto label = "hdr." + header.label + "." + field.label;
 
           if (field.sz == sz) {
@@ -172,9 +170,8 @@ std::string BMv2Generator::label_from_packet_chunk(
   return "";
 }
 
-std::string BMv2Generator::label_from_vars(
-    klee::ref<klee::Expr> expr) const {
-  RetrieveSymbols retriever;
+std::string BMv2Generator::label_from_vars(klee::ref<klee::Expr> expr) const {
+  util::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -188,9 +185,9 @@ std::string BMv2Generator::label_from_vars(
 
       for (auto byte = 0u; byte * 8 + sz <= meta_sz; byte++) {
         auto extracted =
-            BDD::solver_toolbox.exprBuilder->Extract(meta_expr, byte * 8, sz);
+            util::solver_toolbox.exprBuilder->Extract(meta_expr, byte * 8, sz);
 
-        if (BDD::solver_toolbox.are_exprs_always_equal(expr, extracted)) {
+        if (util::solver_toolbox.are_exprs_always_equal(expr, extracted)) {
           auto label = "meta." + meta.label;
 
           if (meta_sz == sz) {
@@ -221,7 +218,7 @@ BMv2Generator::assign_key_bytes(klee::ref<klee::Expr> expr) {
   auto sz = expr->getWidth();
 
   for (auto byte = 0u; byte * 8 < sz; byte++) {
-    auto key_byte = BDD::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
+    auto key_byte = util::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
     auto key_byte_code = transpile(key_byte, true);
 
     if (byte + 1 > ingress.key_bytes.size()) {
@@ -243,8 +240,7 @@ BMv2Generator::assign_key_bytes(klee::ref<klee::Expr> expr) {
   return assignments;
 }
 
-bool
-BMv2Generator::is_constant(klee::ref<klee::Expr> expr) const {
+bool BMv2Generator::is_constant(klee::ref<klee::Expr> expr) const {
   if (expr->getKind() == klee::Expr::Kind::Constant) {
     return true;
   }
@@ -252,8 +248,7 @@ BMv2Generator::is_constant(klee::ref<klee::Expr> expr) const {
   return false;
 }
 
-bool BMv2Generator::is_constant_signed(
-    klee::ref<klee::Expr> expr) const {
+bool BMv2Generator::is_constant_signed(klee::ref<klee::Expr> expr) const {
   if (!is_constant(expr)) {
     return false;
   }
@@ -267,8 +262,7 @@ bool BMv2Generator::is_constant_signed(
   return sign_bit == 1;
 }
 
-int64_t BMv2Generator::get_constant_signed(
-    klee::ref<klee::Expr> expr) const {
+int64_t BMv2Generator::get_constant_signed(klee::ref<klee::Expr> expr) const {
   if (!is_constant_signed(expr)) {
     return false;
   }
@@ -286,9 +280,8 @@ int64_t BMv2Generator::get_constant_signed(
   return -((~value + 1) & mask);
 }
 
-std::string
-BMv2Generator::transpile(const klee::ref<klee::Expr> &e,
-                                          bool is_signed) const {
+std::string BMv2Generator::transpile(const klee::ref<klee::Expr> &e,
+                                     bool is_signed) const {
   auto expr = e;
   KleeExprToP4::swap_endianness(expr);
 
@@ -321,7 +314,7 @@ BMv2Generator::transpile(const klee::ref<klee::Expr> &e,
     // error
     std::stringstream error;
     error << "Unable to generator.transpile expression: ";
-    error << expr_to_string(expr, true);
+    error << util::expr_to_string(expr, true);
     error << "\n";
     error << "Kind: ";
     error << expr->getKind();
@@ -334,8 +327,7 @@ BMv2Generator::transpile(const klee::ref<klee::Expr> &e,
   return code;
 }
 
-void
-BMv2Generator::parser_t::dump(code_builder_t &code_builder) {
+void BMv2Generator::parser_t::dump(code_builder_t &code_builder) {
   assert(stages.size());
   auto root = stages[0];
 
@@ -355,7 +347,7 @@ BMv2Generator::parser_t::dump(code_builder_t &code_builder) {
   pad(parser_states_stream, lvl);
   parser_states_stream << "}\n";
 
-  auto built_stages = std::vector<std::shared_ptr<parsing_stage>>{ root };
+  auto built_stages = std::vector<std::shared_ptr<parsing_stage>>{root};
 
   while (built_stages.size()) {
     auto stage = built_stages[0];
@@ -435,11 +427,9 @@ BMv2Generator::parser_t::dump(code_builder_t &code_builder) {
   code_builder.fill_mark(MARKER_PARSE_HEADERS, parser_states_stream.str());
 }
 
-void BMv2Generator::verify_checksum_t::dump(
-    code_builder_t &code_builder) {}
+void BMv2Generator::verify_checksum_t::dump(code_builder_t &code_builder) {}
 
-void
-BMv2Generator::ingress_t::dump(code_builder_t &code_builder) {
+void BMv2Generator::ingress_t::dump(code_builder_t &code_builder) {
   std::stringstream ingress_globals_stream;
   auto lvl = code_builder.get_indentation_level(MARKER_INGRESS_GLOBALS);
 
@@ -469,14 +459,11 @@ BMv2Generator::ingress_t::dump(code_builder_t &code_builder) {
                          ingress_apply_content_stream.str());
 }
 
-void
-BMv2Generator::egress_t::dump(code_builder_t &code_builder) {}
+void BMv2Generator::egress_t::dump(code_builder_t &code_builder) {}
 
-void BMv2Generator::compute_checksum_t::dump(
-    code_builder_t &code_builder) {}
+void BMv2Generator::compute_checksum_t::dump(code_builder_t &code_builder) {}
 
-void
-BMv2Generator::deparser_t::dump(code_builder_t &code_builder) {
+void BMv2Generator::deparser_t::dump(code_builder_t &code_builder) {
   std::unordered_set<std::string> defined_hdrs;
 
   std::stringstream deparser_apply_stream;
@@ -635,7 +622,7 @@ bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node) {
     auto module = node->get_module();
     assert(module);
 
-    if (module->get_target() != Target::BMv2) {
+    if (module->get_target() != synapse::Target::BMv2) {
       continue;
     }
 
@@ -671,8 +658,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
   parsing_headers = pending_packet_borrow_ep;
 
   for (auto branch : next) {
-    if (ep_node->get_module()->get_type() ==
-            Module::ModuleType::BMv2_If &&
+    if (ep_node->get_module()->get_type() == Module::ModuleType::BMv2_If &&
         pending_packet_borrow_ep &&
         !pending_packet_borrow_next_chunk(branch.get())) {
       parser.reject();
@@ -682,8 +668,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
   }
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::Else *node) {
+void BMv2Generator::visit(const targets::bmv2::Else *node) {
   local_vars.push();
   metadata.push();
   parser.push_on_false();
@@ -694,13 +679,12 @@ void BMv2Generator::visit(
   ingress.lvl++;
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::EthernetConsume *node) {
+void BMv2Generator::visit(const targets::bmv2::EthernetConsume *node) {
   header_field_t dstAddr(48, "dstAddr");
   header_field_t srcAddr(48, "srcAddr");
   header_field_t etherType(16, "etherType");
 
-  std::vector<header_field_t> fields = { dstAddr, srcAddr, etherType };
+  std::vector<header_field_t> fields = {dstAddr, srcAddr, etherType};
   auto chunk = node->get_chunk();
   auto label = "ethernet";
 
@@ -712,8 +696,7 @@ void BMv2Generator::visit(
   deparser.headers_labels.push_back(label);
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::EthernetModify *node) {
+void BMv2Generator::visit(const targets::bmv2::EthernetModify *node) {
   auto ethernet_chunk = node->get_ethernet_chunk();
   auto modifications = node->get_modifications();
 
@@ -724,7 +707,7 @@ void BMv2Generator::visit(
     auto byte = mod.byte;
     auto expr = mod.expr;
 
-    auto modified_byte = BDD::solver_toolbox.exprBuilder->Extract(
+    auto modified_byte = util::solver_toolbox.exprBuilder->Extract(
         ethernet_chunk, byte * 8, klee::Expr::Int8);
 
     field_header_from_packet_chunk(modified_byte, field, offset);
@@ -758,8 +741,7 @@ void BMv2Generator::visit(
   }
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::Forward *node) {
+void BMv2Generator::visit(const targets::bmv2::Forward *node) {
   pad(ingress.apply_block, ingress.lvl);
   ingress.apply_block << "forward(" << node->get_port() << ");\n";
 
@@ -772,8 +754,7 @@ void BMv2Generator::visit(
   }
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::Drop *node) {
+void BMv2Generator::visit(const targets::bmv2::Drop *node) {
   pad(ingress.apply_block, ingress.lvl);
   ingress.apply_block << "drop();\n";
 
@@ -786,8 +767,7 @@ void BMv2Generator::visit(
   }
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::If *node) {
+void BMv2Generator::visit(const targets::bmv2::If *node) {
   parser.add_condition(transpile(node->get_condition(), true));
 
   local_vars.push();
@@ -802,11 +782,9 @@ void BMv2Generator::visit(
   ingress.pending_ifs.push(true);
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::Ignore *node) {}
+void BMv2Generator::visit(const targets::bmv2::Ignore *node) {}
 
-void BMv2Generator::visit(
-    const targets::bmv2::IPv4Consume *node) {
+void BMv2Generator::visit(const targets::bmv2::IPv4Consume *node) {
   header_field_t version_ihl(8, "version_ihl");
   header_field_t diff_serv(8, "diff_serv");
   header_field_t total_len(16, "total_len");
@@ -819,10 +797,9 @@ void BMv2Generator::visit(
   header_field_t src_addr(32, "src_addr");
   header_field_t dst_addr(32, "dst_addr");
 
-  std::vector<header_field_t> fields = { version_ihl, diff_serv, total_len,
-                                         id,          flags,     frag_offset,
-                                         ttl,         proto,     checksum,
-                                         src_addr,    dst_addr };
+  std::vector<header_field_t> fields = {
+      version_ihl, diff_serv, total_len, id,       flags,   frag_offset,
+      ttl,         proto,     checksum,  src_addr, dst_addr};
 
   auto chunk = node->get_chunk();
   auto label = "ipv4";
@@ -835,19 +812,17 @@ void BMv2Generator::visit(
   deparser.headers_labels.push_back(label);
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::IPv4Modify *node) {
+void BMv2Generator::visit(const targets::bmv2::IPv4Modify *node) {
   assert(false && "TODO");
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::IPOptionsConsume *node) {
+void BMv2Generator::visit(const targets::bmv2::IPOptionsConsume *node) {
   auto chunk = node->get_chunk();
   auto length = node->get_length();
 
   header_field_t options(320, "options", length);
 
-  std::vector<header_field_t> fields = { options };
+  std::vector<header_field_t> fields = {options};
 
   auto label = "ipv4_options";
 
@@ -858,10 +833,10 @@ void BMv2Generator::visit(
   // this is ok because we don't expect the length of an ipv4 packet
   // to not fit in 32 bits
   if (length->getWidth() < klee::Expr::Int32) {
-    length32 = BDD::solver_toolbox.exprBuilder->ZExt(length, klee::Expr::Int32);
+    length32 = util::solver_toolbox.exprBuilder->ZExt(length, klee::Expr::Int32);
   } else if (length->getWidth() > klee::Expr::Int32) {
     length32 =
-        BDD::solver_toolbox.exprBuilder->Extract(length, 0, klee::Expr::Int32);
+        util::solver_toolbox.exprBuilder->Extract(length, 0, klee::Expr::Int32);
   }
 
   assert(parsing_headers);
@@ -870,17 +845,15 @@ void BMv2Generator::visit(
   deparser.headers_labels.push_back(label);
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::IPOptionsModify *node) {
+void BMv2Generator::visit(const targets::bmv2::IPOptionsModify *node) {
   assert(false && "TODO");
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::TcpUdpConsume *node) {
+void BMv2Generator::visit(const targets::bmv2::TcpUdpConsume *node) {
   header_field_t src_port(16, "src_port");
   header_field_t dst_port(16, "dst_port");
 
-  std::vector<header_field_t> fields = { src_port, dst_port };
+  std::vector<header_field_t> fields = {src_port, dst_port};
 
   auto chunk = node->get_chunk();
   auto label = "tcp_udp";
@@ -893,13 +866,11 @@ void BMv2Generator::visit(
   deparser.headers_labels.push_back(label);
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::TcpUdpModify *node) {
+void BMv2Generator::visit(const targets::bmv2::TcpUdpModify *node) {
   assert(false && "TODO");
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::SendToController *node) {
+void BMv2Generator::visit(const targets::bmv2::SendToController *node) {
   auto code_path = node->get_metadata_code_path();
 
   pad(ingress.apply_block, ingress.lvl);
@@ -919,8 +890,7 @@ void BMv2Generator::visit(
   // FIXME: assert(false && "TODO");
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::TableLookup *node) {
+void BMv2Generator::visit(const targets::bmv2::TableLookup *node) {
   auto keys = node->get_keys();
   auto params = node->get_params();
   auto bdd_function = node->get_bdd_function();
@@ -1021,9 +991,9 @@ void BMv2Generator::visit(
   }
 }
 
-void BMv2Generator::visit(
-    const targets::bmv2::Then *node) {
+void BMv2Generator::visit(const targets::bmv2::Then *node) {
   parser.push_on_true();
 }
 
+} // namespace synthesizer
 }; // namespace synapse

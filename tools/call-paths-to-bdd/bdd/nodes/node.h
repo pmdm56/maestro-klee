@@ -3,8 +3,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../../solver-toolbox.h"
-#include "expr-printer.h"
 #include "load-call-paths.h"
 #include "symbol.h"
 

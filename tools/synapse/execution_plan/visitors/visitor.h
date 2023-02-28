@@ -55,6 +55,11 @@ class VectorReturn;
 } // namespace bmv2
 
 namespace tofino {
+class Ignore;
+class If;
+class Then;
+class Else;
+class Forward;
 class EthernetConsume;
 } // namespace tofino
 } // namespace targets
@@ -123,6 +128,11 @@ public:
    *
    * **********************************/
 
+  virtual void visit(const targets::tofino::Ignore *node) {}
+  virtual void visit(const targets::tofino::If *node) {}
+  virtual void visit(const targets::tofino::Then *node) {}
+  virtual void visit(const targets::tofino::Else *node) {}
+  virtual void visit(const targets::tofino::Forward *node) {}
   virtual void visit(const targets::tofino::EthernetConsume *node) {}
 };
 

@@ -88,11 +88,11 @@ private:
       if (call.function_name == "map_get" || call.function_name == "map_put") {
         assert(!call.args["map"].expr.isNull());
         this_table_id =
-            BDD::solver_toolbox.value_from_expr(call.args["map"].expr);
+            util::solver_toolbox.value_from_expr(call.args["map"].expr);
       } else if (call.function_name == "vector_borrow") {
         assert(!call.args["vector"].expr.isNull());
         this_table_id =
-            BDD::solver_toolbox.value_from_expr(call.args["vector"].expr);
+            util::solver_toolbox.value_from_expr(call.args["vector"].expr);
       }
 
       if (this_table_id == _table_id) {
@@ -132,7 +132,7 @@ private:
     auto prev_table_lookup = static_cast<TableLookup *>(module.get());
     auto prev_obj = prev_table_lookup->obj;
 
-    auto eq = BDD::solver_toolbox.are_exprs_always_equal(_obj, prev_obj);
+    auto eq = util::solver_toolbox.are_exprs_always_equal(_obj, prev_obj);
 
     if (eq) {
       result = std::make_pair(true, prev_table_lookup);
@@ -159,7 +159,7 @@ private:
     auto _value = call.args["value_out"].out;
 
     assert(_map->getKind() == klee::Expr::Kind::Constant);
-    auto _map_value = BDD::solver_toolbox.value_from_expr(_map);
+    auto _map_value = util::solver_toolbox.value_from_expr(_map);
 
     if (multiple_queries_to_this_table(node, _map_value)) {
       return false;
@@ -244,7 +244,7 @@ private:
     auto _borrowed_cell = call.extra_vars["borrowed_cell"].second;
 
     assert(_vector->getKind() == klee::Expr::Kind::Constant);
-    auto _vector_value = BDD::solver_toolbox.value_from_expr(_vector);
+    auto _vector_value = util::solver_toolbox.value_from_expr(_vector);
 
     if (multiple_queries_to_this_table(node, _vector_value)) {
       return false;
@@ -341,7 +341,7 @@ public:
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(obj, other_cast->obj)) {
+    if (!util::solver_toolbox.are_exprs_always_equal(obj, other_cast->obj)) {
       return false;
     }
 
@@ -352,7 +352,7 @@ public:
     }
 
     for (auto i = 0u; i < keys.size(); i++) {
-      if (!BDD::solver_toolbox.are_exprs_always_equal(keys[i].expr,
+      if (!util::solver_toolbox.are_exprs_always_equal(keys[i].expr,
                                                       other_keys[i].expr)) {
         return false;
       }
@@ -370,7 +370,7 @@ public:
       }
 
       for (auto j = 0u; j < params[i].exprs.size(); j++) {
-        if (!BDD::solver_toolbox.are_exprs_always_equal(
+        if (!util::solver_toolbox.are_exprs_always_equal(
                  params[i].exprs[j], other_params[i].exprs[j])) {
           return false;
         }

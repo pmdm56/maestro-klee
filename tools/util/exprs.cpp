@@ -1,70 +1,10 @@
-#include "expr-printer.h"
+#include "exprs.h"
+#include "retrieve_symbols.h"
 
 #include <algorithm>
 #include <regex>
 
-bool get_bytes_read(klee::ref<klee::Expr> expr, std::vector<unsigned> &bytes) {
-  switch (expr->getKind()) {
-  case klee::Expr::Kind::Read: {
-    klee::ReadExpr *read = dyn_cast<klee::ReadExpr>(expr);
-    auto index = read->index;
-
-    if (index->getKind() != klee::Expr::Kind::Constant) {
-      return false;
-    }
-
-    klee::ConstantExpr *index_const =
-        static_cast<klee::ConstantExpr *>(index.get());
-    bytes.push_back(index_const->getZExtValue());
-
-    return true;
-  };
-  case klee::Expr::Kind::Concat: {
-    klee::ConcatExpr *concat = dyn_cast<klee::ConcatExpr>(expr);
-
-    auto left = concat->getLeft();
-    auto right = concat->getRight();
-
-    if (!get_bytes_read(left, bytes) || !get_bytes_read(right, bytes)) {
-      return false;
-    }
-
-    return true;
-  };
-  default: {}
-  }
-
-  return false;
-}
-
-bool is_readLSB_complete(klee::ref<klee::Expr> expr) {
-  auto size = expr->getWidth();
-  assert(size % 8 == 0);
-  size /= 8;
-
-  RetrieveSymbols retriever;
-  retriever.visit(expr);
-
-  if (retriever.get_retrieved_strings().size() > 1) {
-    return false;
-  }
-
-  std::vector<unsigned> bytes_read;
-  if (!get_bytes_read(expr, bytes_read)) {
-    return false;
-  }
-
-  unsigned expected_byte = size - 1;
-  for (const auto &byte : bytes_read) {
-    if (byte != expected_byte) {
-      return false;
-    }
-
-    expected_byte -= 1;
-  }
-
-  return true;
-}
+namespace util {
 
 class ExprPrettyPrinter : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -604,7 +544,7 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
                    expr_str.end());
 
     // remove duplicated whitespaces
-    auto bothAreSpaces = [](char lhs, char rhs)->bool {
+    auto bothAreSpaces = [](char lhs, char rhs) -> bool {
       return (lhs == rhs) && (lhs == ' ');
     };
     std::string::iterator new_end =
@@ -614,3 +554,121 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
 
   return expr_str;
 }
+
+std::ostream &operator<<(std::ostream &os, const arg_t &arg) {
+  if (arg.fn_ptr_name.first) {
+    os << arg.fn_ptr_name.second;
+    return os;
+  }
+
+  os << util::expr_to_string(arg.expr, true);
+
+  if (!arg.in.isNull() || !arg.out.isNull()) {
+    os << "[";
+
+    if (!arg.in.isNull()) {
+      os << util::expr_to_string(arg.in, true);
+    }
+
+    os << " -> ";
+
+    if (!arg.out.isNull()) {
+      os << util::expr_to_string(arg.out, true);
+    }
+
+    os << "]";
+  }
+
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const call_t &call) {
+  os << call.function_name;
+  os << "(";
+
+  bool first = true;
+  for (auto arg_pair : call.args) {
+    auto label = arg_pair.first;
+    auto arg = arg_pair.second;
+
+    if (!first) {
+      os << ",";
+    }
+
+    os << label << ":";
+    os << arg;
+
+    first = false;
+  }
+
+  os << ")";
+
+  if (!call.ret.isNull()) {
+    os << " => ";
+    os << util::expr_to_string(call.ret, true);
+  }
+
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &str, const call_path_t &cp) {
+  str << "  Calls:"
+      << "\n";
+  for (auto call : cp.calls) {
+    str << "    Function: " << call.function_name << "\n";
+    if (!call.args.empty()) {
+      str << "      With Args:"
+          << "\n";
+      for (auto arg : call.args) {
+        str << "        " << arg.first << "\n";
+
+        str << "            Expr: ";
+        arg.second.expr->dump();
+
+        if (!arg.second.in.isNull()) {
+          str << "            Before: ";
+          arg.second.in->dump();
+        }
+
+        if (!arg.second.out.isNull()) {
+          str << "            After: ";
+          arg.second.out->dump();
+        }
+
+        if (arg.second.fn_ptr_name.first) {
+          str << "            Fn: " << arg.second.fn_ptr_name.second;
+          str << "\n";
+        }
+      }
+    }
+    if (!call.extra_vars.empty()) {
+      str << "      With Extra Vars:"
+          << "\n";
+      for (auto extra_var : call.extra_vars) {
+        str << "        " << extra_var.first << "\n";
+        if (!extra_var.second.first.isNull()) {
+          str << "            Before: ";
+          extra_var.second.first->dump();
+        }
+        if (!extra_var.second.second.isNull()) {
+          str << "            After: ";
+          extra_var.second.second->dump();
+        }
+      }
+    }
+
+    if (!call.ret.isNull()) {
+      str << "      With Ret: ";
+      call.ret->dump();
+    }
+  }
+
+  return str;
+}
+
+std::ostream &operator<<(std::ostream &os, const klee::ref<klee::Expr> &expr) {
+  os << expr_to_string(expr, true);
+  return os;
+}
+
+} // namespace util

@@ -12,8 +12,9 @@
    (fname))
 
 namespace synapse {
+namespace synthesizer {
 
-class TargetCodeGenerator : public ExecutionPlanVisitor {
+class Target : public ExecutionPlanVisitor {
 protected:
   struct code_builder_t {
     std::string code;
@@ -76,7 +77,7 @@ protected:
   const ExecutionPlan *original_ep;
 
 public:
-  TargetCodeGenerator(const std::string &boilerplate_fpath)
+  Target(const std::string &boilerplate_fpath)
       : code_builder(boilerplate_fpath), original_ep(nullptr) {
     os = std::unique_ptr<std::ostream>(new std::ostream(std::cerr.rdbuf()));
   }
@@ -103,4 +104,5 @@ public:
   }
 };
 
+} // namespace synthesizer
 } // namespace synapse

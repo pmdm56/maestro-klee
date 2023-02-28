@@ -1,6 +1,7 @@
 #include "bmv2_generator.h"
 
 namespace synapse {
+namespace synthesizer {
 
 class KleeExprToP4 : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -11,8 +12,7 @@ private:
   bool is_read_lsb(klee::ref<klee::Expr> e) const;
 
 public:
-  KleeExprToP4(const BMv2Generator &_generator,
-               bool _is_signed)
+  KleeExprToP4(const BMv2Generator &_generator, bool _is_signed)
       : ExprVisitor(false), generator(_generator), is_signed(_is_signed) {}
 
   std::string get_code() { return code.str(); }
@@ -49,4 +49,6 @@ public:
   klee::ExprVisitor::Action visitSgt(const klee::SgtExpr &);
   klee::ExprVisitor::Action visitSge(const klee::SgeExpr &);
 };
+
+} // namespace synthesizer
 } // namespace synapse

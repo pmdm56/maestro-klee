@@ -5,7 +5,7 @@
 #include <numeric>
 #include <vector>
 
-#include "expr-printer.h"
+#include "util.h"
 #include "load-call-paths.h"
 
 enum TargetOption {

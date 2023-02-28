@@ -187,7 +187,7 @@ public:
     os << " [shape=Mdiamond, label=\"";
 
     os << node->get_id() << ":";
-    os << pretty_print_expr(condition);
+    os << util::pretty_print_expr(condition);
 
     os << "\\ncps={";
     os << callpaths_list_to_str(node);
@@ -252,20 +252,20 @@ public:
       if (arg.fn_ptr_name.first) {
         os << arg.fn_ptr_name.second;
       } else {
-        os << pretty_print_expr(arg.expr);
+        os << util::pretty_print_expr(arg.expr);
 
         if (!arg.in.isNull() || !arg.out.isNull()) {
           os << "[";
 
           if (!arg.in.isNull()) {
-            os << pretty_print_expr(arg.in);
+            os << util::pretty_print_expr(arg.in);
           }
 
           if (!arg.out.isNull() &&
               (arg.in.isNull() ||
-               !solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
+               !util::solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
             os << " -> ";
-            os << pretty_print_expr(arg.out);
+            os << util::pretty_print_expr(arg.out);
           }
 
           os << "]";
@@ -276,7 +276,7 @@ public:
         os << ",";
       }
 
-      // os << pretty_print_expr(arg.expr);
+      // os << util::pretty_print_expr(arg.expr);
 
       i++;
     }

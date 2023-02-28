@@ -1,6 +1,7 @@
 #include "klee_expr_to_p4.h"
 
 namespace synapse {
+namespace synthesizer {
 
 bool is_bool(klee::ref<klee::Expr> expr) {
   assert(!expr.isNull());
@@ -25,7 +26,7 @@ bool is_bool(klee::ref<klee::Expr> expr) {
 }
 
 bool KleeExprToP4::is_read_lsb(klee::ref<klee::Expr> e) const {
-  RetrieveSymbols retriever;
+  util::RetrieveSymbols retriever;
   retriever.visit(e);
 
   if (retriever.get_retrieved_strings().size() != 1) {
@@ -90,7 +91,7 @@ bool KleeExprToP4::is_read_lsb(klee::ref<klee::Expr> e) const {
 klee::ExprVisitor::Action KleeExprToP4::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> eref = const_cast<klee::ReadExpr *>(&e);
 
-  RetrieveSymbols retriever;
+  util::RetrieveSymbols retriever;
   retriever.visit(eref);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -119,7 +120,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitRead(const klee::ReadExpr &e) {
 }
 
 void KleeExprToP4::swap_endianness(klee::ref<klee::Expr> &expr) {
-  RetrieveSymbols retriever;
+  util::RetrieveSymbols retriever;
   retriever.visit(expr);
   auto symbols = retriever.get_retrieved_strings();
 
@@ -127,7 +128,7 @@ void KleeExprToP4::swap_endianness(klee::ref<klee::Expr> &expr) {
     return;
   }
 
-  BDD::SwapPacketEndianness swapper;
+  util::SwapPacketEndianness swapper;
   auto after = swapper.swap(expr);
 
   expr = after;
@@ -144,7 +145,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
   if (is_read_lsb(eref)) {
-    RetrieveSymbols retriever;
+    util::RetrieveSymbols retriever;
     retriever.visit(eref);
 
     auto symbols = retriever.get_retrieved_strings();
@@ -182,7 +183,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitConcat(const klee::ConcatExpr &e) {
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  std::cerr << "expr: " << expr_to_string(eref, true) << "\n";
+  std::cerr << "expr: " << util::expr_to_string(eref, true) << "\n";
 
   assert(false && "TODO");
   return klee::ExprVisitor::Action::skipChildren();
@@ -233,8 +234,8 @@ KleeExprToP4::visitExtract(const klee::ExtractExpr &e) {
   }
 
   if (expr->getKind() == klee::Expr::Constant && sz <= 64) {
-    auto extracted = BDD::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
-    auto value = BDD::solver_toolbox.value_from_expr(extracted);
+    auto extracted = util::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
+    auto value = util::solver_toolbox.value_from_expr(extracted);
 
     code << value;
 
@@ -527,18 +528,18 @@ klee::ref<klee::Expr> change_width(klee::ref<klee::Expr> expr,
   }
 
   if (expr->getWidth() > width) {
-    modified = BDD::solver_toolbox.exprBuilder->Extract(expr, 0, width);
+    modified = util::solver_toolbox.exprBuilder->Extract(expr, 0, width);
 
-    auto eq = BDD::solver_toolbox.are_exprs_always_equal(
+    auto eq = util::solver_toolbox.are_exprs_always_equal(
         expr,
-        BDD::solver_toolbox.exprBuilder->ZExt(modified, expr->getWidth()));
+        util::solver_toolbox.exprBuilder->ZExt(modified, expr->getWidth()));
 
     assert(eq);
   } else {
-    modified = BDD::solver_toolbox.exprBuilder->ZExt(expr, width);
+    modified = util::solver_toolbox.exprBuilder->ZExt(expr, width);
 
-    auto eq = BDD::solver_toolbox.are_exprs_always_equal(
-        expr, BDD::solver_toolbox.exprBuilder->Extract(modified, 0,
+    auto eq = util::solver_toolbox.are_exprs_always_equal(
+        expr, util::solver_toolbox.exprBuilder->Extract(modified, 0,
                                                        expr->getWidth()));
 
     assert(eq);
@@ -656,7 +657,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitEq(const klee::EqExpr &e) {
   bool convert_to_bool = false;
 
   if (rhs->getKind() == klee::Expr::Concat && is_read_lsb(rhs)) {
-    RetrieveSymbols retriever;
+    util::RetrieveSymbols retriever;
     retriever.visit(rhs);
 
     auto symbols = retriever.get_retrieved_strings();
@@ -688,7 +689,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitEq(const klee::EqExpr &e) {
   } else if (generator.transpile(rhs).find("etherType") != std::string::npos) {
     // be careful with endianess
     assert(lhs->getKind() == klee::Expr::Constant);
-    auto etherType_val = BDD::solver_toolbox.value_from_expr(lhs);
+    auto etherType_val = util::solver_toolbox.value_from_expr(lhs);
     auto new_val =
         ((((etherType_val & 0xff) << 8) | ((etherType_val & 0xff00) >> 8)) &
          0xffff);
@@ -943,4 +944,5 @@ klee::ExprVisitor::Action KleeExprToP4::visitSge(const klee::SgeExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
+} // namespace synthesizer
 } // namespace synapse

@@ -125,7 +125,7 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
   assert(!node->get_condition().isNull());
   auto _condition = node->get_condition();
 
-  RetrieveSymbols retriever;
+  util::RetrieveSymbols retriever;
   retriever.visit(_condition);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -209,11 +209,11 @@ Module::build_modifications(klee::ref<klee::Expr> before,
 
   for (unsigned int b = 0; b < size; b += 8) {
     auto before_byte =
-        BDD::solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
+        util::solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
     auto after_byte =
-        BDD::solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
+        util::solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
 
-    if (BDD::solver_toolbox.are_exprs_always_equal(before_byte, after_byte)) {
+    if (util::solver_toolbox.are_exprs_always_equal(before_byte, after_byte)) {
       continue;
     }
 

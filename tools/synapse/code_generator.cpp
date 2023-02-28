@@ -154,7 +154,7 @@ CodeGenerator::x86_bmv2_extractor(const ExecutionPlan &execution_plan) const {
     return extracted;
   }
 
-  auto metadata = BDD::solver_toolbox.create_new_symbol("metadata", 32);
+  auto metadata = util::solver_toolbox.create_new_symbol("metadata", 32);
   auto packet_get_metadata =
       std::make_shared<targets::x86_bmv2::PacketGetMetadata>(nullptr, metadata);
 
@@ -167,10 +167,10 @@ CodeGenerator::x86_bmv2_extractor(const ExecutionPlan &execution_plan) const {
     assert(root.node);
     assert(new_leaf);
 
-    auto path_id = BDD::solver_toolbox.exprBuilder->Constant(
+    auto path_id = util::solver_toolbox.exprBuilder->Constant(
         root.path_id, metadata->getWidth());
     auto meta_eq_path_id =
-        BDD::solver_toolbox.exprBuilder->Eq(metadata, path_id);
+        util::solver_toolbox.exprBuilder->Eq(metadata, path_id);
 
     auto if_meta_eq_path_id =
         std::make_shared<targets::x86_bmv2::If>(nullptr, meta_eq_path_id);
@@ -251,8 +251,31 @@ CodeGenerator::fpga_extractor(const ExecutionPlan &execution_plan) const {
 
 ExecutionPlan
 CodeGenerator::tofino_extractor(const ExecutionPlan &execution_plan) const {
-  assert(false && "TODO");
-  exit(1);
+  auto extracted = execution_plan.clone(true);
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{extracted.get_root()};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    assert(node);
+
+    nodes.erase(nodes.begin());
+
+    auto module = node->get_module();
+    assert(module);
+    assert(module->get_target() == Target::Tofino);
+
+    // if (module->get_type() == Module::ModuleType::Tofino_SendToController) {
+    //   auto no_next = Branches();
+    //   node->set_next(no_next);
+    // }
+
+    auto next = node->get_next();
+    nodes.insert(nodes.end(), next.begin(), next.end());
+  }
+
+  // Graphviz::visualize(extracted);
+
+  return extracted;
 }
 
 ExecutionPlan

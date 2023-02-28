@@ -42,7 +42,7 @@ std::string Branch::dump(bool one_liner) const {
   std::stringstream ss;
   ss << id << ":";
   ss << "if (";
-  ss << expr_to_string(condition, one_liner);
+  ss << util::expr_to_string(condition, one_liner);
   ss << ")";
   return ss.str();
 }

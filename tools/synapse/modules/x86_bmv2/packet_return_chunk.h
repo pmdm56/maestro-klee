@@ -66,12 +66,12 @@ public:
 
     auto other_cast = static_cast<const PacketReturnChunk *>(other);
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(chunk,
+    if (!util::solver_toolbox.are_exprs_always_equal(chunk,
                                                     other_cast->get_chunk())) {
       return false;
     }
 
-    if (!BDD::solver_toolbox.are_exprs_always_equal(
+    if (!util::solver_toolbox.are_exprs_always_equal(
              chunk_addr, other_cast->get_chunk_addr())) {
       return false;
     }

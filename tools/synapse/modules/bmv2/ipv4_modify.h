@@ -124,7 +124,7 @@ public:
         return false;
       }
 
-      if (!BDD::solver_toolbox.are_exprs_always_equal(
+      if (!util::solver_toolbox.are_exprs_always_equal(
                modification.expr, other_modification.expr)) {
         return false;
       }

@@ -201,7 +201,7 @@ private:
     case BDD::Node::NodeType::BRANCH: {
       auto branch = static_cast<const BDD::Branch *>(node);
       ss << "if(";
-      ss << expr_to_string(branch->get_condition(), true);
+      ss << util::expr_to_string(branch->get_condition(), true);
       ss << ")";
       break;
     }
@@ -213,7 +213,7 @@ private:
         if (i > 0) {
           ss << ", ";
         }
-        ss << expr_to_string(arg.second.expr, true);
+        ss << util::expr_to_string(arg.second.expr, true);
         i++;
       }
       break;
@@ -427,8 +427,7 @@ public:
 
   VISIT_PRINT_MODULE_NAME(targets::bmv2::SendToController)
   VISIT_PRINT_MODULE_NAME(targets::bmv2::Ignore)
-  VISIT_PRINT_MODULE_NAME(
-      targets::bmv2::SetupExpirationNotifications)
+  VISIT_PRINT_MODULE_NAME(targets::bmv2::SetupExpirationNotifications)
   VISIT_PRINT_MODULE_NAME(targets::bmv2::If)
   VISIT_PRINT_MODULE_NAME(targets::bmv2::Then)
   VISIT_PRINT_MODULE_NAME(targets::bmv2::Else)
@@ -451,6 +450,11 @@ public:
    *
    ********************************************/
 
+  VISIT_PRINT_MODULE_NAME(targets::tofino::Ignore)
+  VISIT_PRINT_MODULE_NAME(targets::tofino::If)
+  VISIT_PRINT_MODULE_NAME(targets::tofino::Then)
+  VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
+  VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
   VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetConsume)
 };
 } // namespace synapse

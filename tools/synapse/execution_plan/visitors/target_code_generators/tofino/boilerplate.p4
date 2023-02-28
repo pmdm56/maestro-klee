@@ -1,178 +1,218 @@
 #include <core.p4>
-#include <v1model.p4>
+#if __TARGET_TOFINO__ == 2
+#include <t2na.p4>
+#else
+#include <tna.p4>
+#endif
 
-#define BROADCAST_PORT 511
-#define DROP_PORT 510
-#define CPU_PORT  509
+typedef bit<9>  port_t;
+typedef bit<48> mac_addr_t;
+typedef bit<32> ipv4_addr_t;
+typedef bit<16> ether_type_t;
+typedef bit<8>  ip_protocol_t;
 
-typedef bit<16> mcast_group_t;
+const port_t RECIRCULATING_PORT = 68;
 
-/**************** H E A D E R S  ****************/
+// BFN-T10-032D
+// BFN-T10-032D-024
+// BFN-T10-032D-020
+// BFN-T10-032D-018
+const PortId_t CPU_PCIE_PORT = 192;
 
-@controller_header("packet_in")
-header packet_in_t {
-  bit<32> code_id;
-  bit<9> src_device;
-  bit<7> pad;
+// BFN-T10-064Q
+// BFN-T10-032Q
+// const PortId_t CPU_PCIE_PORT = 320;
+
+const ether_type_t  ETHERTYPE_IPV4 = 0x0800;
+const ether_type_t  ETHERTYPE_ARP  = 0x0806;
+const ether_type_t  ETHERTYPE_IPV6 = 0x86dd;
+const ether_type_t  ETHERTYPE_VLAN = 0x8100;
+
+const ip_protocol_t IP_PROTOCOLS_ICMP = 1;
+const ip_protocol_t IP_PROTOCOLS_TCP  = 6;
+const ip_protocol_t IP_PROTOCOLS_UDP  = 17;
+
+header ethernet_h {
+  mac_addr_t   dst_addr;
+  mac_addr_t   src_addr;
+  ether_type_t ether_type;
 }
 
-@controller_header("packet_out")
-header packet_out_t {
-  bit<9> src_device;
-  bit<9> dst_device;
-  bit<6> pad;
+header ipv4_h {
+  bit<4>        version;
+  bit<4>        ihl;
+  bit<8>        dscp;
+  bit<16>       total_len;
+  bit<16>       identification;
+  bit<3>        flags;
+  bit<13>       frag_offset;
+  bit<8>        ttl;
+  ip_protocol_t protocol;
+  bit<16>       hdr_checksum;
+  ipv4_addr_t   src_addr;
+  ipv4_addr_t   dst_addr;
 }
 
-{{headers_definitions}}
-
-struct headers {
-  packet_in_t packet_in;
-  packet_out_t packet_out;
-  {{headers_declarations}}
+header tcpudp_h {
+  bit<16> src_port;
+  bit<16> dst_port;
 }
 
-struct metadata {
-  {{metadata_fields}}
+struct my_ingress_metadata_t {
+  {{INGRESS METADATA}}
 }
 
-/****************************************************************
-*************************  P A R S E R  *************************
-****************************************************************/
+struct my_ingress_headers_t {
+  {{INGRESS HEADERS}}
+}
 
-parser SyNAPSE_Parser(packet_in packet,
-                      out headers hdr,
-                      inout metadata meta,
-                      inout standard_metadata_t standard_metadata) {
+struct my_egress_metadata_t {
+  {{EGRESS METADATA}}
+}
+
+struct my_egress_headers_t {
+  {{EGRESS HEADERS}}
+}
+
+parser TofinoIngressParser(
+    packet_in pkt,
+    out ingress_intrinsic_metadata_t ig_intr_md)
+{
   state start {
-    transition select(standard_metadata.ingress_port) {
-      CPU_PORT: parse_packet_out;
+    pkt.extract(ig_intr_md);
+    transition select(ig_intr_md.resubmit_flag) {
+      1 : parse_resubmit;
+      0 : parse_port_metadata;
+    }
+  }
+
+  state parse_resubmit {
+    // Parse resubmitted packet here.
+    transition reject;
+  }
+
+  state parse_port_metadata {
+    pkt.advance(PORT_METADATA_SIZE);
+    transition accept;
+  }
+}
+
+parser IngressParser(
+  packet_in pkt,
+  out my_ingress_headers_t  hdr,
+  out my_ingress_metadata_t meta,
+  out ingress_intrinsic_metadata_t ig_intr_md)
+{
+  TofinoIngressParser() tofino_parser;
+  
+  /* This is a mandatory state, required by Tofino Architecture */
+  state start {
+    tofino_parser.apply(pkt, ig_intr_md);
+
+    transition select(ig_intr_md.ingress_port) {
       default: parse_headers;
     }
   }
 
-  state parse_packet_out {
-    packet.extract(hdr.packet_out);
-    transition parse_headers;
-  }
-
-  {{parse_headers}}
+  {{INGRESS PARSE HEADERS}} 
 }
 
-/****************************************************************
-********** C H E C K S U M    V E R I F I C A T I O N ***********
-****************************************************************/
+control Ingress(
+  inout my_ingress_headers_t  hdr,
+  inout my_ingress_metadata_t meta,
+  in    ingress_intrinsic_metadata_t ig_intr_md,
+  in    ingress_intrinsic_metadata_from_parser_t ig_prsr_md,
+  inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
+  inout ingress_intrinsic_metadata_for_tm_t ig_tm_md)
+{
+  {{INGRESS STATE}}
 
-control SyNAPSE_VerifyChecksum(inout headers hdr,
-                               inout metadata meta) {
+  action flood() {
+    ig_tm_md.mcast_grp_a = 1;
+  }
+
+  action fwd(port_t port){
+    ig_tm_md.ucast_egress_port = port;
+  }
+
+  action drop() {
+    ig_dprsr_md.drop_ctl = 1;
+  }
+
+  action send_to_cpu(){
+    fwd(CPU_PCIE_PORT);
+  }
+
+  apply {
+    {{INGRESS APPLY}}
+  }
+}
+
+control IngressDeparser(
+  packet_out pkt,
+  inout my_ingress_headers_t hdr,
+  in    my_ingress_metadata_t meta,
+  in    ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md)
+{
+  apply {
+    pkt.emit(hdr);
+  }
+}
+
+parser TofinoEgressParser(
+    packet_in pkt,
+    out egress_intrinsic_metadata_t eg_intr_md)
+{
+  state start {
+    pkt.extract(eg_intr_md);
+    transition accept;
+  }
+}
+
+parser EgressParser(
+    packet_in pkt,
+    out my_egress_headers_t hdr,
+    out my_egress_metadata_t eg_md,
+    out egress_intrinsic_metadata_t eg_intr_md)
+{
+  TofinoEgressParser() tofino_parser;
+
+  /* This is a mandatory state, required by Tofino Architecture */
+	state start {
+		tofino_parser.apply(pkt, eg_intr_md);
+    transition accept;
+	}
+}
+
+control Egress(
+    inout my_egress_headers_t hdr,
+    inout my_egress_metadata_t eg_md,
+    in egress_intrinsic_metadata_t eg_intr_md,
+    in egress_intrinsic_metadata_from_parser_t eg_intr_md_from_prsr,
+    inout egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md,
+    inout egress_intrinsic_metadata_for_output_port_t eg_intr_oport_md)
+{
   apply {}
 }
 
-/****************************************************************
-************** I N G R E S S   P R O C E S S I N G **************
-****************************************************************/
-
-control SyNAPSE_Ingress(inout headers hdr,
-                        inout metadata meta,
-                        inout standard_metadata_t standard_metadata) {
-  
-  /**************** B O I L E R P L A T E  ****************/
-
-  {{ingress_tag_versions_action}}  
-
-  table tag_control {
-    actions = {
-      tag_versions;
-    }
-
-    size = 1;
-  }
-
-  action broadcast() {
-    standard_metadata.mcast_grp = (mcast_group_t) 1;
-  }
-  
-  action drop() {
-    standard_metadata.egress_spec = DROP_PORT;
-  }
-
-  action forward(bit<9> port) {
-    if (port == BROADCAST_PORT) {
-      broadcast();
-    } else {
-      standard_metadata.egress_spec = port;
-    }
-  }
-
-  action send_to_controller(bit<32> code_id) {
-    standard_metadata.egress_spec = CPU_PORT;
-
-    hdr.packet_in.setValid();
-    hdr.packet_in.code_id = code_id;
-    hdr.packet_in.src_device = standard_metadata.ingress_port;
-  }
-
-  {{ingress_globals}}
-
+control EgressDeparser(
+    packet_out pkt,
+    inout my_egress_headers_t hdr,
+    in my_egress_metadata_t eg_md,
+    in egress_intrinsic_metadata_for_deparser_t ig_intr_dprs_md)
+{
   apply {
-    tag_control.apply();
-    
-    if (standard_metadata.ingress_port == CPU_PORT) {
-      forward(hdr.packet_out.dst_device);
-      return;
-    }
-
-    {{ingress_apply_content}}
+    pkt.emit(hdr);
   }
 }
 
-/****************************************************************
-*************** E G R E S S   P R O C E S S I N G ***************
-****************************************************************/
+Pipeline(
+  IngressParser(),
+  Ingress(),
+  IngressDeparser(),
+  EgressParser(),
+  Egress(),
+  EgressDeparser()
+) pipe;
 
-control SyNAPSE_Egress(inout headers hdr,
-                       inout metadata meta,
-                       inout standard_metadata_t standard_metadata) {
-  action drop() {
-    standard_metadata.egress_spec = DROP_PORT;
-  }
-
-  apply {
-    if (standard_metadata.ingress_port == CPU_PORT
-      && hdr.packet_out.src_device == standard_metadata.egress_port) {
-      drop();
-    }
-  }
-}
-
-/****************************************************************
-**********  C H E C K S U M    C O M P U T A T I O N   **********
-****************************************************************/
-
-control SyNAPSE_ComputeChecksum(inout headers hdr,
-                                inout metadata meta) {
-  apply {}
-}
-
-/****************************************************************
-***********************  D E P A R S E R  ***********************
-****************************************************************/
-
-control SyNAPSE_Deparser(packet_out packet,
-                         in headers hdr) {
-  apply {
-    packet.emit(hdr.packet_in);
-    {{deparser_apply}}
-  }
-}
-
-/****************************************************************
-************************** S W I T C H **************************
-****************************************************************/
-
-V1Switch(SyNAPSE_Parser(),
-         SyNAPSE_VerifyChecksum(),
-         SyNAPSE_Ingress(),
-         SyNAPSE_Egress(),
-         SyNAPSE_ComputeChecksum(),
-         SyNAPSE_Deparser()
-) main;
+Switch(pipe) main;
