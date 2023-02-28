@@ -4,12 +4,11 @@
 #include "klee/util/ExprSMTLIBPrinter.h"
 #include "klee/util/ExprVisitor.h"
 
+#include "exprs.h"
+
 #include <unordered_set>
 
 namespace util {
-
-bool get_bytes_read(klee::ref<klee::Expr> expr, std::vector<unsigned> &bytes);
-bool is_readLSB_complete(klee::ref<klee::Expr> expr);
 
 class RetrieveSymbols : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -26,7 +25,7 @@ public:
   klee::ExprVisitor::Action visitConcat(const klee::ConcatExpr &e) {
     klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
-    if (collapse_readLSB && is_readLSB_complete(eref)) {
+    if (collapse_readLSB && is_readLSB(eref)) {
       retrieved_readLSB.push_back(eref);
       collapse_readLSB = false;
     }

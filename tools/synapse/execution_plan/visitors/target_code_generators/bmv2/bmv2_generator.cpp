@@ -240,58 +240,18 @@ BMv2Generator::assign_key_bytes(klee::ref<klee::Expr> expr) {
   return assignments;
 }
 
-bool BMv2Generator::is_constant(klee::ref<klee::Expr> expr) const {
-  if (expr->getKind() == klee::Expr::Kind::Constant) {
-    return true;
-  }
-
-  return false;
-}
-
-bool BMv2Generator::is_constant_signed(klee::ref<klee::Expr> expr) const {
-  if (!is_constant(expr)) {
-    return false;
-  }
-
-  auto constant = static_cast<klee::ConstantExpr *>(expr.get());
-  assert(constant->getWidth() <= 64);
-
-  auto value = constant->getZExtValue(constant->getWidth());
-  auto sign_bit = value >> (constant->getWidth() - 1);
-
-  return sign_bit == 1;
-}
-
-int64_t BMv2Generator::get_constant_signed(klee::ref<klee::Expr> expr) const {
-  if (!is_constant_signed(expr)) {
-    return false;
-  }
-
-  auto constant = static_cast<klee::ConstantExpr *>(expr.get());
-  assert(constant->getWidth() <= 64);
-  auto value = constant->getZExtValue(constant->getWidth());
-
-  uint64_t mask = 0;
-  for (uint64_t i = 0u; i < constant->getWidth(); i++) {
-    mask <<= 1;
-    mask |= 1;
-  }
-
-  return -((~value + 1) & mask);
-}
-
 std::string BMv2Generator::transpile(const klee::ref<klee::Expr> &e,
                                      bool is_signed) const {
   auto expr = e;
   KleeExprToP4::swap_endianness(expr);
 
-  if (is_constant(expr)) {
+  if (util::is_constant(expr)) {
     std::stringstream ss;
     auto constant = static_cast<klee::ConstantExpr *>(expr.get());
     assert(constant->getWidth() <= 64);
 
     if (is_signed) {
-      assert(!is_constant_signed(expr) &&
+      assert(!util::is_constant_signed(expr) &&
              "Be careful with negative numbers...");
     }
 

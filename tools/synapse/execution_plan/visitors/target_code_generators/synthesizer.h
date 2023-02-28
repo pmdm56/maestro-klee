@@ -29,6 +29,7 @@ public:
   void append_line(const std::string code) { ss << code << "\n"; }
 
   std::string dump() const { return ss.str(); }
+  void dump(std::ostream &os) const { os << ss.str(); }
 };
 
 } // namespace synthesizer

@@ -39,7 +39,10 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 
 void TofinoGenerator::visit(const targets::tofino::If *node) {
   auto condition = node->get_condition();
-  auto condition_transpiled = transpiler.transpile(condition);
+  auto condition_transpiled = tofino::transpile(condition);
+
+  std::cerr << "condition  " << util::expr_to_string(condition, true) << "\n";
+  std::cerr << "transpiled " << condition_transpiled << "\n";
 
   ingress_parser.synthesizer.indent();
 

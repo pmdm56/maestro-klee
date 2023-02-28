@@ -3,91 +3,6 @@
 namespace synapse {
 namespace synthesizer {
 
-bool is_bool(klee::ref<klee::Expr> expr) {
-  assert(!expr.isNull());
-
-  if (expr->getKind() == klee::Expr::ZExt ||
-      expr->getKind() == klee::Expr::SExt) {
-    return is_bool(expr->getKid(0));
-  }
-
-  return expr->getKind() == klee::Expr::Eq ||
-         expr->getKind() == klee::Expr::Not ||
-         expr->getKind() == klee::Expr::Or ||
-         expr->getKind() == klee::Expr::And ||
-         expr->getKind() == klee::Expr::Uge ||
-         expr->getKind() == klee::Expr::Ugt ||
-         expr->getKind() == klee::Expr::Ule ||
-         expr->getKind() == klee::Expr::Ult ||
-         expr->getKind() == klee::Expr::Sge ||
-         expr->getKind() == klee::Expr::Sgt ||
-         expr->getKind() == klee::Expr::Sle ||
-         expr->getKind() == klee::Expr::Slt;
-}
-
-bool KleeExprToP4::is_read_lsb(klee::ref<klee::Expr> e) const {
-  util::RetrieveSymbols retriever;
-  retriever.visit(e);
-
-  if (retriever.get_retrieved_strings().size() != 1) {
-    return false;
-  }
-
-  auto sz = e->getWidth();
-  assert(sz % 8 == 0);
-
-  std::pair<bool, uint64_t> index;
-
-  if (e->getKind() != klee::Expr::Kind::Concat) {
-    return false;
-  }
-
-  while (e->getKind() == klee::Expr::Kind::Concat) {
-    auto msb = e->getKid(0);
-    auto lsb = e->getKid(1);
-
-    if (msb->getKind() != klee::Expr::Kind::Read) {
-      return false;
-    }
-
-    auto msb_index = msb->getKid(0);
-
-    if (msb_index->getKind() != klee::Expr::Kind::Constant) {
-      return false;
-    }
-
-    auto const_msb_index = static_cast<klee::ConstantExpr *>(msb_index.get());
-
-    if (!index.first) {
-      index.first = true;
-      index.second = const_msb_index->getZExtValue();
-    }
-
-    if (index.first && const_msb_index->getZExtValue() != index.second) {
-      return false;
-    }
-
-    index.second--;
-    e = lsb;
-  }
-
-  if (e->getKind() == klee::Expr::Kind::Read) {
-    auto last_index = e->getKid(0);
-
-    if (last_index->getKind() != klee::Expr::Kind::Constant) {
-      return false;
-    }
-
-    auto const_last_index = static_cast<klee::ConstantExpr *>(last_index.get());
-
-    if (const_last_index->getZExtValue() != index.second) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 klee::ExprVisitor::Action KleeExprToP4::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> eref = const_cast<klee::ReadExpr *>(&e);
 
@@ -144,7 +59,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitSelect(const klee::SelectExpr &e) {
 klee::ExprVisitor::Action KleeExprToP4::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
-  if (is_read_lsb(eref)) {
+  if (util::is_readLSB(eref)) {
     util::RetrieveSymbols retriever;
     retriever.visit(eref);
 
@@ -234,7 +149,8 @@ KleeExprToP4::visitExtract(const klee::ExtractExpr &e) {
   }
 
   if (expr->getKind() == klee::Expr::Constant && sz <= 64) {
-    auto extracted = util::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
+    auto extracted =
+        util::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
     auto value = util::solver_toolbox.value_from_expr(extracted);
 
     code << value;
@@ -290,7 +206,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitZExt(const klee::ZExtExpr &e) {
 
   klee::ref<klee::Expr> eref = const_cast<klee::ZExtExpr *>(&e);
 
-  if (is_bool(eref)) {
+  if (util::is_bool(eref)) {
     code << generator.transpile(expr, is_signed);
   } else {
     code << "(";
@@ -309,7 +225,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitSExt(const klee::SExtExpr &e) {
 
   klee::ref<klee::Expr> eref = const_cast<klee::SExtExpr *>(&e);
 
-  if (is_bool(eref)) {
+  if (util::is_bool(eref)) {
     is_signed = true;
     code << generator.transpile(expr, is_signed);
   } else {
@@ -328,15 +244,14 @@ klee::ExprVisitor::Action KleeExprToP4::visitAdd(const klee::AddExpr &e) {
   auto lhs = e.getKid(0);
   auto rhs = e.getKid(1);
 
-  if (generator.is_constant_signed(lhs) && !generator.is_constant_signed(rhs)) {
-    auto constant_signed = generator.get_constant_signed(lhs);
+  if (util::is_constant_signed(lhs) && !util::is_constant_signed(rhs)) {
+    auto constant_signed = util::get_constant_signed(lhs);
     auto rhs_parsed = generator.transpile(rhs, is_signed);
 
     code << "(" << rhs_parsed << ") ";
     code << constant_signed;
-  } else if (generator.is_constant_signed(rhs) &&
-             !generator.is_constant_signed(lhs)) {
-    auto constant_signed = generator.get_constant_signed(rhs);
+  } else if (util::is_constant_signed(rhs) && !util::is_constant_signed(lhs)) {
+    auto constant_signed = util::get_constant_signed(rhs);
     auto lhs_parsed = generator.transpile(lhs, is_signed);
 
     code << "(" << lhs_parsed << ") ";
@@ -440,7 +355,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitAnd(const klee::AndExpr &e) {
   auto lhs_parsed = generator.transpile(lhs, is_signed);
   auto rhs_parsed = generator.transpile(rhs, is_signed);
 
-  auto isBool = is_bool(lhs) || is_bool(rhs);
+  auto isBool = util::is_bool(lhs) || util::is_bool(rhs);
 
   if (isBool) {
     code << "(" << lhs_parsed << ")";
@@ -472,7 +387,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitOr(const klee::OrExpr &e) {
   auto lhs_parsed = generator.transpile(lhs, is_signed);
   auto rhs_parsed = generator.transpile(rhs, is_signed);
 
-  auto isBool = is_bool(lhs) || is_bool(rhs);
+  auto isBool = util::is_bool(lhs) || util::is_bool(rhs);
 
   if (isBool) {
     code << "(" << lhs_parsed << ")";
@@ -540,7 +455,7 @@ klee::ref<klee::Expr> change_width(klee::ref<klee::Expr> expr,
 
     auto eq = util::solver_toolbox.are_exprs_always_equal(
         expr, util::solver_toolbox.exprBuilder->Extract(modified, 0,
-                                                       expr->getWidth()));
+                                                        expr->getWidth()));
 
     assert(eq);
   }
@@ -656,11 +571,8 @@ klee::ExprVisitor::Action KleeExprToP4::visitEq(const klee::EqExpr &e) {
 
   bool convert_to_bool = false;
 
-  if (rhs->getKind() == klee::Expr::Concat && is_read_lsb(rhs)) {
-    util::RetrieveSymbols retriever;
-    retriever.visit(rhs);
-
-    auto symbols = retriever.get_retrieved_strings();
+  if (util::is_readLSB(rhs)) {
+    auto symbols = util::get_symbols(rhs);
     assert(symbols.size() == 1);
     auto symbol = *symbols.begin();
 
@@ -674,7 +586,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitEq(const klee::EqExpr &e) {
   }
 
   convert_to_bool |= (lhs->getWidth() == 1);
-  convert_to_bool |= (is_bool(lhs) || is_bool(rhs));
+  convert_to_bool |= (util::is_bool(lhs) || util::is_bool(rhs));
 
   if (convert_to_bool) {
     if (lhs->getKind() == klee::Expr::Constant) {

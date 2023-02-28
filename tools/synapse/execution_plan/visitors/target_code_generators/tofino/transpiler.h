@@ -6,12 +6,14 @@ namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
+std::string transpile(const klee::ref<klee::Expr> &expr);
+
 class Transpiler : public klee::ExprVisitor::ExprVisitor {
 private:
   std::stringstream code;
 
 public:
-  std::string transpile(const klee::ref<klee::Expr> &expr);
+  std::string get() const { return code.str(); }
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &);
   klee::ExprVisitor::Action visitSelect(const klee::SelectExpr &);

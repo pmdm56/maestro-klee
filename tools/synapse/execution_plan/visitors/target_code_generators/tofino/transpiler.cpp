@@ -9,27 +9,34 @@ namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
-std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
-  code.clear();
-  visit(expr);
+std::string transpile(const klee::ref<klee::Expr> &expr) {
+  if (util::is_constant(expr)) {
+    auto constant = static_cast<klee::ConstantExpr *>(expr.get());
+    assert(constant->getWidth() <= 64);
 
-  auto output = code.str();
+    std::stringstream ss;
+    ss << "(";
+    ss << "(bit<";
+    ss << constant->getWidth();
+    ss << ">) ";
+    ss << constant->getZExtValue();
+    ss << ")";
 
-  if (!output.size()) {
-    // error
-    std::stringstream error;
-    error << "Unable to transpile expression: ";
-    error << util::expr_to_string(expr, true);
-    error << "\n";
-    error << "Kind: ";
-    error << expr->getKind();
-    error << "\n";
+    return ss.str();
+  }
 
-    Log::err() << error.str();
+  Transpiler transpiler;
+  transpiler.visit(expr);
+  auto code = transpiler.get();
+
+  if (!code.size()) {
+    Log::err() << "Unable to transpile expression: "
+               << util::expr_to_string(expr, true) << "\n";
+    Log::err() << "Kind: " << expr->getKind() << "\n";
     exit(1);
   }
 
-  return output;
+  return code;
 }
 
 klee::ExprVisitor::Action Transpiler::visitRead(const klee::ReadExpr &) {
@@ -117,6 +124,13 @@ klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
 
   auto lhs = e.getKid(0);
   auto rhs = e.getKid(1);
+
+  auto lhs_code = transpile(lhs);
+  auto rhs_code = transpile(rhs);
+
+  code << "(" << lhs_code << ")";
+  code << " == ";
+  code << "(" << rhs_code << ")";
 
   return klee::ExprVisitor::Action::skipChildren();
 }
