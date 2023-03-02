@@ -58,7 +58,7 @@ public:
         {Target::Tofino,
          target_helper_t(
              &CodeGenerator::tofino_extractor,
-             std::make_shared<synapse::synthesizer::TofinoGenerator>())},
+             std::make_shared<synapse::synthesizer::tofino::TofinoGenerator>())},
 
         {Target::Netronome,
          target_helper_t(&CodeGenerator::netronome_extractor)},

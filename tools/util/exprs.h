@@ -16,5 +16,6 @@ bool is_constant_signed(klee::ref<klee::Expr> expr);
 int64_t get_constant_signed(klee::ref<klee::Expr> expr);
 
 std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr);
+std::string get_symbol(klee::ref<klee::Expr> expr);
 
 } // namespace util

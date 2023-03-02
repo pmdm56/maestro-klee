@@ -1,18 +1,26 @@
 #pragma once
 
+#include "tofino_generator.h"
+
 #include "klee/util/ExprVisitor.h"
 
 namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
-std::string transpile(const klee::ref<klee::Expr> &expr);
+class TofinoGenerator;
+
+std::string transpile(const TofinoGenerator &tg,
+                      const klee::ref<klee::Expr> &expr);
 
 class Transpiler : public klee::ExprVisitor::ExprVisitor {
 private:
+  const TofinoGenerator &tg;
   std::stringstream code;
 
 public:
+  Transpiler(const TofinoGenerator &_tg) : tg(_tg) {}
+
   std::string get() const { return code.str(); }
 
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &);

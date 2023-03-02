@@ -9,23 +9,26 @@ namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
-std::string transpile(const klee::ref<klee::Expr> &expr) {
+std::string transpile(const TofinoGenerator &tg,
+                      const klee::ref<klee::Expr> &expr) {
   if (util::is_constant(expr)) {
     auto constant = static_cast<klee::ConstantExpr *>(expr.get());
-    assert(constant->getWidth() <= 64);
+    auto width = constant->getWidth();
+    auto value = constant->getZExtValue();
 
     std::stringstream ss;
-    ss << "(";
-    ss << "(bit<";
-    ss << constant->getWidth();
-    ss << ">) ";
-    ss << constant->getZExtValue();
-    ss << ")";
+
+    if (width == 1) {
+      ss << (value == 0 ? "false" : "true");
+    } else {
+      assert(constant->getWidth() <= 64);
+      ss << width << "w" << value;
+    }
 
     return ss.str();
   }
 
-  Transpiler transpiler;
+  Transpiler transpiler(tg);
   transpiler.visit(expr);
   auto code = transpiler.get();
 
@@ -47,7 +50,39 @@ klee::ExprVisitor::Action Transpiler::visitSelect(const klee::SelectExpr &) {
   assert(false && "TODO");
 }
 
-klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &) {
+klee::ExprVisitor::Action Transpiler::visitConcat(const klee::ConcatExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
+
+  if (util::is_readLSB(eref)) {
+    auto symbol = util::get_symbol(eref);
+    auto variable = tg.search_variable(symbol);
+
+    if (!variable) {
+      Log::err() << "Unknown variable with symbol " << symbol << "\n";
+      exit(1);
+    }
+
+    auto expr_width = eref->getWidth();
+    auto var_width = variable->size_bits;
+
+    if (expr_width != var_width) {
+      auto max_width = std::max(expr_width, var_width);
+      code << "(";
+      code << "(bit<";
+      code << max_width;
+      code << ">)";
+      code << variable->label;
+      code << ")";
+    } else {
+      code << variable->label;
+    }
+
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
   assert(false && "TODO");
 }
 
@@ -125,8 +160,8 @@ klee::ExprVisitor::Action Transpiler::visitEq(const klee::EqExpr &e) {
   auto lhs = e.getKid(0);
   auto rhs = e.getKid(1);
 
-  auto lhs_code = transpile(lhs);
-  auto rhs_code = transpile(rhs);
+  auto lhs_code = transpile(tg, lhs);
+  auto rhs_code = transpile(tg, rhs);
 
   code << "(" << lhs_code << ")";
   code << " == ";

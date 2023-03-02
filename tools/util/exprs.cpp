@@ -74,6 +74,10 @@ bool is_readLSB(klee::ref<klee::Expr> expr) {
 bool is_bool(klee::ref<klee::Expr> expr) {
   assert(!expr.isNull());
 
+  if (expr->getWidth() == 1) {
+    return true;
+  }
+
   if (expr->getKind() == klee::Expr::ZExt ||
       expr->getKind() == klee::Expr::SExt) {
     return is_bool(expr->getKid(0));
@@ -133,6 +137,12 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
   }
 
   return -((~value + 1) & mask);
+}
+
+std::string get_symbol(klee::ref<klee::Expr> expr) {
+  auto symbols = get_symbols(expr);
+  assert(symbols.size() == 1);
+  return *symbols.begin();
 }
 
 } // namespace util
