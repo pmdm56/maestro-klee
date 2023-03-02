@@ -2,20 +2,13 @@
 
 #include "../../../../log.h"
 #include "../../../../modules/modules.h"
+#include "../util.h"
 
 #include "transpiler.h"
 
 namespace synapse {
 namespace synthesizer {
 namespace tofino {
-
-constexpr char MARKER_INGRESS_METADATA[] = "INGRESS METADATA";
-constexpr char MARKER_INGRESS_HEADERS[] = "INGRESS HEADERS";
-constexpr char MARKER_EGRESS_METADATA[] = "EGRESS METADATA";
-constexpr char MARKER_EGRESS_HEADERS[] = "EGRESS HEADERS";
-constexpr char MARKER_INGRESS_PARSE_HEADERS[] = "INGRESS PARSE HEADERS";
-constexpr char MARKER_INGRESS_STATE[] = "INGRESS STATE";
-constexpr char MARKER_INGRESS_APPLY[] = "INGRESS APPLY";
 
 constexpr char INGRESS_FORWARD_ACTION[] = "fwd";
 constexpr char INGRESS_DROP_ACTION[] = "drop";
@@ -37,18 +30,15 @@ void TofinoGenerator::visit(ExecutionPlan ep) {
   std::stringstream ingress_parser_code;
   std::stringstream ingress_apply_code;
 
-  ingress_parser.synthesizer.dump(ingress_parser_code);
-  ingress.synthesizer.dump(ingress_apply_code);
+  ingress_parser.synthesize(ingress_parser_code);
+  ingress.synthesize(ingress_apply_code);
 
   code_builder.fill_mark(MARKER_INGRESS_METADATA, "");
   code_builder.fill_mark(MARKER_INGRESS_HEADERS, "");
   code_builder.fill_mark(MARKER_EGRESS_METADATA, "");
   code_builder.fill_mark(MARKER_EGRESS_HEADERS, "");
-
-  code_builder.fill_mark(MARKER_INGRESS_PARSE_HEADERS, "state parse_headers {\n"
-                                                       "  transition accept;\n"
-                                                       "}\n");
-
+  code_builder.fill_mark(MARKER_INGRESS_PARSE_HEADERS,
+                         ingress_parser_code.str());
   code_builder.fill_mark(MARKER_INGRESS_STATE, "");
   code_builder.fill_mark(MARKER_INGRESS_APPLY, ingress_apply_code.str());
 }
@@ -59,7 +49,23 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 
   mod->visit(*this);
 
+  auto pending_packet_borrow_ep =
+      pending_packet_borrow_next_chunk(ep_node, synapse::Target::Tofino);
+
+  if (parsing_headers && !pending_packet_borrow_ep) {
+    ingress_parser.transition_accept();
+  }
+
+  parsing_headers = pending_packet_borrow_ep;
+
   for (auto branch : next) {
+    if (ep_node->get_module()->get_type() == Module::ModuleType::Tofino_If &&
+        pending_packet_borrow_ep &&
+        !pending_packet_borrow_next_chunk(branch.get(),
+                                          synapse::Target::Tofino)) {
+      ingress_parser.transition_reject();
+    }
+
     branch->visit(*this);
   }
 }
@@ -101,6 +107,7 @@ void TofinoGenerator::visit(const targets::tofino::Forward *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::EthernetConsume *node) {
+  assert(parsing_headers);
   assert(false && "TODO");
 }
 

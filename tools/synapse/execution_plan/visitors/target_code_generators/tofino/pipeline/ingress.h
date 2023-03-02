@@ -3,7 +3,7 @@
 #include <stack>
 
 #include "../../synthesizer.h"
-#include "data/variable.h"
+#include "domain/variable.h"
 
 namespace synapse {
 namespace synthesizer {
@@ -78,6 +78,10 @@ public:
     }
 
     return nullptr;
+  }
+
+  void synthesize(std::ostream& os) {
+    synthesizer.dump(os);
   }
 };
 

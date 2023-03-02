@@ -14,14 +14,27 @@ namespace tofino {
 
 constexpr char TOFINO_BOILERPLATE_FILE[] = "boilerplate.p4";
 
+constexpr char MARKER_INGRESS_METADATA[] = "INGRESS METADATA";
+constexpr char MARKER_INGRESS_HEADERS[] = "INGRESS HEADERS";
+constexpr char MARKER_EGRESS_METADATA[] = "EGRESS METADATA";
+constexpr char MARKER_EGRESS_HEADERS[] = "EGRESS HEADERS";
+constexpr char MARKER_INGRESS_PARSE_HEADERS[] = "INGRESS PARSE HEADERS";
+constexpr char MARKER_INGRESS_STATE[] = "INGRESS STATE";
+constexpr char MARKER_INGRESS_APPLY[] = "INGRESS APPLY";
+
 class TofinoGenerator : public Target {
 private:
   tofino::IngressParser ingress_parser;
   tofino::Ingress ingress;
+  bool parsing_headers;
 
 public:
   TofinoGenerator()
-      : Target(GET_BOILERPLATE_PATH(TOFINO_BOILERPLATE_FILE)), ingress(2) {}
+      : Target(GET_BOILERPLATE_PATH(TOFINO_BOILERPLATE_FILE)),
+        ingress_parser(
+            code_builder.get_indentation_level(MARKER_INGRESS_PARSE_HEADERS)),
+        ingress(code_builder.get_indentation_level(MARKER_INGRESS_APPLY)),
+        parsing_headers(true) {}
 
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;

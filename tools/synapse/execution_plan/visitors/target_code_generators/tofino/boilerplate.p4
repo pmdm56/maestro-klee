@@ -59,19 +59,19 @@ header tcpudp_h {
 }
 
 struct my_ingress_metadata_t {
-{{INGRESS METADATA}}
+  {{INGRESS METADATA}}
 }
 
 struct my_ingress_headers_t {
-{{INGRESS HEADERS}}
+  {{INGRESS HEADERS}}
 }
 
 struct my_egress_metadata_t {
-{{EGRESS METADATA}}
+  {{EGRESS METADATA}}
 }
 
 struct my_egress_headers_t {
-{{EGRESS HEADERS}}
+  {{EGRESS HEADERS}}
 }
 
 parser TofinoIngressParser(
@@ -114,7 +114,7 @@ parser IngressParser(
     }
   }
 
-{{INGRESS PARSE HEADERS}} 
+  {{INGRESS PARSE HEADERS}} 
 }
 
 control Ingress(
@@ -125,7 +125,7 @@ control Ingress(
   inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
   inout ingress_intrinsic_metadata_for_tm_t ig_tm_md)
 {
-{{INGRESS STATE}}
+  {{INGRESS STATE}}
 
   action flood() {
     ig_tm_md.mcast_grp_a = 1;

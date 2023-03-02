@@ -2,6 +2,7 @@
 
 #include "../../../../log.h"
 #include "../../../../modules/modules.h"
+#include "../util.h"
 
 #include "klee_expr_to_p4.h"
 
@@ -218,7 +219,8 @@ BMv2Generator::assign_key_bytes(klee::ref<klee::Expr> expr) {
   auto sz = expr->getWidth();
 
   for (auto byte = 0u; byte * 8 < sz; byte++) {
-    auto key_byte = util::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
+    auto key_byte =
+        util::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
     auto key_byte_code = transpile(key_byte, true);
 
     if (byte + 1 > ingress.key_bytes.size()) {
@@ -568,48 +570,14 @@ void BMv2Generator::visit(ExecutionPlan ep) {
   dump();
 }
 
-bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node) {
-  assert(ep_node);
-  std::vector<ExecutionPlanNode_ptr> nodes;
-
-  auto next = ep_node->get_next();
-  nodes.insert(nodes.end(), next.begin(), next.end());
-
-  while (nodes.size()) {
-    auto node = nodes[0];
-    nodes.erase(nodes.begin());
-
-    auto module = node->get_module();
-    assert(module);
-
-    if (module->get_target() != synapse::Target::BMv2) {
-      continue;
-    }
-
-    auto bdd_node = module->get_node();
-    assert(bdd_node);
-
-    if (bdd_node->get_type() == BDD::Node::NodeType::CALL) {
-      auto call_node = static_cast<const BDD::Call *>(bdd_node.get());
-      if (call_node->get_call().function_name == "packet_borrow_next_chunk") {
-        return true;
-      }
-    }
-
-    auto branches = node->get_next();
-    nodes.insert(nodes.end(), branches.begin(), branches.end());
-  }
-
-  return false;
-}
-
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
   auto mod = ep_node->get_module();
   auto next = ep_node->get_next();
 
   mod->visit(*this);
 
-  auto pending_packet_borrow_ep = pending_packet_borrow_next_chunk(ep_node);
+  auto pending_packet_borrow_ep =
+      pending_packet_borrow_next_chunk(ep_node, synapse::Target::BMv2);
 
   if (parsing_headers && !pending_packet_borrow_ep) {
     parser.accept();
@@ -620,7 +588,8 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
   for (auto branch : next) {
     if (ep_node->get_module()->get_type() == Module::ModuleType::BMv2_If &&
         pending_packet_borrow_ep &&
-        !pending_packet_borrow_next_chunk(branch.get())) {
+        !pending_packet_borrow_next_chunk(branch.get(),
+                                          synapse::Target::BMv2)) {
       parser.reject();
     }
 
@@ -793,7 +762,8 @@ void BMv2Generator::visit(const targets::bmv2::IPOptionsConsume *node) {
   // this is ok because we don't expect the length of an ipv4 packet
   // to not fit in 32 bits
   if (length->getWidth() < klee::Expr::Int32) {
-    length32 = util::solver_toolbox.exprBuilder->ZExt(length, klee::Expr::Int32);
+    length32 =
+        util::solver_toolbox.exprBuilder->ZExt(length, klee::Expr::Int32);
   } else if (length->getWidth() > klee::Expr::Int32) {
     length32 =
         util::solver_toolbox.exprBuilder->Extract(length, 0, klee::Expr::Int32);
