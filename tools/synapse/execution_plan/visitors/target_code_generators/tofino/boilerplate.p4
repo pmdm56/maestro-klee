@@ -32,31 +32,7 @@ const ip_protocol_t IP_PROTOCOLS_ICMP = 1;
 const ip_protocol_t IP_PROTOCOLS_TCP  = 6;
 const ip_protocol_t IP_PROTOCOLS_UDP  = 17;
 
-header ethernet_h {
-  mac_addr_t   dst_addr;
-  mac_addr_t   src_addr;
-  ether_type_t ether_type;
-}
-
-header ipv4_h {
-  bit<4>        version;
-  bit<4>        ihl;
-  bit<8>        dscp;
-  bit<16>       total_len;
-  bit<16>       identification;
-  bit<3>        flags;
-  bit<13>       frag_offset;
-  bit<8>        ttl;
-  ip_protocol_t protocol;
-  bit<16>       hdr_checksum;
-  ipv4_addr_t   src_addr;
-  ipv4_addr_t   dst_addr;
-}
-
-header tcpudp_h {
-  bit<16> src_port;
-  bit<16> dst_port;
-}
+{{HEADERS DEFINITIONS}}
 
 struct my_ingress_metadata_t {
   {{INGRESS METADATA}}

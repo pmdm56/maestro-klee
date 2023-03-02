@@ -456,5 +456,6 @@ public:
   VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
   VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
   VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetConsume)
+  VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetModify)
 };
 } // namespace synapse

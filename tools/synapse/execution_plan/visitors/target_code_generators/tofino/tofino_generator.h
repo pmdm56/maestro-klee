@@ -6,35 +6,30 @@
 #include "../../visitor.h"
 #include "../target_code_generator.h"
 
+#include "constants.h"
 #include "pipeline/pipeline.h"
 
 namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
-constexpr char TOFINO_BOILERPLATE_FILE[] = "boilerplate.p4";
-
-constexpr char MARKER_INGRESS_METADATA[] = "INGRESS METADATA";
-constexpr char MARKER_INGRESS_HEADERS[] = "INGRESS HEADERS";
-constexpr char MARKER_EGRESS_METADATA[] = "EGRESS METADATA";
-constexpr char MARKER_EGRESS_HEADERS[] = "EGRESS HEADERS";
-constexpr char MARKER_INGRESS_PARSE_HEADERS[] = "INGRESS PARSE HEADERS";
-constexpr char MARKER_INGRESS_STATE[] = "INGRESS STATE";
-constexpr char MARKER_INGRESS_APPLY[] = "INGRESS APPLY";
-
 class TofinoGenerator : public Target {
 private:
-  tofino::IngressParser ingress_parser;
-  tofino::Ingress ingress;
-  bool parsing_headers;
+  HeadersDefinitions headers_definitions;
+  IngressParser ingress_parser;
+  Ingress ingress;
+  IngressHeaders ingress_headers;
 
 public:
   TofinoGenerator()
       : Target(GET_BOILERPLATE_PATH(TOFINO_BOILERPLATE_FILE)),
+      headers_definitions(
+            code_builder.get_indentation_level(MARKER_HEADERS_DEFINITIONS)),
         ingress_parser(
             code_builder.get_indentation_level(MARKER_INGRESS_PARSE_HEADERS)),
         ingress(code_builder.get_indentation_level(MARKER_INGRESS_APPLY)),
-        parsing_headers(true) {}
+        ingress_headers(
+            code_builder.get_indentation_level(MARKER_INGRESS_HEADERS)) {}
 
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;

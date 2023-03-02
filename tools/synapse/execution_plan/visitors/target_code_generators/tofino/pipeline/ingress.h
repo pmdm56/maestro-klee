@@ -3,14 +3,12 @@
 #include <stack>
 
 #include "../../synthesizer.h"
+#include "../constants.h"
 #include "domain/variable.h"
 
 namespace synapse {
 namespace synthesizer {
 namespace tofino {
-
-constexpr char INGRESS_INTRINSIC_METADATA_VARIABLE[] = "ig_intr_md";
-constexpr char INGRESS_USER_METADATA_VARIABLE[] = "meta";
 
 class Ingress {
 private:
@@ -80,9 +78,7 @@ public:
     return nullptr;
   }
 
-  void synthesize(std::ostream& os) {
-    synthesizer.dump(os);
-  }
+  void synthesize(std::ostream &os) { synthesizer.dump(os); }
 };
 
 } // namespace tofino

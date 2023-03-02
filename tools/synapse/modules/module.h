@@ -78,6 +78,7 @@ public:
     Tofino_Else,
     Tofino_Forward,
     Tofino_EthernetConsume,
+    Tofino_EthernetModify,
   };
 
 protected:

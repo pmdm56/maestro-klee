@@ -2,6 +2,7 @@
 
 #include "../../synthesizer.h"
 #include "domain/state.h"
+#include "../constants.h"
 
 #include <assert.h>
 #include <stack>
@@ -10,10 +11,6 @@
 namespace synapse {
 namespace synthesizer {
 namespace tofino {
-
-constexpr char PARSER_CONDITIONAL_LABEL[] = "conditional_state_t_";
-constexpr char PARSER_PACKET_VARIABLE_LABEL[] = "packet";
-constexpr char PARSER_INITIAL_STATE_LABEL[] = "parse_headers";
 
 class IngressParser {
 private:
@@ -162,7 +159,7 @@ public:
       synthesizer.indent();
       synthesizer.append("state ");
       synthesizer.append(stage->label);
-      synthesizer.append("{");
+      synthesizer.append(" {");
       synthesizer.append_new_line();
 
       synthesizer.inc_indenation();
