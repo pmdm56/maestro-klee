@@ -113,7 +113,7 @@ public:
 
     auto other_cast = static_cast<const EthernetModify *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
             ethernet_chunk, other_cast->ethernet_chunk)) {
       return false;
     }
@@ -132,7 +132,7 @@ public:
         return false;
       }
 
-      if (!util::solver_toolbox.are_exprs_always_equal(
+      if (!kutil::solver_toolbox.are_exprs_always_equal(
               modification.expr, other_modification.expr)) {
         return false;
       }

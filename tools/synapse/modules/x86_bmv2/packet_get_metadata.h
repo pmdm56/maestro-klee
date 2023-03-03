@@ -39,7 +39,7 @@ public:
 
     auto other_cast = static_cast<const PacketGetMetadata *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(metadata,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(metadata,
                                                     other_cast->metadata)) {
       return false;
     }

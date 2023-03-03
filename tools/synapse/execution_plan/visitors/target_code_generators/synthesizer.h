@@ -21,12 +21,12 @@ public:
     ss << std::string(lvl * 2, ' ');
   }
 
-  void inc_indenation() {
+  void inc_indentation() {
     assert(lvl >= 0);
     lvl++;
   }
 
-  void dec_indenation() {
+  void dec_indentation() {
     assert(lvl > 0);
     lvl--;
   }

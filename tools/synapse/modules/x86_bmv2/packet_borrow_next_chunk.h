@@ -76,22 +76,22 @@ public:
 
     auto other_cast = static_cast<const PacketBorrowNextChunk *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(p_addr,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(p_addr,
                                                     other_cast->get_p_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              chunk_addr, other_cast->get_chunk_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(chunk,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(chunk,
                                                     other_cast->get_chunk())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(length,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(length,
                                                     other_cast->get_length())) {
       return false;
     }

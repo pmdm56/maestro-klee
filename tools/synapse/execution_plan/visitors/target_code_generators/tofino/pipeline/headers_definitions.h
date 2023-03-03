@@ -29,18 +29,18 @@ public:
       synthesizer.append(" {");
       synthesizer.append_new_line();
 
-      synthesizer.inc_indenation();
+      synthesizer.inc_indentation();
 
       for (auto field : header.fields) {
         synthesizer.indent();
-        synthesizer.append(field.type);
+        synthesizer.append(field.get_type());
         synthesizer.append(" ");
-        synthesizer.append(field.label);
+        synthesizer.append(field.get_label());
         synthesizer.append(";");
         synthesizer.append_new_line();
       }
 
-      synthesizer.dec_indenation();
+      synthesizer.dec_indentation();
       synthesizer.append("}");
       synthesizer.append_new_line();
       synthesizer.append_new_line();

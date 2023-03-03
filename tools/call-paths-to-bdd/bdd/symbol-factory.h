@@ -220,7 +220,7 @@ public:
   }
 
   void translate(Node *current, Node *translation_source,
-                 util::RenameSymbols renamer);
+                 kutil::RenameSymbols renamer);
 
   void translate(call_t call, BDDNode_ptr node);
 

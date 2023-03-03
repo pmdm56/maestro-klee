@@ -17,13 +17,14 @@
 
 namespace synapse {
 namespace synthesizer {
+namespace bmv2 {
 
 void BMv2Generator::err_label_from_chunk(klee::ref<klee::Expr> expr) const {
   Log::err() << "label_from_chunk error\n";
-  Log::err() << "expr   " << util::expr_to_string(expr, true) << "\n";
+  Log::err() << "expr   " << kutil::expr_to_string(expr, true) << "\n";
   for (auto header : headers) {
     Log::err() << "header " << header.label << " "
-               << util::expr_to_string(header.chunk, true) << "\n";
+               << kutil::expr_to_string(header.chunk, true) << "\n";
   }
   Log::err() << "\n";
 
@@ -32,13 +33,13 @@ void BMv2Generator::err_label_from_chunk(klee::ref<klee::Expr> expr) const {
 
 void BMv2Generator::err_label_from_vars(klee::ref<klee::Expr> expr) const {
   Log::err() << "label_from_vars error\n";
-  Log::err() << "expr   " << util::expr_to_string(expr, true) << "\n";
+  Log::err() << "expr   " << kutil::expr_to_string(expr, true) << "\n";
 
   for (auto meta : metadata.get()) {
     std::stringstream meta_stream;
     meta_stream << "meta   " << meta.label << " ";
     for (auto expr : meta.exprs) {
-      meta_stream << util::expr_to_string(expr, true) << " ";
+      meta_stream << kutil::expr_to_string(expr, true) << " ";
     }
     meta_stream << "\n";
     Log::err() << meta_stream.str();
@@ -92,7 +93,7 @@ std::string get_bytes_of_label(std::string label, unsigned size,
 void BMv2Generator::field_header_from_packet_chunk(klee::ref<klee::Expr> expr,
                                                    std::string &field_str,
                                                    unsigned &bit_offset) const {
-  util::RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -110,10 +111,10 @@ void BMv2Generator::field_header_from_packet_chunk(klee::ref<klee::Expr> expr,
     for (auto field : header.fields) {
 
       for (unsigned byte = 0; byte * 8 + sz <= field.sz; byte++) {
-        auto field_expr = util::solver_toolbox.exprBuilder->Extract(
+        auto field_expr = kutil::solver_toolbox.exprBuilder->Extract(
             chunk, offset + byte * 8, sz);
 
-        if (util::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
+        if (kutil::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
           field_str = std::string("hdr." + header.label + "." + field.label);
           bit_offset = byte * 8;
           return;
@@ -129,7 +130,7 @@ void BMv2Generator::field_header_from_packet_chunk(klee::ref<klee::Expr> expr,
 
 std::string
 BMv2Generator::label_from_packet_chunk(klee::ref<klee::Expr> expr) const {
-  util::RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -150,10 +151,10 @@ BMv2Generator::label_from_packet_chunk(klee::ref<klee::Expr> expr) const {
           continue;
         }
 
-        auto field_expr = util::solver_toolbox.exprBuilder->Extract(
+        auto field_expr = kutil::solver_toolbox.exprBuilder->Extract(
             chunk, offset + byte * 8, sz);
 
-        if (util::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
+        if (kutil::solver_toolbox.are_exprs_always_equal(field_expr, expr)) {
           auto label = "hdr." + header.label + "." + field.label;
 
           if (field.sz == sz) {
@@ -172,7 +173,7 @@ BMv2Generator::label_from_packet_chunk(klee::ref<klee::Expr> expr) const {
 }
 
 std::string BMv2Generator::label_from_vars(klee::ref<klee::Expr> expr) const {
-  util::RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -186,9 +187,9 @@ std::string BMv2Generator::label_from_vars(klee::ref<klee::Expr> expr) const {
 
       for (auto byte = 0u; byte * 8 + sz <= meta_sz; byte++) {
         auto extracted =
-            util::solver_toolbox.exprBuilder->Extract(meta_expr, byte * 8, sz);
+            kutil::solver_toolbox.exprBuilder->Extract(meta_expr, byte * 8, sz);
 
-        if (util::solver_toolbox.are_exprs_always_equal(expr, extracted)) {
+        if (kutil::solver_toolbox.are_exprs_always_equal(expr, extracted)) {
           auto label = "meta." + meta.label;
 
           if (meta_sz == sz) {
@@ -220,7 +221,7 @@ BMv2Generator::assign_key_bytes(klee::ref<klee::Expr> expr) {
 
   for (auto byte = 0u; byte * 8 < sz; byte++) {
     auto key_byte =
-        util::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
+        kutil::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
     auto key_byte_code = transpile(key_byte, true);
 
     if (byte + 1 > ingress.key_bytes.size()) {
@@ -247,13 +248,13 @@ std::string BMv2Generator::transpile(const klee::ref<klee::Expr> &e,
   auto expr = e;
   KleeExprToP4::swap_endianness(expr);
 
-  if (util::is_constant(expr)) {
+  if (kutil::is_constant(expr)) {
     std::stringstream ss;
     auto constant = static_cast<klee::ConstantExpr *>(expr.get());
     assert(constant->getWidth() <= 64);
 
     if (is_signed) {
-      assert(!util::is_constant_signed(expr) &&
+      assert(!kutil::is_constant_signed(expr) &&
              "Be careful with negative numbers...");
     }
 
@@ -276,7 +277,7 @@ std::string BMv2Generator::transpile(const klee::ref<klee::Expr> &e,
     // error
     std::stringstream error;
     error << "Unable to generator.transpile expression: ";
-    error << util::expr_to_string(expr, true);
+    error << kutil::expr_to_string(expr, true);
     error << "\n";
     error << "Kind: ";
     error << expr->getKind();
@@ -636,7 +637,7 @@ void BMv2Generator::visit(const targets::bmv2::EthernetModify *node) {
     auto byte = mod.byte;
     auto expr = mod.expr;
 
-    auto modified_byte = util::solver_toolbox.exprBuilder->Extract(
+    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
         ethernet_chunk, byte * 8, klee::Expr::Int8);
 
     field_header_from_packet_chunk(modified_byte, field, offset);
@@ -763,10 +764,10 @@ void BMv2Generator::visit(const targets::bmv2::IPOptionsConsume *node) {
   // to not fit in 32 bits
   if (length->getWidth() < klee::Expr::Int32) {
     length32 =
-        util::solver_toolbox.exprBuilder->ZExt(length, klee::Expr::Int32);
+        kutil::solver_toolbox.exprBuilder->ZExt(length, klee::Expr::Int32);
   } else if (length->getWidth() > klee::Expr::Int32) {
     length32 =
-        util::solver_toolbox.exprBuilder->Extract(length, 0, klee::Expr::Int32);
+        kutil::solver_toolbox.exprBuilder->Extract(length, 0, klee::Expr::Int32);
   }
 
   assert(parsing_headers);
@@ -925,5 +926,6 @@ void BMv2Generator::visit(const targets::bmv2::Then *node) {
   parser.push_on_true();
 }
 
+} // namespace bmv2
 } // namespace synthesizer
 }; // namespace synapse

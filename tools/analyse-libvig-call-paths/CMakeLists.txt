@@ -14,17 +14,17 @@ file(GLOB_RECURSE load-call-paths-sources
   "../load-call-paths/*.cpp"
 )
 
-file(GLOB_RECURSE util-sources
-  "../util/*.cpp"
+file(GLOB_RECURSE klee-util-sources
+  "../klee-util/*.cpp"
 )
 
 list(FILTER load-call-paths-sources EXCLUDE REGEX ".*main\\.cpp$")
-list(FILTER util-sources EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER klee-util-sources EXCLUDE REGEX ".*main\\.cpp$")
 
 add_executable(analyse-libvig-call-paths
   ${analyse-libvig-call-paths-sources}
   ${load-call-paths-sources}
-  ${util-sources}
+  ${klee-util-sources}
 )
 
 set(KLEE_LIBS
@@ -32,7 +32,7 @@ set(KLEE_LIBS
   kleeCore
 )
 
-target_include_directories(analyse-libvig-call-paths PRIVATE ../util ../load-call-paths)
+target_include_directories(analyse-libvig-call-paths PRIVATE ../klee-util ../load-call-paths)
 target_link_libraries(analyse-libvig-call-paths ${KLEE_LIBS})
 
 install(TARGETS analyse-libvig-call-paths RUNTIME DESTINATION bin)

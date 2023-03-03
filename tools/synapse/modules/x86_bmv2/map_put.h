@@ -70,22 +70,22 @@ public:
 
     auto other_cast = static_cast<const MapPut *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              map_addr, other_cast->get_map_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              key_addr, other_cast->get_key_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(key,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(key,
                                                     other_cast->get_key())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(value,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(value,
                                                     other_cast->get_value())) {
       return false;
     }

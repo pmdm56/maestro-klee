@@ -14,7 +14,7 @@
 #include "call-paths-to-bdd.h"
 #include "klee_transpiler.h"
 #include "load-call-paths.h"
-#include "util.h"
+#include "klee-util.h"
 #include "nodes.h"
 
 class AST {
@@ -285,7 +285,7 @@ public:
       for (const auto var : stack) {
         var.first->debug(std::cerr, 2);
         if (!var.second.isNull()) {
-          std::cerr << "  expr: " << util::expr_to_string(var.second) << "\n";
+          std::cerr << "  expr: " << kutil::expr_to_string(var.second) << "\n";
         }
       }
     }

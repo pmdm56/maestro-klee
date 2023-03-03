@@ -72,22 +72,22 @@ public:
 
     auto other_cast = static_cast<const VectorReturn *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              vector_addr, other_cast->get_vector_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(index,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(index,
                                                     other_cast->get_index())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              value_addr, other_cast->get_value_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(value,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(value,
                                                     other_cast->get_value())) {
       return false;
     }

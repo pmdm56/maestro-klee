@@ -38,23 +38,23 @@ private:
 
     // Make sure that packet_borrow_next_chunk borrows the next 20 bytes
     assert(len->getKind() == klee::Expr::Kind::Constant);
-    if (util::solver_toolbox.value_from_expr(len) != 20) {
+    if (kutil::solver_toolbox.value_from_expr(len) != 20) {
       return false;
     }
 
     auto eth_type_expr =
-        util::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
-    auto eth_type_ipv4 = util::solver_toolbox.exprBuilder->Constant(
+        kutil::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
+    auto eth_type_ipv4 = kutil::solver_toolbox.exprBuilder->Constant(
         UINT_16_SWAP_ENDIANNESS(0x0800), 2 * 8);
-    auto eq = util::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
+    auto eq = kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
-    util::RetrieveSymbols symbol_retriever;
+    kutil::RetrieveSymbols symbol_retriever;
     symbol_retriever.visit(eq);
     auto symbols = symbol_retriever.get_retrieved();
-    util::ReplaceSymbols symbol_replacer(symbols);
+    kutil::ReplaceSymbols symbol_replacer(symbols);
 
     for (auto constraint : constraints) {
-      if (!util::solver_toolbox.is_expr_always_true(constraint, eq,
+      if (!kutil::solver_toolbox.is_expr_always_true(constraint, eq,
                                                    symbol_replacer)) {
         return false;
       }

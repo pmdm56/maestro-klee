@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <regex>
 
-namespace util {
+namespace kutil {
 
 class ExprPrettyPrinter : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -561,19 +561,19 @@ std::ostream &operator<<(std::ostream &os, const arg_t &arg) {
     return os;
   }
 
-  os << util::expr_to_string(arg.expr, true);
+  os << kutil::expr_to_string(arg.expr, true);
 
   if (!arg.in.isNull() || !arg.out.isNull()) {
     os << "[";
 
     if (!arg.in.isNull()) {
-      os << util::expr_to_string(arg.in, true);
+      os << kutil::expr_to_string(arg.in, true);
     }
 
     os << " -> ";
 
     if (!arg.out.isNull()) {
-      os << util::expr_to_string(arg.out, true);
+      os << kutil::expr_to_string(arg.out, true);
     }
 
     os << "]";
@@ -605,7 +605,7 @@ std::ostream &operator<<(std::ostream &os, const call_t &call) {
 
   if (!call.ret.isNull()) {
     os << " => ";
-    os << util::expr_to_string(call.ret, true);
+    os << kutil::expr_to_string(call.ret, true);
   }
 
   return os;
@@ -671,4 +671,4 @@ std::ostream &operator<<(std::ostream &os, const klee::ref<klee::Expr> &expr) {
   return os;
 }
 
-} // namespace util
+} // namespace kutil

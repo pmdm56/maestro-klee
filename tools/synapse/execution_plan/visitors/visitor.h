@@ -62,6 +62,8 @@ class Else;
 class Forward;
 class EthernetConsume;
 class EthernetModify;
+class TableLookup;
+class Drop;
 } // namespace tofino
 } // namespace targets
 
@@ -136,6 +138,8 @@ public:
   virtual void visit(const targets::tofino::Forward *node) {}
   virtual void visit(const targets::tofino::EthernetConsume *node) {}
   virtual void visit(const targets::tofino::EthernetModify *node) {}
+  virtual void visit(const targets::tofino::TableLookup *node) {}
+  virtual void visit(const targets::tofino::Drop *node) {}
 };
 
 } // namespace synapse

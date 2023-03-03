@@ -5,7 +5,7 @@
 #include <numeric>
 #include <vector>
 
-#include "util.h"
+#include "klee-util.h"
 #include "load-call-paths.h"
 
 enum TargetOption {

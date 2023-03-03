@@ -70,7 +70,7 @@ public:
 
     auto other_cast = static_cast<const If *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              condition, other_cast->get_condition())) {
       return false;
     }

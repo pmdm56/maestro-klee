@@ -50,7 +50,7 @@ private:
   bool is_signed;
 
   bool is_read_lsb(klee::ref<klee::Expr> e) const {
-    util::RetrieveSymbols retriever;
+    kutil::RetrieveSymbols retriever;
     retriever.visit(e);
 
     if (retriever.get_retrieved_strings().size() != 1) {
@@ -118,7 +118,7 @@ public:
   klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e) {
     klee::ref<klee::Expr> eref = const_cast<klee::ReadExpr *>(&e);
 
-    util::RetrieveSymbols retriever;
+    kutil::RetrieveSymbols retriever;
     retriever.visit(eref);
 
     auto symbols = retriever.get_retrieved_strings();
@@ -130,9 +130,9 @@ public:
       auto offset = e.index;
 
       assert(offset->getKind() == klee::Expr::Kind::Constant);
-      auto offset_value = util::solver_toolbox.value_from_expr(offset);
+      auto offset_value = kutil::solver_toolbox.value_from_expr(offset);
 
-      auto extracted = util::solver_toolbox.exprBuilder->Extract(
+      auto extracted = kutil::solver_toolbox.exprBuilder->Extract(
           value, offset_value, eref->getWidth());
       code << transpile(extracted, stack, is_signed);
 
@@ -156,7 +156,7 @@ public:
     klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
     if (is_read_lsb(eref)) {
-      util::RetrieveSymbols retriever;
+      kutil::RetrieveSymbols retriever;
       retriever.visit(eref);
 
       auto symbols = retriever.get_retrieved_strings();
@@ -171,7 +171,7 @@ public:
       klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
       Log::err() << "\n";
-      Log::err() << util::expr_to_string(eref, true) << "\n";
+      Log::err() << kutil::expr_to_string(eref, true) << "\n";
       Log::err() << "symbol " << symbol << " not in set\n";
       stack.err_dump();
       assert(false && "Not in stack");
@@ -243,18 +243,18 @@ public:
     }
 
     if (expr->getKind() == klee::Expr::Kind::Constant) {
-      auto extract = util::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
-      auto value = util::solver_toolbox.value_from_expr(extract);
+      auto extract = kutil::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
+      auto value = kutil::solver_toolbox.value_from_expr(extract);
 
       // checking if this is really the ONLY answer
-      assert(util::solver_toolbox.are_exprs_always_equal(
-          extract, util::solver_toolbox.exprBuilder->Constant(value, sz)));
+      assert(kutil::solver_toolbox.are_exprs_always_equal(
+          extract, kutil::solver_toolbox.exprBuilder->Constant(value, sz)));
 
       code << value;
       return klee::ExprVisitor::Action::skipChildren();
     }
 
-    std::cerr << "expr   " << util::expr_to_string(expr, true) << "\n";
+    std::cerr << "expr   " << kutil::expr_to_string(expr, true) << "\n";
     std::cerr << "offset " << offset << "\n";
     std::cerr << "sz     " << sz << "\n";
     assert(false && "expr size > 64 but not constant");
@@ -746,11 +746,11 @@ void apply_changes(const klee::ref<klee::Expr> &before,
 
   for (unsigned int b = 0; b < size; b += 8) {
     auto before_byte =
-        util::solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
+        kutil::solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
     auto after_byte =
-        util::solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
+        kutil::solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
 
-    if (util::solver_toolbox.are_exprs_always_equal(before_byte, after_byte)) {
+    if (kutil::solver_toolbox.are_exprs_always_equal(before_byte, after_byte)) {
       continue;
     }
 
@@ -781,7 +781,7 @@ std::string build(const klee::ref<klee::Expr> &e, stack_t &stack,
 
   for (unsigned int b = 0; b < size; b += 8) {
     auto extract =
-        util::solver_toolbox.exprBuilder->Extract(e, b, klee::Expr::Int8);
+        kutil::solver_toolbox.exprBuilder->Extract(e, b, klee::Expr::Int8);
     assignment_stream << var_label.str() << "[" << b / 8 << "] = (uint8_t) ("
                       << transpile(extract, stack) << ");";
     assignments.push_back(assignment_stream.str());
@@ -840,7 +840,7 @@ std::string transpile(const klee::ref<klee::Expr> &e, stack_t &stack,
   if (!code.size()) {
     // error
     Log::err() << "Unable to transpile expression:\n";
-    Log::err() << util::expr_to_string(e, true);
+    Log::err() << kutil::expr_to_string(e, true);
     exit(1);
   }
 
@@ -1043,10 +1043,10 @@ x86BMv2Generator::get_expiration_time(klee::ref<klee::Expr> libvig_obj) const {
     auto obj = et.first;
     auto time = et.second;
 
-    auto obj_extracted = util::solver_toolbox.exprBuilder->Extract(
+    auto obj_extracted = kutil::solver_toolbox.exprBuilder->Extract(
         obj, 0, libvig_obj->getWidth());
 
-    if (util::solver_toolbox.are_exprs_always_equal(obj_extracted, libvig_obj)) {
+    if (kutil::solver_toolbox.are_exprs_always_equal(obj_extracted, libvig_obj)) {
       return std::make_pair(true, time);
     }
   }
@@ -1085,7 +1085,7 @@ x86BMv2Generator::get_associated_p4_tables(
       auto obj = table_lookup->get_obj();
       assert(!obj.isNull());
 
-      if (!util::solver_toolbox.are_exprs_always_equal(libvig_obj, obj)) {
+      if (!kutil::solver_toolbox.are_exprs_always_equal(libvig_obj, obj)) {
         goto skip;
       }
 
@@ -1132,7 +1132,7 @@ klee::ref<klee::Expr>
 get_readLSB_vigor_device(std::vector<klee::ConstraintManager> managers) {
   for (auto manager : managers) {
     for (auto constraint : manager) {
-      util::RetrieveSymbols retriever(true);
+      kutil::RetrieveSymbols retriever(true);
       retriever.visit(constraint);
 
       auto symbols = retriever.get_retrieved_strings();
@@ -1207,12 +1207,12 @@ void x86BMv2Generator::build_runtime_configure() {
       auto vigor_device = get_readLSB_vigor_device(constraint_managers);
 
       for (auto manager : constraint_managers) {
-        auto value = util::solver_toolbox.value_from_expr(vigor_device, manager);
-        auto eq = util::solver_toolbox.exprBuilder->Eq(
-            vigor_device, util::solver_toolbox.exprBuilder->Constant(
+        auto value = kutil::solver_toolbox.value_from_expr(vigor_device, manager);
+        auto eq = kutil::solver_toolbox.exprBuilder->Eq(
+            vigor_device, kutil::solver_toolbox.exprBuilder->Constant(
                               value, vigor_device->getWidth()));
 
-        auto always_eq = util::solver_toolbox.is_expr_always_true(manager, eq);
+        auto always_eq = kutil::solver_toolbox.is_expr_always_true(manager, eq);
         assert(always_eq);
 
         devices.insert(value);
@@ -1565,11 +1565,11 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::PacketReturnChunk *node) {
   auto size = chunk->getWidth();
   for (unsigned b = 0; b < size; b += 8) {
     auto chunk_byte =
-        util::solver_toolbox.exprBuilder->Extract(chunk, b, klee::Expr::Int8);
-    auto before_chunk_byte = util::solver_toolbox.exprBuilder->Extract(
+        kutil::solver_toolbox.exprBuilder->Extract(chunk, b, klee::Expr::Int8);
+    auto before_chunk_byte = kutil::solver_toolbox.exprBuilder->Extract(
         before_chunk, b, klee::Expr::Int8);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(chunk_byte,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(chunk_byte,
                                                     before_chunk_byte)) {
       pad(nf_process_stream);
       nf_process_stream << label << "[" << b / 8 << "]";
@@ -1642,7 +1642,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::Drop *node) {
 }
 
 uint64_t get_expiration_time_value(klee::ref<klee::Expr> time) {
-  util::RetrieveSymbols retriever(true);
+  kutil::RetrieveSymbols retriever(true);
   retriever.visit(time);
 
   auto readLSBs = retriever.get_retrieved_readLSB();
@@ -1650,12 +1650,12 @@ uint64_t get_expiration_time_value(klee::ref<klee::Expr> time) {
 
   auto next_time = readLSBs[0];
   auto expiration_time_expr =
-      util::solver_toolbox.exprBuilder->Sub(time, next_time);
+      kutil::solver_toolbox.exprBuilder->Sub(time, next_time);
   auto expiration_time =
-      util::solver_toolbox.value_from_expr(expiration_time_expr);
+      kutil::solver_toolbox.value_from_expr(expiration_time_expr);
 
-  auto always_eq = util::solver_toolbox.are_exprs_always_equal(
-      util::solver_toolbox.exprBuilder->Constant(
+  auto always_eq = kutil::solver_toolbox.are_exprs_always_equal(
+      kutil::solver_toolbox.exprBuilder->Constant(
           expiration_time, expiration_time_expr->getWidth()),
       expiration_time_expr);
   assert(always_eq);
@@ -1819,7 +1819,7 @@ klee::ref<klee::Expr> get_future_vector_value(BDD::BDDNode_ptr root,
         continue;
       }
 
-      auto eq = util::solver_toolbox.are_exprs_always_equal(
+      auto eq = kutil::solver_toolbox.are_exprs_always_equal(
           vector, call.args["vector"].expr);
 
       if (!eq) {
@@ -1905,7 +1905,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::VectorReturn *node) {
     assert(node->get_node());
 
     Log::err() << "Node:  " << node->get_node()->dump(true) << "\n";
-    Log::err() << "Expr: " << util::expr_to_string(value_addr, true) << "\n";
+    Log::err() << "Expr: " << kutil::expr_to_string(value_addr, true) << "\n";
     Log::err() << "Label:  " << value_label << "\n";
     assert(false && "Not found in stack");
   }
@@ -1996,7 +1996,7 @@ void x86BMv2Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
       std::stringstream key_byte_name;
       key_byte_name << "key_byte_" << byte;
 
-      auto key_byte_expr = util::solver_toolbox.exprBuilder->Extract(
+      auto key_byte_expr = kutil::solver_toolbox.exprBuilder->Extract(
           key, byte * 8, klee::Expr::Int8);
       auto key_byte_expr_transpiled = transpile(key_byte_expr, stack);
 
@@ -2061,7 +2061,7 @@ void x86BMv2Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
       nf_process_stream << " };\n";
 
       for (auto byte = 0u; byte < value->getWidth() / 8; byte++) {
-        auto extracted = util::solver_toolbox.exprBuilder->Extract(
+        auto extracted = kutil::solver_toolbox.exprBuilder->Extract(
             value, byte * 8, klee::Expr::Int8);
 
         auto extracted_transpiled = transpile(extracted, stack);
@@ -2178,7 +2178,7 @@ void x86BMv2Generator::visit(const targets::x86_bmv2::MapPut *node) {
   auto key_label = stack.get_by_value(key);
 
   if (key_label.size() == 0) {
-    std::cerr << "key " << util::expr_to_string(key, true) << "\n";
+    std::cerr << "key " << kutil::expr_to_string(key, true) << "\n";
     stack.err_dump();
     exit(1);
   }
@@ -2239,7 +2239,7 @@ void x86BMv2Generator::visit(
   assert(generated_symbols.size() == 1);
   auto checksum_label = get_label(generated_symbols, "checksum");
   auto ip_hdr = stack.get_value(ip_header_addr);
-  auto checksum_expr = util::solver_toolbox.exprBuilder->Extract(ip_hdr, 80, 16);
+  auto checksum_expr = kutil::solver_toolbox.exprBuilder->Extract(ip_hdr, 80, 16);
 
   pad(nf_process_stream);
   nf_process_stream << "uint16_t " << checksum_label;

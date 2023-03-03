@@ -25,9 +25,20 @@ constexpr char INGRESS_SEND_TO_CPU_ACTION[] = "send_to_cpu";
 constexpr char PARSER_CONDITIONAL_LABEL[] = "conditional_state_t_";
 constexpr char PARSER_PACKET_VARIABLE_LABEL[] = "pkt";
 constexpr char PARSER_INITIAL_STATE_LABEL[] = "parse_headers";
+constexpr char KEY_BYTE_LABEL[] = "key_byte_";
 
-constexpr char INGRESS_INTRINSIC_METADATA_VARIABLE[] = "ig_intr_md";
 constexpr char INGRESS_USER_METADATA_VARIABLE[] = "meta";
+constexpr char INGRESS_PACKET_HEADER_VARIABLE[] = "hdr";
+
+constexpr char INGRESS_INTRINSIC_META_RESUBMIT_FLAG[] = "ig_intr_md.resubmit_flag";
+constexpr char INGRESS_INTRINSIC_META_PACKET_VERSION[] = "ig_intr_md.packet_version";
+constexpr char INGRESS_INTRINSIC_META_INGRESS_PORT[] = "ig_intr_md.ingress_port";
+constexpr char INGRESS_INTRINSIC_META_TIMESTAMP[] = "ig_intr_md.ingress_mac_tstamp";
+
+constexpr int INGRESS_INTRINSIC_META_RESUBMIT_FLAG_SIZE_BITS = 1;
+constexpr int INGRESS_INTRINSIC_META_PACKET_VERSION_SIZE_BITS = 2;
+constexpr int INGRESS_INTRINSIC_META_INGRESS_PORT_SIZE_BITS = 9;
+constexpr int INGRESS_INTRINSIC_META_TIMESTAMP_SIZE_BITS = 48;
 
 constexpr char HDR_ETH[] = "ethernet";
 constexpr char HDR_IPV4[] = "ipv4";
@@ -56,6 +67,8 @@ constexpr char HDR_TCPUDP_DST_PORT_FIELD[] = "dst_port";
 const header_field_t eth_dst_addr{HDR_ETH_SRC_ADDR_FIELD, 48};
 const header_field_t eth_src_addr{HDR_ETH_DST_ADDR_FIELD, 48};
 const header_field_t eth_ether_type{HDR_ETH_ETHER_TYPE_FIELD, 16};
+
+constexpr char VIGOR_PORT_SYMBOL[] = "VIGOR_DEVICE";
 
 } // namespace tofino
 } // namespace synthesizer

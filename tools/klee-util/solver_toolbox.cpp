@@ -1,10 +1,10 @@
 #include "solver_toolbox.h"
-#include "retrieve_symbols.h"
 #include "printer.h"
+#include "retrieve_symbols.h"
 
 #include <iostream>
 
-namespace util {
+namespace kutil {
 
 solver_toolbox_t solver_toolbox;
 
@@ -300,4 +300,28 @@ bool solver_toolbox_t::are_calls_equal(call_t c1, call_t c2) const {
   return true;
 }
 
-} // namespace util
+solver_toolbox_t::contains_result_t
+solver_toolbox_t::contains(klee::ref<klee::Expr> expr1,
+                           klee::ref<klee::Expr> expr2) const {
+  auto expr1_size_bits = expr1->getWidth();
+  auto expr2_size_bits = expr2->getWidth();
+
+  if (expr1_size_bits < expr2_size_bits) {
+    return contains_result_t();
+  }
+
+  for (auto offset_bits = 0u; offset_bits + expr2_size_bits <= expr1_size_bits;
+       offset_bits += 8) {
+
+    auto expr1_extracted = kutil::solver_toolbox.exprBuilder->Extract(
+        expr1, offset_bits, expr2_size_bits);
+
+    if (are_exprs_always_equal(expr1_extracted, expr2)) {
+      return contains_result_t(offset_bits, expr1_extracted);
+    }
+  }
+
+  return contains_result_t();
+}
+
+} // namespace kutil

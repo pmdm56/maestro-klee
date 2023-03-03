@@ -201,7 +201,7 @@ private:
     case BDD::Node::NodeType::BRANCH: {
       auto branch = static_cast<const BDD::Branch *>(node);
       ss << "if(";
-      ss << util::expr_to_string(branch->get_condition(), true);
+      ss << kutil::expr_to_string(branch->get_condition(), true);
       ss << ")";
       break;
     }
@@ -213,7 +213,7 @@ private:
         if (i > 0) {
           ss << ", ";
         }
-        ss << util::expr_to_string(arg.second.expr, true);
+        ss << kutil::expr_to_string(arg.second.expr, true);
         i++;
       }
       break;
@@ -457,5 +457,7 @@ public:
   VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
   VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetConsume)
   VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetModify)
+  VISIT_PRINT_MODULE_NAME(targets::tofino::TableLookup)
+  VISIT_PRINT_MODULE_NAME(targets::tofino::Drop)
 };
 } // namespace synapse

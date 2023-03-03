@@ -15,6 +15,7 @@
 
 namespace synapse {
 namespace synthesizer {
+namespace bmv2 {
 
 class KleeExprToP4;
 class KeysFromKleeExpr;
@@ -581,7 +582,8 @@ private:
 
 public:
   BMv2Generator()
-      : Target(GET_BOILERPLATE_PATH(BMV2_BOILERPLATE_FILE)), parsing_headers(true) {}
+      : Target(GET_BOILERPLATE_PATH(BMV2_BOILERPLATE_FILE)),
+        parsing_headers(true) {}
 
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
@@ -605,5 +607,6 @@ public:
   void visit(const targets::bmv2::Then *node) override;
 };
 
+} // namespace bmv2
 } // namespace synthesizer
 } // namespace synapse

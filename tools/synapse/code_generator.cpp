@@ -154,7 +154,7 @@ CodeGenerator::x86_bmv2_extractor(const ExecutionPlan &execution_plan) const {
     return extracted;
   }
 
-  auto metadata = util::solver_toolbox.create_new_symbol("metadata", 32);
+  auto metadata = kutil::solver_toolbox.create_new_symbol("metadata", 32);
   auto packet_get_metadata =
       std::make_shared<targets::x86_bmv2::PacketGetMetadata>(nullptr, metadata);
 
@@ -167,10 +167,10 @@ CodeGenerator::x86_bmv2_extractor(const ExecutionPlan &execution_plan) const {
     assert(root.node);
     assert(new_leaf);
 
-    auto path_id = util::solver_toolbox.exprBuilder->Constant(
+    auto path_id = kutil::solver_toolbox.exprBuilder->Constant(
         root.path_id, metadata->getWidth());
     auto meta_eq_path_id =
-        util::solver_toolbox.exprBuilder->Eq(metadata, path_id);
+        kutil::solver_toolbox.exprBuilder->Eq(metadata, path_id);
 
     auto if_meta_eq_path_id =
         std::make_shared<targets::x86_bmv2::If>(nullptr, meta_eq_path_id);

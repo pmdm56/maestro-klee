@@ -7,7 +7,7 @@
 
 #include "solver_toolbox.h"
 
-namespace util {
+namespace kutil {
 
 class RenameSymbols : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -111,4 +111,4 @@ public:
   }
 };
 
-} // namespace util
+} // namespace kutil

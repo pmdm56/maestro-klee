@@ -29,13 +29,13 @@ public:
 private:
   bool always_true(klee::ref<klee::Expr> expr,
                    const std::vector<klee::ConstraintManager> &constraints) {
-    util::RetrieveSymbols symbol_retriever;
+    kutil::RetrieveSymbols symbol_retriever;
     symbol_retriever.visit(expr);
     auto symbols = symbol_retriever.get_retrieved();
-    util::ReplaceSymbols symbol_replacer(symbols);
+    kutil::ReplaceSymbols symbol_replacer(symbols);
 
     for (auto constraint : constraints) {
-      if (!util::solver_toolbox.is_expr_always_true(constraint, expr,
+      if (!kutil::solver_toolbox.is_expr_always_true(constraint, expr,
                                                    symbol_replacer)) {
         return false;
       }
@@ -57,10 +57,10 @@ private:
     assert(!ethernet_chunk.isNull());
 
     auto eth_type_expr =
-        util::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
-    auto eth_type_ipv4 = util::solver_toolbox.exprBuilder->Constant(
+        kutil::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
+    auto eth_type_ipv4 = kutil::solver_toolbox.exprBuilder->Constant(
         UINT_16_SWAP_ENDIANNESS(0x0800), 2 * 8);
-    auto eq = util::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
+    auto eq = kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
     return always_true(eq, constraints);
   }
@@ -152,11 +152,11 @@ public:
 
     auto other_cast = static_cast<const IPOptionsConsume *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(chunk, other_cast->chunk)) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(chunk, other_cast->chunk)) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(length,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(length,
                                                     other_cast->length)) {
       return false;
     }

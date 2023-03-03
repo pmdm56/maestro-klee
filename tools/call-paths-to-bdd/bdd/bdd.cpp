@@ -96,7 +96,7 @@ bool BDD::is_skip_condition(const Node *node) {
   const Branch *branch = static_cast<const Branch *>(node);
   auto cond = branch->get_condition();
 
-  util::RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(cond);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -123,9 +123,9 @@ call_t BDD::get_successful_call(std::vector<call_path_t *> call_paths) const {
     }
 
     auto zero =
-        util::solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
-    auto eq_zero = util::solver_toolbox.exprBuilder->Eq(call.ret, zero);
-    auto is_ret_success = util::solver_toolbox.is_expr_always_false(eq_zero);
+        kutil::solver_toolbox.exprBuilder->Constant(0, call.ret->getWidth());
+    auto eq_zero = kutil::solver_toolbox.exprBuilder->Eq(call.ret, zero);
+    auto is_ret_success = kutil::solver_toolbox.is_expr_always_false(eq_zero);
 
     if (is_ret_success) {
       return call;
@@ -523,7 +523,7 @@ void BDD::trim_constraints(BDDNode_ptr node) {
       klee::ConstraintManager new_manager;
 
       for (auto constraint : manager) {
-        util::RetrieveSymbols retriever;
+        kutil::RetrieveSymbols retriever;
         retriever.visit(constraint);
 
         auto used_symbols = retriever.get_retrieved_strings();

@@ -2,6 +2,7 @@
 
 namespace synapse {
 namespace synthesizer {
+namespace bmv2 {
 
 class KleeExprToP4 : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -50,5 +51,6 @@ public:
   klee::ExprVisitor::Action visitSge(const klee::SgeExpr &);
 };
 
+} // namespace bmv2
 } // namespace synthesizer
 } // namespace synapse

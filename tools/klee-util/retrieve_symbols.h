@@ -8,7 +8,7 @@
 
 #include <unordered_set>
 
-namespace util {
+namespace kutil {
 
 class RetrieveSymbols : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -73,4 +73,4 @@ public:
   }
 };
 
-} // namespace util
+} // namespace kutil

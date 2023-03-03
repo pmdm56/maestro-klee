@@ -1,7 +1,7 @@
 #pragma once
 
 #include "load-call-paths.h"
-#include "util.h"
+#include "klee-util.h"
 
 namespace BDD {
 struct symbol_t {
@@ -28,11 +28,11 @@ inline bool operator==(const symbol_t &lhs, const symbol_t &rhs) {
     return false;
   }
 
-  if (!util::solver_toolbox.are_exprs_always_equal(lhs.expr, rhs.expr)) {
+  if (!kutil::solver_toolbox.are_exprs_always_equal(lhs.expr, rhs.expr)) {
     return false;
   }
 
-  if (!util::solver_toolbox.are_exprs_always_equal(lhs.addr, rhs.addr)) {
+  if (!kutil::solver_toolbox.are_exprs_always_equal(lhs.addr, rhs.addr)) {
     return false;
   }
 

@@ -1,7 +1,7 @@
 #include "exprs.h"
 #include "retrieve_symbols.h"
 
-namespace util {
+namespace kutil {
 
 bool get_bytes_read(klee::ref<klee::Expr> expr, std::vector<unsigned> &bytes) {
   switch (expr->getKind()) {
@@ -139,10 +139,18 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
   return -((~value + 1) & mask);
 }
 
-std::string get_symbol(klee::ref<klee::Expr> expr) {
+std::pair<bool, std::string> get_symbol(klee::ref<klee::Expr> expr) {
   auto symbols = get_symbols(expr);
-  assert(symbols.size() == 1);
-  return *symbols.begin();
+  auto result = std::pair<bool, std::string>();
+
+  if (symbols.size() != 1) {
+    result.first = false;
+  } else {
+    result.first = true;
+    result.second = *symbols.begin();
+  }
+
+  return result;
 }
 
-} // namespace util
+} // namespace kutil

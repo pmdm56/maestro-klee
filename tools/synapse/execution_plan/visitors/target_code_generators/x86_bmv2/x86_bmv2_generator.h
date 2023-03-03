@@ -5,7 +5,7 @@
 #include "../../visitor.h"
 #include "../target_code_generator.h"
 
-#include "util.h"
+#include "klee-util.h"
 
 #include <ctime>
 #include <fstream>
@@ -149,8 +149,8 @@ struct stack_t {
         }
 
         auto extracted =
-            util::solver_toolbox.exprBuilder->Extract(target, 0, size);
-        if (util::solver_toolbox.are_exprs_always_equal(extracted, addr)) {
+            kutil::solver_toolbox.exprBuilder->Extract(target, 0, size);
+        if (kutil::solver_toolbox.are_exprs_always_equal(extracted, addr)) {
           return var.value;
         }
       }
@@ -172,8 +172,8 @@ struct stack_t {
         }
 
         auto extracted =
-            util::solver_toolbox.exprBuilder->Extract(target, 0, size);
-        if (util::solver_toolbox.are_exprs_always_equal(extracted, addr)) {
+            kutil::solver_toolbox.exprBuilder->Extract(target, 0, size);
+        if (kutil::solver_toolbox.are_exprs_always_equal(extracted, addr)) {
           return var.label;
         }
       }
@@ -193,7 +193,7 @@ struct stack_t {
           continue;
         }
 
-        util::RetrieveSymbols retriever;
+        kutil::RetrieveSymbols retriever;
         retriever.visit(var.value);
         auto symbols = retriever.get_retrieved_strings();
 
@@ -208,7 +208,7 @@ struct stack_t {
         }
 
         if (var_size == value_size &&
-            util::solver_toolbox.are_exprs_always_equal(var.value, value)) {
+            kutil::solver_toolbox.are_exprs_always_equal(var.value, value)) {
           if (!var.addr.isNull() && (value_size == 8 || value_size == 16 ||
                                      value_size == 32 || value_size == 64)) {
             assert(value_size % 8 == 0 && value_size <= 64);
@@ -230,10 +230,10 @@ struct stack_t {
         }
 
         for (unsigned b = 0; b + value_size <= var_size; b += 8) {
-          auto var_extract = util::solver_toolbox.exprBuilder->Extract(
+          auto var_extract = kutil::solver_toolbox.exprBuilder->Extract(
               var.value, b, value_size);
 
-          if (util::solver_toolbox.are_exprs_always_equal(var_extract, value)) {
+          if (kutil::solver_toolbox.are_exprs_always_equal(var_extract, value)) {
 
             if (!var.addr.isNull() && value_size == 8) {
               label_stream << var.label << "[" << b / 8 << "]";
@@ -285,7 +285,7 @@ struct stack_t {
   }
 
   void not_found_err(klee::ref<klee::Expr> addr) const {
-    Log::err() << "FAILED search for addr " << util::expr_to_string(addr, true)
+    Log::err() << "FAILED search for addr " << kutil::expr_to_string(addr, true)
                << "\n";
     Log::err() << "Dumping stack content...\n";
     err_dump();
@@ -300,11 +300,11 @@ struct stack_t {
         std::stringstream ss;
         ss << var.label;
         if (!var.addr.isNull()) {
-          ss << " : " << util::expr_to_string(var.addr, true);
+          ss << " : " << kutil::expr_to_string(var.addr, true);
         }
 
         if (!var.value.isNull()) {
-          ss << " : " << util::expr_to_string(var.value, true);
+          ss << " : " << kutil::expr_to_string(var.value, true);
         }
         Log::err() << ss.str() << "\n";
       }

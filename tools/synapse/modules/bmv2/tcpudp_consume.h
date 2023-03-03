@@ -27,13 +27,13 @@ public:
 private:
   bool always_true(klee::ref<klee::Expr> expr,
                    const std::vector<klee::ConstraintManager> &constraints) {
-    util::RetrieveSymbols symbol_retriever;
+    kutil::RetrieveSymbols symbol_retriever;
     symbol_retriever.visit(expr);
     auto symbols = symbol_retriever.get_retrieved();
-    util::ReplaceSymbols symbol_replacer(symbols);
+    kutil::ReplaceSymbols symbol_replacer(symbols);
 
     for (auto constraint : constraints) {
-      if (!util::solver_toolbox.is_expr_always_true(constraint, expr,
+      if (!kutil::solver_toolbox.is_expr_always_true(constraint, expr,
                                                    symbol_replacer)) {
         return false;
       }
@@ -55,10 +55,10 @@ private:
     assert(!ethernet_chunk.isNull());
 
     auto eth_type_expr =
-        util::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
-    auto eth_type_ipv4 = util::solver_toolbox.exprBuilder->Constant(
+        kutil::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
+    auto eth_type_ipv4 = kutil::solver_toolbox.exprBuilder->Constant(
         UINT_16_SWAP_ENDIANNESS(0x0800), 2 * 8);
-    auto eq = util::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
+    auto eq = kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
     return always_true(eq, constraints);
   }
@@ -98,23 +98,23 @@ private:
       return false;
     }
 
-    auto _4 = util::solver_toolbox.exprBuilder->Constant(4, 4 * 8);
-    auto len_eq_4 = util::solver_toolbox.exprBuilder->Eq(len, _4);
+    auto _4 = kutil::solver_toolbox.exprBuilder->Constant(4, 4 * 8);
+    auto len_eq_4 = kutil::solver_toolbox.exprBuilder->Eq(len, _4);
 
     assert(always_true(len_eq_4, constraints));
 
     auto next_proto_id_expr =
-        util::solver_toolbox.exprBuilder->Extract(ipv4_chunk, 9 * 8, 8);
+        kutil::solver_toolbox.exprBuilder->Extract(ipv4_chunk, 9 * 8, 8);
 
     auto next_proto_id_expr_tcp =
-        util::solver_toolbox.exprBuilder->Constant(IPPROTO_TCP, 8);
+        kutil::solver_toolbox.exprBuilder->Constant(IPPROTO_TCP, 8);
     auto next_proto_id_expr_udp =
-        util::solver_toolbox.exprBuilder->Constant(IPPROTO_UDP, 8);
+        kutil::solver_toolbox.exprBuilder->Constant(IPPROTO_UDP, 8);
 
-    auto eq = util::solver_toolbox.exprBuilder->Or(
-        util::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
+    auto eq = kutil::solver_toolbox.exprBuilder->Or(
+        kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
                                             next_proto_id_expr_tcp),
-        util::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
+        kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
                                             next_proto_id_expr_udp));
 
     return always_true(eq, constraints);

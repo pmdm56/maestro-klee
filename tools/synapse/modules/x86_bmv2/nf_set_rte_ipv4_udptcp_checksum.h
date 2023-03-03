@@ -77,17 +77,17 @@ public:
 
     auto other_cast = static_cast<const SetIpv4UdpTcpChecksum *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              ip_header_addr, other_cast->get_ip_header_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              l4_header_addr, other_cast->get_l4_header_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(p_addr,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(p_addr,
                                                     other_cast->get_p_addr())) {
       return false;
     }

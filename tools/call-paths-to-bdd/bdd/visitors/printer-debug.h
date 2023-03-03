@@ -90,7 +90,7 @@ public:
       std::cerr << "calls:     " << calls.size() << "\n";
       for (const auto &call : calls) {
         std::cerr << "call:      " << call.function_name << " "
-                  << util::expr_to_string(call.ret) << "\n";
+                  << kutil::expr_to_string(call.ret) << "\n";
       }
     }
 

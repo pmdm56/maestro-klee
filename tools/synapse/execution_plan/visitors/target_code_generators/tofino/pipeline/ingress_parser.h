@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../synthesizer.h"
-#include "domain/state.h"
 #include "../constants.h"
+#include "domain/state.h"
 
 #include <assert.h>
 #include <stack>
@@ -130,7 +130,7 @@ public:
     synthesizer.append(" {");
     synthesizer.append_new_line();
 
-    synthesizer.inc_indenation();
+    synthesizer.inc_indentation();
 
     synthesizer.indent();
     synthesizer.append("transition ");
@@ -138,7 +138,7 @@ public:
     synthesizer.append(";");
     synthesizer.append_new_line();
 
-    synthesizer.dec_indenation();
+    synthesizer.dec_indentation();
 
     synthesizer.indent();
     synthesizer.append("}");
@@ -162,7 +162,7 @@ public:
       synthesizer.append(" {");
       synthesizer.append_new_line();
 
-      synthesizer.inc_indenation();
+      synthesizer.inc_indentation();
 
       if (stage->type == state_t::type_t::CONDITIONAL) {
         auto conditional = static_cast<conditional_state_t *>(stage.get());
@@ -173,7 +173,7 @@ public:
         synthesizer.append(") {");
         synthesizer.append_new_line();
 
-        synthesizer.inc_indenation();
+        synthesizer.inc_indentation();
 
         synthesizer.indent();
         assert(conditional->next_on_true || conditional->next_on_false);
@@ -198,7 +198,7 @@ public:
           built_states.push_back(conditional->next_on_true);
         }
 
-        synthesizer.dec_indenation();
+        synthesizer.dec_indentation();
         synthesizer.append("}");
         synthesizer.append_new_line();
 
@@ -228,7 +228,7 @@ public:
         built_states.push_back(extractor->next);
       }
 
-      synthesizer.dec_indenation();
+      synthesizer.dec_indentation();
       synthesizer.indent();
       synthesizer.append("}");
       synthesizer.append_new_line();

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "klee/Solver.h"
 #include "klee/ExprBuilder.h"
+#include "klee/Solver.h"
 #include "klee/util/ArrayCache.h"
 
 #include "../load-call-paths/load-call-paths.h"
 
 #include "replace_symbols.h"
 
-namespace util {
+namespace kutil {
 
 struct solver_toolbox_t {
   klee::Solver *solver;
@@ -64,6 +64,22 @@ struct solver_toolbox_t {
   bool are_exprs_values_always_equal(klee::ref<klee::Expr> expr1,
                                      klee::ref<klee::Expr> expr2) const;
 
+  struct contains_result_t {
+    bool contains;
+    unsigned offset_bits;
+    klee::ref<klee::Expr> contained_expr;
+
+    contains_result_t() : contains(false) {}
+
+    contains_result_t(unsigned _offset_bits,
+                      klee::ref<klee::Expr> _contained_expr)
+        : contains(true), offset_bits(_offset_bits),
+          contained_expr(_contained_expr) {}
+  };
+
+  contains_result_t contains(klee::ref<klee::Expr> expr1,
+                             klee::ref<klee::Expr> expr2) const;
+
   uint64_t value_from_expr(klee::ref<klee::Expr> expr) const;
   uint64_t value_from_expr(klee::ref<klee::Expr> expr,
                            klee::ConstraintManager constraints) const;
@@ -73,4 +89,4 @@ struct solver_toolbox_t {
 
 extern solver_toolbox_t solver_toolbox;
 
-} // namespace util
+} // namespace kutil

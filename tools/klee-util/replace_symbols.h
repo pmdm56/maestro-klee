@@ -5,7 +5,7 @@
 #include "expr/Parser.h"
 #include "klee/util/ExprVisitor.h"
 
-namespace util {
+namespace kutil {
 
 class ReplaceSymbols : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -72,4 +72,4 @@ public:
   }
 };
 
-} // namespace util
+} // namespace kutil

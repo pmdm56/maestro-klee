@@ -6,7 +6,7 @@
 
 #include "rename_symbols.h"
 
-namespace util {
+namespace kutil {
 
 class SwapPacketEndianness : public klee::ExprVisitor::ExprVisitor {
 private:
@@ -135,4 +135,4 @@ public:
   }
 };
 
-} // namespace util
+} // namespace kutil

@@ -37,7 +37,7 @@ private:
 
       auto vector = call.args["vector"].expr;
       auto eq =
-          util::solver_toolbox.are_exprs_always_equal(vector, wanted_vector);
+          kutil::solver_toolbox.are_exprs_always_equal(vector, wanted_vector);
 
       if (eq) {
         return call;
@@ -62,7 +62,7 @@ private:
 
     assert(cell_before->getWidth() == cell_after->getWidth());
     auto eq =
-        util::solver_toolbox.are_exprs_always_equal(cell_before, cell_after);
+        kutil::solver_toolbox.are_exprs_always_equal(cell_before, cell_after);
 
     return !eq;
   }

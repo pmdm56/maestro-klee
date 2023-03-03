@@ -16,7 +16,7 @@ struct candidate_t {
   candidate_t(BDDNode_ptr _node, klee::ref<klee::Expr> _condition, bool _negate)
       : node(_node) {
     if (_negate) {
-      condition = util::solver_toolbox.exprBuilder->Not(_condition);
+      condition = kutil::solver_toolbox.exprBuilder->Not(_condition);
     } else {
       condition = _condition;
     }
@@ -35,13 +35,13 @@ struct candidate_t {
     klee::ref<klee::Expr> rhs;
 
     if (_negate) {
-      rhs = util::solver_toolbox.exprBuilder->Not(_condition);
+      rhs = kutil::solver_toolbox.exprBuilder->Not(_condition);
     } else {
       rhs = _condition;
     }
 
     if (!candidate.condition.isNull()) {
-      condition = util::solver_toolbox.exprBuilder->And(candidate.condition, rhs);
+      condition = kutil::solver_toolbox.exprBuilder->And(candidate.condition, rhs);
     } else {
       condition = rhs;
     }
@@ -67,11 +67,11 @@ struct candidate_t {
     }
 
     if (!condition.isNull()) {
-      stream << "  condition : " << util::expr_to_string(condition, true) << "\n";
+      stream << "  condition : " << kutil::expr_to_string(condition, true) << "\n";
     }
 
     if (!extra_condition.isNull()) {
-      stream << "  extra condition : " << util::expr_to_string(extra_condition, true)
+      stream << "  extra condition : " << kutil::expr_to_string(extra_condition, true)
              << "\n";
     }
     stream << "  siblings :  ";
@@ -144,7 +144,7 @@ bool fn_can_be_reordered(std::string fn) {
 
 uint64_t get_readLSB_base(klee::ref<klee::Expr> chunk) {
   std::vector<unsigned> bytes_read;
-  auto success = util::get_bytes_read(chunk, bytes_read);
+  auto success = kutil::get_bytes_read(chunk, bytes_read);
   assert(success);
   assert(bytes_read.size());
 
@@ -173,7 +173,7 @@ bool read_in_chunk(klee::ref<klee::ReadExpr> read,
 
 bool are_all_symbols_known(klee::ref<klee::Expr> expr,
                            symbols_t known_symbols) {
-  util::RetrieveSymbols symbol_retriever;
+  kutil::RetrieveSymbols symbol_retriever;
   symbol_retriever.visit(expr);
 
   auto dependencies_str = symbol_retriever.get_retrieved_strings();
@@ -299,7 +299,7 @@ bool map_can_reorder(const Node *current, const Node *before, const Node *after,
   assert(!before_map.isNull());
   assert(!after_map.isNull());
 
-  if (!util::solver_toolbox.are_exprs_always_equal(before_map, after_map)) {
+  if (!kutil::solver_toolbox.are_exprs_always_equal(before_map, after_map)) {
     return true;
   }
 
@@ -328,7 +328,7 @@ bool map_can_reorder(const Node *current, const Node *before, const Node *after,
   for (auto c1 : before_constraints) {
     for (auto c2 : after_constraints) {
       auto always_eq_local =
-          util::solver_toolbox.are_exprs_always_equal(before_key, after_key, c1, c2);
+          kutil::solver_toolbox.are_exprs_always_equal(before_key, after_key, c1, c2);
 
       if (!always_eq.first) {
         always_eq.first = true;
@@ -337,7 +337,7 @@ bool map_can_reorder(const Node *current, const Node *before, const Node *after,
 
       assert(always_eq.second == always_eq_local);
 
-      auto always_diff_local = util::solver_toolbox.are_exprs_always_not_equal(
+      auto always_diff_local = kutil::solver_toolbox.are_exprs_always_not_equal(
           before_key, after_key, c1, c2);
 
       if (!always_diff.first) {
@@ -357,8 +357,8 @@ bool map_can_reorder(const Node *current, const Node *before, const Node *after,
     return true;
   }
 
-  condition = util::solver_toolbox.exprBuilder->Not(
-      util::solver_toolbox.exprBuilder->Eq(before_key, after_key));
+  condition = kutil::solver_toolbox.exprBuilder->Not(
+      kutil::solver_toolbox.exprBuilder->Eq(before_key, after_key));
 
   return are_io_dependencies_met(before, condition);
 }
@@ -398,7 +398,7 @@ bool dchain_can_reorder(const Node *current, const Node *before,
   assert(!before_dchain.isNull());
   assert(!after_dchain.isNull());
 
-  if (!util::solver_toolbox.are_exprs_always_equal(before_dchain, after_dchain)) {
+  if (!kutil::solver_toolbox.are_exprs_always_equal(before_dchain, after_dchain)) {
     return true;
   }
 
@@ -440,7 +440,7 @@ bool vector_can_reorder(const Node *current, const Node *before,
   assert(!before_vector.isNull());
   assert(!after_vector.isNull());
 
-  if (!util::solver_toolbox.are_exprs_always_equal(before_vector, after_vector)) {
+  if (!kutil::solver_toolbox.are_exprs_always_equal(before_vector, after_vector)) {
     return true;
   }
 
@@ -458,7 +458,7 @@ bool vector_can_reorder(const Node *current, const Node *before,
 
   for (auto c1 : before_constraints) {
     for (auto c2 : after_constraints) {
-      auto always_eq_local = util::solver_toolbox.are_exprs_always_equal(
+      auto always_eq_local = kutil::solver_toolbox.are_exprs_always_equal(
           before_index, after_index, c1, c2);
 
       if (!always_eq.first) {
@@ -468,7 +468,7 @@ bool vector_can_reorder(const Node *current, const Node *before,
 
       assert(always_eq.second == always_eq_local);
 
-      auto always_diff_local = util::solver_toolbox.are_exprs_always_not_equal(
+      auto always_diff_local = kutil::solver_toolbox.are_exprs_always_not_equal(
           before_index, after_index, c1, c2);
 
       if (!always_diff.first) {
@@ -488,8 +488,8 @@ bool vector_can_reorder(const Node *current, const Node *before,
     return true;
   }
 
-  condition = util::solver_toolbox.exprBuilder->Not(
-      util::solver_toolbox.exprBuilder->Eq(before_index, after_index));
+  condition = kutil::solver_toolbox.exprBuilder->Not(
+      kutil::solver_toolbox.exprBuilder->Eq(before_index, after_index));
 
   return are_io_dependencies_met(current, condition);
 }
@@ -533,7 +533,7 @@ bool are_rw_dependencies_met(const Node *root, const Node *next_node,
 
   all_conditions.pop_back();
   while (all_conditions.size()) {
-    condition = util::solver_toolbox.exprBuilder->And(condition, all_conditions[0]);
+    condition = kutil::solver_toolbox.exprBuilder->And(condition, all_conditions[0]);
     all_conditions.pop_back();
   }
 
@@ -559,7 +559,7 @@ bool is_called_in_all_future_branches(const Node *start, const Node *target,
       auto node_call = static_cast<const Call *>(node);
       auto target_call = static_cast<const Call *>(target);
 
-      auto eq = util::solver_toolbox.are_calls_equal(node_call->get_call(),
+      auto eq = kutil::solver_toolbox.are_calls_equal(node_call->get_call(),
                                                target_call->get_call());
 
       if (eq) {
@@ -572,7 +572,7 @@ bool is_called_in_all_future_branches(const Node *start, const Node *target,
       auto node_branch = static_cast<const Branch *>(node);
       auto target_branch = static_cast<const Branch *>(target);
 
-      auto eq = util::solver_toolbox.are_exprs_always_equal(
+      auto eq = kutil::solver_toolbox.are_exprs_always_equal(
           node_branch->get_condition(), target_branch->get_condition());
 
       if (eq) {

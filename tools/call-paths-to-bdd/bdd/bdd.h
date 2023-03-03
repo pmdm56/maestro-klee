@@ -3,7 +3,7 @@
 #include "nodes/node.h"
 #include "symbol-factory.h"
 
-#include "util.h"
+#include "klee-util.h"
 
 namespace BDD {
 
@@ -13,7 +13,7 @@ class BDD {
 public:
   BDD(std::vector<call_path_t *> call_paths)
       : id(0), total_call_paths(call_paths.size()) {
-    util::solver_toolbox.build();
+    kutil::solver_toolbox.build();
 
     call_paths_t cp(call_paths);
     auto root = populate(cp);
@@ -30,7 +30,7 @@ public:
         nf_init(bdd.nf_init), nf_process(bdd.nf_process) {}
 
   BDD(const std::string &file_path) : id(0), total_call_paths(0) {
-    util::solver_toolbox.build();
+    kutil::solver_toolbox.build();
     deserialize(file_path);
   }
 
@@ -67,7 +67,7 @@ private:
   static constexpr char MAGIC_SIGNATURE[] = "===== VIGOR_BDD_SIG =====";
 
   // For deserialization
-  BDD() : id(0), total_call_paths(0) { util::solver_toolbox.build(); }
+  BDD() : id(0), total_call_paths(0) { kutil::solver_toolbox.build(); }
 
   call_t get_successful_call(std::vector<call_path_t *> call_paths) const;
   BDDNode_ptr populate(call_paths_t call_paths);

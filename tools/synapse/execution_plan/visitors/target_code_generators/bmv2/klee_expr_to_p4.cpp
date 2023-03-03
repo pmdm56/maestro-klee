@@ -2,11 +2,12 @@
 
 namespace synapse {
 namespace synthesizer {
+namespace bmv2 {
 
 klee::ExprVisitor::Action KleeExprToP4::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> eref = const_cast<klee::ReadExpr *>(&e);
 
-  util::RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(eref);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -35,7 +36,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitRead(const klee::ReadExpr &e) {
 }
 
 void KleeExprToP4::swap_endianness(klee::ref<klee::Expr> &expr) {
-  util::RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(expr);
   auto symbols = retriever.get_retrieved_strings();
 
@@ -43,7 +44,7 @@ void KleeExprToP4::swap_endianness(klee::ref<klee::Expr> &expr) {
     return;
   }
 
-  util::SwapPacketEndianness swapper;
+  kutil::SwapPacketEndianness swapper;
   auto after = swapper.swap(expr);
 
   expr = after;
@@ -59,8 +60,8 @@ klee::ExprVisitor::Action KleeExprToP4::visitSelect(const klee::SelectExpr &e) {
 klee::ExprVisitor::Action KleeExprToP4::visitConcat(const klee::ConcatExpr &e) {
   klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
 
-  if (util::is_readLSB(eref)) {
-    util::RetrieveSymbols retriever;
+  if (kutil::is_readLSB(eref)) {
+    kutil::RetrieveSymbols retriever;
     retriever.visit(eref);
 
     auto symbols = retriever.get_retrieved_strings();
@@ -98,7 +99,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitConcat(const klee::ConcatExpr &e) {
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  std::cerr << "expr: " << util::expr_to_string(eref, true) << "\n";
+  std::cerr << "expr: " << kutil::expr_to_string(eref, true) << "\n";
 
   assert(false && "TODO");
   return klee::ExprVisitor::Action::skipChildren();
@@ -150,8 +151,8 @@ KleeExprToP4::visitExtract(const klee::ExtractExpr &e) {
 
   if (expr->getKind() == klee::Expr::Constant && sz <= 64) {
     auto extracted =
-        util::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
-    auto value = util::solver_toolbox.value_from_expr(extracted);
+        kutil::solver_toolbox.exprBuilder->Extract(expr, offset, sz);
+    auto value = kutil::solver_toolbox.value_from_expr(extracted);
 
     code << value;
 
@@ -206,7 +207,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitZExt(const klee::ZExtExpr &e) {
 
   klee::ref<klee::Expr> eref = const_cast<klee::ZExtExpr *>(&e);
 
-  if (util::is_bool(eref)) {
+  if (kutil::is_bool(eref)) {
     code << generator.transpile(expr, is_signed);
   } else {
     code << "(";
@@ -225,7 +226,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitSExt(const klee::SExtExpr &e) {
 
   klee::ref<klee::Expr> eref = const_cast<klee::SExtExpr *>(&e);
 
-  if (util::is_bool(eref)) {
+  if (kutil::is_bool(eref)) {
     is_signed = true;
     code << generator.transpile(expr, is_signed);
   } else {
@@ -244,14 +245,14 @@ klee::ExprVisitor::Action KleeExprToP4::visitAdd(const klee::AddExpr &e) {
   auto lhs = e.getKid(0);
   auto rhs = e.getKid(1);
 
-  if (util::is_constant_signed(lhs) && !util::is_constant_signed(rhs)) {
-    auto constant_signed = util::get_constant_signed(lhs);
+  if (kutil::is_constant_signed(lhs) && !kutil::is_constant_signed(rhs)) {
+    auto constant_signed = kutil::get_constant_signed(lhs);
     auto rhs_parsed = generator.transpile(rhs, is_signed);
 
     code << "(" << rhs_parsed << ") ";
     code << constant_signed;
-  } else if (util::is_constant_signed(rhs) && !util::is_constant_signed(lhs)) {
-    auto constant_signed = util::get_constant_signed(rhs);
+  } else if (kutil::is_constant_signed(rhs) && !kutil::is_constant_signed(lhs)) {
+    auto constant_signed = kutil::get_constant_signed(rhs);
     auto lhs_parsed = generator.transpile(lhs, is_signed);
 
     code << "(" << lhs_parsed << ") ";
@@ -355,7 +356,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitAnd(const klee::AndExpr &e) {
   auto lhs_parsed = generator.transpile(lhs, is_signed);
   auto rhs_parsed = generator.transpile(rhs, is_signed);
 
-  auto isBool = util::is_bool(lhs) || util::is_bool(rhs);
+  auto isBool = kutil::is_bool(lhs) || kutil::is_bool(rhs);
 
   if (isBool) {
     code << "(" << lhs_parsed << ")";
@@ -387,7 +388,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitOr(const klee::OrExpr &e) {
   auto lhs_parsed = generator.transpile(lhs, is_signed);
   auto rhs_parsed = generator.transpile(rhs, is_signed);
 
-  auto isBool = util::is_bool(lhs) || util::is_bool(rhs);
+  auto isBool = kutil::is_bool(lhs) || kutil::is_bool(rhs);
 
   if (isBool) {
     code << "(" << lhs_parsed << ")";
@@ -443,18 +444,18 @@ klee::ref<klee::Expr> change_width(klee::ref<klee::Expr> expr,
   }
 
   if (expr->getWidth() > width) {
-    modified = util::solver_toolbox.exprBuilder->Extract(expr, 0, width);
+    modified = kutil::solver_toolbox.exprBuilder->Extract(expr, 0, width);
 
-    auto eq = util::solver_toolbox.are_exprs_always_equal(
+    auto eq = kutil::solver_toolbox.are_exprs_always_equal(
         expr,
-        util::solver_toolbox.exprBuilder->ZExt(modified, expr->getWidth()));
+        kutil::solver_toolbox.exprBuilder->ZExt(modified, expr->getWidth()));
 
     assert(eq);
   } else {
-    modified = util::solver_toolbox.exprBuilder->ZExt(expr, width);
+    modified = kutil::solver_toolbox.exprBuilder->ZExt(expr, width);
 
-    auto eq = util::solver_toolbox.are_exprs_always_equal(
-        expr, util::solver_toolbox.exprBuilder->Extract(modified, 0,
+    auto eq = kutil::solver_toolbox.are_exprs_always_equal(
+        expr, kutil::solver_toolbox.exprBuilder->Extract(modified, 0,
                                                         expr->getWidth()));
 
     assert(eq);
@@ -571,8 +572,8 @@ klee::ExprVisitor::Action KleeExprToP4::visitEq(const klee::EqExpr &e) {
 
   bool convert_to_bool = false;
 
-  if (util::is_readLSB(rhs)) {
-    auto symbols = util::get_symbols(rhs);
+  if (kutil::is_readLSB(rhs)) {
+    auto symbols = kutil::get_symbols(rhs);
     assert(symbols.size() == 1);
     auto symbol = *symbols.begin();
 
@@ -586,7 +587,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitEq(const klee::EqExpr &e) {
   }
 
   convert_to_bool |= (lhs->getWidth() == 1);
-  convert_to_bool |= (util::is_bool(lhs) || util::is_bool(rhs));
+  convert_to_bool |= (kutil::is_bool(lhs) || kutil::is_bool(rhs));
 
   if (convert_to_bool) {
     if (lhs->getKind() == klee::Expr::Constant) {
@@ -601,7 +602,7 @@ klee::ExprVisitor::Action KleeExprToP4::visitEq(const klee::EqExpr &e) {
   } else if (generator.transpile(rhs).find("etherType") != std::string::npos) {
     // be careful with endianess
     assert(lhs->getKind() == klee::Expr::Constant);
-    auto etherType_val = util::solver_toolbox.value_from_expr(lhs);
+    auto etherType_val = kutil::solver_toolbox.value_from_expr(lhs);
     auto new_val =
         ((((etherType_val & 0xff) << 8) | ((etherType_val & 0xff00) >> 8)) &
          0xffff);
@@ -856,5 +857,6 @@ klee::ExprVisitor::Action KleeExprToP4::visitSge(const klee::SgeExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
+}
 } // namespace synthesizer
 } // namespace synapse

@@ -4,33 +4,36 @@
 #include <vector>
 
 #include "klee/Expr.h"
+#include "variable.h"
 
 namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
-struct header_field_t {
-  std::string label;
-  std::string type;
-  unsigned size_bits;
+struct header_field_t : public Variable {
   klee::ref<klee::Expr> var_length;
 
   header_field_t(const std::string &_label, unsigned _size_bits)
-      : label(_label), size_bits(_size_bits) {
-    std::stringstream ss;
-    ss << "bit<" << size_bits << ">";
-    type = ss.str();
-  }
+      : Variable(_label, _size_bits) {}
 
   header_field_t(const std::string &_label, unsigned _size_bits,
                  klee::ref<klee::Expr> _var_length)
-      : label(_label), size_bits(_size_bits), var_length(_var_length) {
-    assert(!var_length.isNull());
-    std::stringstream ss;
-    ss << "varbit<" << size_bits << ">";
-    type = ss.str();
+      : Variable(_label, _size_bits), var_length(_var_length) {}
+
+  std::string get_type() const override {
+    std::stringstream type;
+
+    if (!var_length.isNull()) {
+      type << "varbit<";
+      type << size_bits;
+      type << ">";
+
+      return type.str();
+    }
+
+    return Variable::get_type();
   }
-};
+}; // namespace tofino
 
 struct header_t {
   std::string label;
@@ -47,7 +50,7 @@ struct header_t {
     unsigned total_size_bits = 0;
 
     for (auto field : fields) {
-      total_size_bits += field.size_bits;
+      total_size_bits += field.get_size_bits();
       size_check &= field.var_length.isNull();
     }
 

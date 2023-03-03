@@ -138,7 +138,7 @@ public:
         return false;
       }
 
-      if (!util::solver_toolbox.are_exprs_always_equal(
+      if (!kutil::solver_toolbox.are_exprs_always_equal(
                modification.expr, other_modification.expr)) {
         return false;
       }

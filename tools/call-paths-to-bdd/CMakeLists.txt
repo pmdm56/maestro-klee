@@ -14,17 +14,17 @@ file(GLOB_RECURSE load-call-paths-sources
   "../load-call-paths/*.cpp"
 )
 
-file(GLOB_RECURSE util-sources
-  "../util/*.cpp"
+file(GLOB_RECURSE klee-util-sources
+  "../klee-util/*.cpp"
 )
 
 list(FILTER load-call-paths-sources EXCLUDE REGEX ".*main\\.cpp$")
-list(FILTER util-sources EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER klee-util-sources EXCLUDE REGEX ".*main\\.cpp$")
 
 add_executable(call-paths-to-bdd
   ${call-paths-to-bdd-sources}
   ${load-call-paths-sources}
-  ${util-sources}
+  ${klee-util-sources}
 )
 
 set(KLEE_LIBS
@@ -32,7 +32,7 @@ set(KLEE_LIBS
   kleeCore
 )
 
-target_include_directories(call-paths-to-bdd PRIVATE ../load-call-paths ../util)
+target_include_directories(call-paths-to-bdd PRIVATE ../load-call-paths ../klee-util)
 target_link_libraries(call-paths-to-bdd ${KLEE_LIBS})
 
 install(TARGETS call-paths-to-bdd RUNTIME DESTINATION bin)

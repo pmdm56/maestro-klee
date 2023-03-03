@@ -73,12 +73,12 @@ public:
 
     auto other_cast = static_cast<const PacketGetUnreadLength *>(other);
 
-    if (!util::solver_toolbox.are_exprs_always_equal(p_addr,
+    if (!kutil::solver_toolbox.are_exprs_always_equal(p_addr,
                                                     other_cast->get_p_addr())) {
       return false;
     }
 
-    if (!util::solver_toolbox.are_exprs_always_equal(
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
              unread_length, other_cast->get_unread_length())) {
       return false;
     }

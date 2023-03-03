@@ -25,7 +25,7 @@ bool SymbolFactory::has_symbol(
     const std::string &base) {
   for (auto manager : constraint_managers) {
     for (auto constraint : manager) {
-      util::RetrieveSymbols retriever;
+      kutil::RetrieveSymbols retriever;
       retriever.visit(constraint);
 
       auto symbols = retriever.get_retrieved_strings();
@@ -49,7 +49,7 @@ std::string SymbolFactory::build_label(
 
   for (auto manager : constraint_managers) {
     for (auto constraint : manager) {
-      util::RetrieveSymbols retriever;
+      kutil::RetrieveSymbols retriever;
       retriever.visit(constraint);
 
       auto symbols = retriever.get_retrieved_strings();
@@ -133,7 +133,7 @@ std::string SymbolFactory::build_label(
 
 std::string SymbolFactory::build_label(klee::ref<klee::Expr> expr,
                                        std::string base, bool save) {
-  util::RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -150,7 +150,7 @@ std::string SymbolFactory::build_label(klee::ref<klee::Expr> expr,
     }
   }
 
-  std::cerr << "expr   " << util::expr_to_string(expr, true) << "\n";
+  std::cerr << "expr   " << kutil::expr_to_string(expr, true) << "\n";
   std::cerr << "symbol " << base << "\n";
   assert(false && "Symbol not found");
 }
@@ -258,9 +258,9 @@ symbols_t SymbolFactory::map_get(
   symbols.emplace(build_label("map_has_this_key", save, constraint_managers),
                   "map_has_this_key", map_has_this_key);
 
-  auto has_this_key = util::solver_toolbox.exprBuilder->Constant(
+  auto has_this_key = kutil::solver_toolbox.exprBuilder->Constant(
       1, map_has_this_key->getWidth());
-  if (util::solver_toolbox.are_exprs_always_equal(map_has_this_key,
+  if (kutil::solver_toolbox.are_exprs_always_equal(map_has_this_key,
                                                   has_this_key)) {
     symbols.emplace(build_label(value_out, "allocated_index", save),
                     "allocated_index", value_out);
@@ -486,7 +486,7 @@ symbols_t SymbolFactory::dchain_allocate(
 }
 
 void SymbolFactory::translate(Node *current, Node *translation_source,
-                              util::RenameSymbols renamer) {
+                              kutil::RenameSymbols renamer) {
   assert(current);
   std::vector<Node *> nodes{current};
 
@@ -524,7 +524,7 @@ void SymbolFactory::translate(Node *current, Node *translation_source,
       auto call_symbols =
           (this->*call_processor)(call, false, node->get_constraints());
 
-      util::RenameSymbols renamer_modified = renamer;
+      kutil::RenameSymbols renamer_modified = renamer;
       bool modified_renamer = false;
 
       for (auto call_symbol : call_symbols) {
@@ -583,7 +583,7 @@ void SymbolFactory::translate(call_t call, BDDNode_ptr node) {
   auto call_processor = found_it->second;
   auto symbols = (this->*call_processor)(call, true, node->get_constraints());
 
-  util::RenameSymbols renamer;
+  kutil::RenameSymbols renamer;
 
   for (auto symbol : symbols) {
     auto new_label = translate_label(symbol.label_base, node);

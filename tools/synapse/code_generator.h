@@ -51,7 +51,7 @@ public:
         {Target::BMv2,
          target_helper_t(
              &CodeGenerator::bmv2_extractor,
-             std::make_shared<synapse::synthesizer::BMv2Generator>())},
+             std::make_shared<synapse::synthesizer::bmv2::BMv2Generator>())},
 
         {Target::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
 
