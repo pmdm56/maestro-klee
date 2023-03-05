@@ -1,5 +1,6 @@
 #include "exprs.h"
 #include "retrieve_symbols.h"
+#include "solver_toolbox.h"
 
 namespace kutil {
 
@@ -104,7 +105,16 @@ std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
 }
 
 bool is_constant(klee::ref<klee::Expr> expr) {
-  return expr->getKind() == klee::Expr::Kind::Constant;
+  if (expr->getKind() == klee::Expr::Kind::Constant) {
+    return true;
+  }
+
+  auto value = solver_toolbox.value_from_expr(expr);
+  auto const_value =
+      solver_toolbox.exprBuilder->Constant(value, expr->getWidth());
+  auto is_always_eq = solver_toolbox.are_exprs_always_equal(const_value, expr);
+
+  return is_always_eq;
 }
 
 bool is_constant_signed(klee::ref<klee::Expr> expr) {
@@ -126,12 +136,19 @@ int64_t get_constant_signed(klee::ref<klee::Expr> expr) {
     return false;
   }
 
-  auto constant = static_cast<klee::ConstantExpr *>(expr.get());
-  assert(constant->getWidth() <= 64);
-  auto value = constant->getZExtValue(constant->getWidth());
+  uint64_t value;
+  auto width = expr->getWidth();
+
+  if (expr->getKind() == klee::Expr::Kind::Constant) {
+    auto constant = static_cast<klee::ConstantExpr *>(expr.get());
+    assert(width <= 64);
+    value = constant->getZExtValue(width);
+  } else {
+    value = solver_toolbox.value_from_expr(expr);
+  }
 
   uint64_t mask = 0;
-  for (uint64_t i = 0u; i < constant->getWidth(); i++) {
+  for (uint64_t i = 0u; i < width; i++) {
     mask <<= 1;
     mask |= 1;
   }

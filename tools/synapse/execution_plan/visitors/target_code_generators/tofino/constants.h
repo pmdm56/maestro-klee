@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+
+#include "../constants.h"
 #include "pipeline/domain/header.h"
 
 namespace synapse {
@@ -30,10 +33,14 @@ constexpr char KEY_BYTE_LABEL[] = "key_byte_";
 constexpr char INGRESS_USER_METADATA_VARIABLE[] = "meta";
 constexpr char INGRESS_PACKET_HEADER_VARIABLE[] = "hdr";
 
-constexpr char INGRESS_INTRINSIC_META_RESUBMIT_FLAG[] = "ig_intr_md.resubmit_flag";
-constexpr char INGRESS_INTRINSIC_META_PACKET_VERSION[] = "ig_intr_md.packet_version";
-constexpr char INGRESS_INTRINSIC_META_INGRESS_PORT[] = "ig_intr_md.ingress_port";
-constexpr char INGRESS_INTRINSIC_META_TIMESTAMP[] = "ig_intr_md.ingress_mac_tstamp";
+constexpr char INGRESS_INTRINSIC_META_RESUBMIT_FLAG[] =
+    "ig_intr_md.resubmit_flag";
+constexpr char INGRESS_INTRINSIC_META_PACKET_VERSION[] =
+    "ig_intr_md.packet_version";
+constexpr char INGRESS_INTRINSIC_META_INGRESS_PORT[] =
+    "ig_intr_md.ingress_port";
+constexpr char INGRESS_INTRINSIC_META_TIMESTAMP[] =
+    "ig_intr_md.ingress_mac_tstamp";
 
 constexpr int INGRESS_INTRINSIC_META_RESUBMIT_FLAG_SIZE_BITS = 1;
 constexpr int INGRESS_INTRINSIC_META_PACKET_VERSION_SIZE_BITS = 2;
@@ -67,8 +74,6 @@ constexpr char HDR_TCPUDP_DST_PORT_FIELD[] = "dst_port";
 const header_field_t eth_dst_addr{HDR_ETH_SRC_ADDR_FIELD, 48};
 const header_field_t eth_src_addr{HDR_ETH_DST_ADDR_FIELD, 48};
 const header_field_t eth_ether_type{HDR_ETH_ETHER_TYPE_FIELD, 16};
-
-constexpr char VIGOR_PORT_SYMBOL[] = "VIGOR_DEVICE";
 
 } // namespace tofino
 } // namespace synthesizer

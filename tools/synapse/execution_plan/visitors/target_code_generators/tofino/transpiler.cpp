@@ -83,16 +83,15 @@ try_transpile_constant(TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
   auto is_constant = kutil::is_constant(expr);
 
   if (is_constant) {
-    auto constant = static_cast<klee::ConstantExpr *>(expr.get());
-    auto width = constant->getWidth();
-    auto value = constant->getZExtValue();
+    auto value = kutil::solver_toolbox.value_from_expr(expr);
+    auto width = expr->getWidth();
 
     auto ss = std::stringstream();
 
     if (width == 1) {
       ss << (value == 0 ? "false" : "true");
     } else {
-      assert(constant->getWidth() <= 64);
+      assert(width <= 64);
       ss << width << "w" << value;
     }
 
@@ -131,7 +130,7 @@ try_transpile_variable(TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
 
   auto size_bits = expr->getWidth();
 
-  if (variable.offset_bits > 0 || variable.var->get_size_bits() != size_bits) {
+  if (variable.offset_bits > 0 || size_bits < variable.var->get_size_bits()) {
     auto lo = variable.offset_bits;
     auto hi = variable.offset_bits + expr->getWidth() - 1;
 
@@ -148,52 +147,64 @@ try_transpile_variable(TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
   return result;
 }
 
-struct transpile_bool_comparison_t {
+struct transpile_var_comparison_t {
   bool valid;
   std::string lhs;
   std::string rhs;
 
-  transpile_bool_comparison_t() : valid(false) {}
+  transpile_var_comparison_t() : valid(false) {}
 
-  transpile_bool_comparison_t(const std::string &_lhs, const std::string &_rhs)
+  transpile_var_comparison_t(const std::string &_lhs, const std::string &_rhs)
       : valid(true), lhs(_lhs), rhs(_rhs) {}
 };
 
-transpile_bool_comparison_t
-transpile_bool_comparison(TofinoGenerator &tg, const klee::ref<klee::Expr> &lhs,
-                          const klee::ref<klee::Expr> &rhs) {
+transpile_var_comparison_t
+transpile_var_comparison(TofinoGenerator &tg, const klee::ref<klee::Expr> &lhs,
+                         const klee::ref<klee::Expr> &rhs) {
   auto lhs_varq = tg.search_variable(lhs);
   auto rhs_varq = tg.search_variable(rhs);
 
-  std::cerr << kutil::expr_to_string(rhs, true) << "\n";
-  std::cerr << "rhs " << rhs_varq.valid << "\n";
-
   // Not interested if both are variables or both are not variables.
   if (!(lhs_varq.valid ^ rhs_varq.valid)) {
-    return transpile_bool_comparison_t();
+    return transpile_var_comparison_t();
   }
 
   const auto &varq = lhs_varq.valid ? lhs_varq : rhs_varq;
   const auto &not_var_expr = rhs_varq.valid ? lhs : rhs;
 
-  std::cerr << "valid " << varq.valid << " offset " << varq.offset_bits
-            << " size " << varq.var->get_size_bits() << " label "
-            << varq.var->get_label() << "\n";
+  assert(varq.var);
 
-  if (varq.offset_bits != 0 || varq.var->get_size_bits() != 1) {
-    return transpile_bool_comparison_t();
+  if (varq.offset_bits != 0) {
+    return transpile_var_comparison_t();
   }
 
-  auto zero =
-      kutil::solver_toolbox.exprBuilder->Constant(0, not_var_expr->getWidth());
-  auto eq_zero =
-      kutil::solver_toolbox.are_exprs_always_equal(zero, not_var_expr);
+  auto size_bits = varq.var->get_size_bits();
 
-  if (eq_zero) {
-    return transpile_bool_comparison_t(varq.var->get_label(), "false");
+  if (size_bits == 1) {
+    auto zero = kutil::solver_toolbox.exprBuilder->Constant(
+        0, not_var_expr->getWidth());
+    auto eq_zero =
+        kutil::solver_toolbox.are_exprs_always_equal(zero, not_var_expr);
+
+    if (eq_zero) {
+      return transpile_var_comparison_t(varq.var->get_label(), "false");
+    }
+
+    return transpile_var_comparison_t(varq.var->get_label(), "true");
   }
 
-  return transpile_bool_comparison_t(varq.var->get_label(), "true");
+  auto is_constant = kutil::is_constant(not_var_expr);
+
+  if (!is_constant) {
+    assert(false && "TODO");
+  }
+
+  auto const_value = kutil::solver_toolbox.value_from_expr(not_var_expr);
+  auto new_const_value =
+      kutil::solver_toolbox.exprBuilder->Constant(const_value, size_bits);
+  auto not_var_transpiled = tg.transpile(new_const_value);
+
+  return transpile_var_comparison_t(varq.var->get_label(), not_var_transpiled);
 }
 
 std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
@@ -356,13 +367,12 @@ klee::ExprVisitor::Action InternalTranspiler::visitEq(const klee::EqExpr &e) {
   auto lhs = e.getKid(0);
   auto rhs = e.getKid(1);
 
-  auto transpile_bool_comparison_result =
-      transpile_bool_comparison(tg, lhs, rhs);
+  auto transpile_var_comparison_result = transpile_var_comparison(tg, lhs, rhs);
 
-  if (transpile_bool_comparison_result.valid) {
-    code << transpile_bool_comparison_result.lhs;
+  if (transpile_var_comparison_result.valid) {
+    code << transpile_var_comparison_result.lhs;
     code << " == ";
-    code << transpile_bool_comparison_result.rhs;
+    code << transpile_var_comparison_result.rhs;
 
     return klee::ExprVisitor::Action::skipChildren();
   }
