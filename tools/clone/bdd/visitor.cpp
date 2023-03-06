@@ -18,37 +18,24 @@ namespace Clone {
 	void Visitor::visitInitRoot(const BDD::Node *root) {
 		debug("Visiting init root");
 
-		// TODO: add constraints (or not)
+		
 		root->visit(*this);
 	}
 
 	void Visitor::visitProcessRoot(const BDD::Node *root) {
 		debug("Visiting process root");
 
-		// TODO: add constraints
 		root->visit(*this);
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitBranch(const BDD::Branch *node) {
 		debug("Visiting branch");
-		//node->clone();
-
-		auto &constraints_list = node->get_constraints();
-
-		for(auto &constraints: constraints_list) {
-			for(auto &constraint: constraints) {
-
-			}
-		}
 
 		return Action::VISIT_CHILDREN;
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitCall(const BDD::Call *node) {
 		debug("Visiting call");
-
-		info(node->get_call().function_name); // TODO: check if its a function that reads input (?)
-
 
 		return Action::VISIT_CHILDREN;
 	}
