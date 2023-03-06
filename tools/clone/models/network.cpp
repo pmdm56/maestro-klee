@@ -40,8 +40,8 @@ namespace Clone {
 				nodes.emplace(node2_str, shared_ptr<Node>(new Node(node2_str, node2_type)));
 			}
 
-			shared_ptr<Node> &node1 { nodes.at(node1_str) };
-			shared_ptr<Node> &node2 { nodes.at(node2_str) };
+			const shared_ptr<Node> &node1 { nodes.at(node1_str) };
+			const shared_ptr<Node> &node2 { nodes.at(node2_str) };
 
 			node1->add_child(port1, port2, node2);
 			
@@ -78,8 +78,8 @@ namespace Clone {
 		visited.insert(node);
 
 		for(auto &p: node->get_children()) {
-			unsigned port_src { p.first };
-			unsigned port_dst { p.second.first };
+			const unsigned port_src { p.first };
+			const unsigned port_dst { p.second.first };
 			const auto &child { p.second.second };
 
 			if(visited.find(child) != visited.end()) continue;

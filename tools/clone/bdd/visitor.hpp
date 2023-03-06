@@ -21,7 +21,6 @@ namespace Clone {
 		void visitInitRoot(const BDD::Node *root) ;
 		void visitProcessRoot(const BDD::Node *root) ;
 	public:
-		Visitor();
 		Visitor(std::vector<unsigned> &constraintInputPort, const std::unique_ptr<BDDBuilder> &builder);
 		~Visitor();
 		
