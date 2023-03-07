@@ -79,7 +79,7 @@ public:
           _chunk, offset, field_size_bits);
 
       field.set_expr(field_expr);
-      offset += size_bits;
+      offset += field_size_bits;
     }
 
     assert(!size_check || total_size_bits == _chunk->getWidth());

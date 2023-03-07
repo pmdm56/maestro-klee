@@ -211,8 +211,8 @@ void TofinoGenerator::visit(const targets::tofino::EthernetConsume *node) {
   assert(node->get_node());
   assert(ingress.parser.is_active());
 
-  const hdr_field_t eth_dst_addr{DST_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
-  const hdr_field_t eth_src_addr{SRC_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
+  const hdr_field_t eth_dst_addr{DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
+  const hdr_field_t eth_src_addr{SRC_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
   const hdr_field_t eth_ether_type{ETHER_TYPE, HDR_ETH_ETHER_TYPE_FIELD, 16};
 
   std::vector<hdr_field_t> fields = {eth_dst_addr, eth_src_addr,
@@ -241,43 +241,16 @@ void TofinoGenerator::visit(const targets::tofino::EthernetModify *node) {
 
     auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
         ethernet_chunk, byte * 8, klee::Expr::Int8);
+    
+    auto transpiled_byte = transpile(modified_byte);
+    auto transpiled_expr = transpile(expr);
 
-    // field_header_from_packet_chunk(modified_byte, field, offset);
-
-    // ingress.synthesizer.indent();
-
-    // ingress.synthesizer.append(field);
-    // ingress.synthesizer.append(" = ");
-    // ingress.synthesizer.append(field);
-    // ingress.synthesizer.append(" & ");
-    // ingress.synthesizer.append("(");
-
-    // pad(ingress.apply_block, ingress.lvl);
-    // ingress.apply_block << field << " = ";
-    // ingress.apply_block << field << " & ";
-    // ingress.apply_block << "(";
-    // ingress.apply_block << "(";
-    // ingress.apply_block << "(";
-    // auto str = transpile(expr);
-    // str.erase(1, 9); // remove bit<8>...
-    // ingress.apply_block << str;
-    // ingress.apply_block << ")";
-    // ingress.apply_block << " << ";
-    // ingress.apply_block << offset;
-    // ingress.apply_block << ")";
-    // ingress.apply_block << " | ";
-
-    // uint64_t mask = 0;
-    // for (auto bit = 0u; bit < offset; bit++) {
-    //   mask = (mask << 1) | 1;
-    // }
-
-    // ingress.apply_block << mask;
-    // ingress.apply_block << ")";
-
-    // ingress.apply_block << ";\n";
-
-    // assert(field.size());
+    ingress.apply_block_synthesizer.indent();
+    ingress.apply_block_synthesizer.append(transpiled_byte);
+    ingress.apply_block_synthesizer.append(" = ");
+    ingress.apply_block_synthesizer.append(transpiled_expr);
+    ingress.apply_block_synthesizer.append(";");
+    ingress.apply_block_synthesizer.append_new_line();
   }
 }
 

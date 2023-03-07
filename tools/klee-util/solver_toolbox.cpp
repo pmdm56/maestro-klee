@@ -312,7 +312,6 @@ solver_toolbox_t::contains(klee::ref<klee::Expr> expr1,
 
   for (auto offset_bits = 0u; offset_bits + expr2_size_bits <= expr1_size_bits;
        offset_bits += 8) {
-
     auto expr1_extracted = kutil::solver_toolbox.exprBuilder->Extract(
         expr1, offset_bits, expr2_size_bits);
 
