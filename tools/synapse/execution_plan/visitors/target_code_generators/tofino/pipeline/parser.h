@@ -12,7 +12,7 @@ namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
-class IngressParser {
+class Parser {
 private:
   Synthesizer synthesizer;
 
@@ -23,15 +23,21 @@ private:
   std::vector<std::shared_ptr<state_t>> states;
 
   int state_id;
+  bool active;
 
 public:
-  IngressParser(int indentation)
+  Parser(int indentation)
       : synthesizer(indentation),
         accept(new state_t(state_t::type_t::TERMINATOR, "accept")),
-        reject(new state_t(state_t::type_t::TERMINATOR, "reject")),
-        state_id(0) {}
+        reject(new state_t(state_t::type_t::TERMINATOR, "reject")), state_id(0),
+        active(true) {}
+
+  void deactivate() { active = false; }
+  bool is_active() const { return active; }
 
   void transition_accept() {
+    assert(active);
+
     if (states_stack.size() == 0) {
       states.push_back(accept);
       states_stack.push(accept);
@@ -41,6 +47,8 @@ public:
   }
 
   void transition_reject() {
+    assert(active);
+
     if (states_stack.size() == 0) {
       states.push_back(reject);
       states_stack.push(reject);
@@ -50,6 +58,7 @@ public:
   }
 
   void push_on_true() {
+    assert(active);
     assert(states_stack.size());
     auto current = states_stack.top();
 
@@ -59,6 +68,7 @@ public:
   }
 
   void push_on_false() {
+    assert(active);
     assert(states_stack.size());
     auto current = states_stack.top();
 
@@ -68,6 +78,7 @@ public:
   }
 
   void pop() {
+    assert(active);
     assert(states_stack.size());
 
     if (states_stack.top()->type == state_t::type_t::CONDITIONAL) {
@@ -82,6 +93,8 @@ public:
   }
 
   void add_condition(const std::string &condition) {
+    assert(active);
+
     std::stringstream conditional_label;
 
     conditional_label << PARSER_CONDITIONAL_LABEL;
@@ -101,6 +114,8 @@ public:
   void add_extractor(std::string label) { add_extractor(label, std::string()); }
 
   void add_extractor(std::string hdr, std::string dynamic_length) {
+    assert(active);
+
     std::stringstream label_stream;
     label_stream << "parse_";
     label_stream << hdr;
@@ -291,6 +306,7 @@ public:
 
 private:
   void transition(std::shared_ptr<state_t> new_state) {
+    assert(active);
     assert(states_stack.size());
     auto current = states_stack.top();
 

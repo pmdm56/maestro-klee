@@ -1,9 +1,6 @@
 #pragma once
 
-#include <unordered_map>
-
 #include "../constants.h"
-#include "pipeline/domain/header.h"
 
 namespace synapse {
 namespace synthesizer {
@@ -70,10 +67,6 @@ constexpr char HDR_IPV4_DST_ADDR_FIELD[] = "dst_addr";
 
 constexpr char HDR_TCPUDP_SRC_PORT_FIELD[] = "src_port";
 constexpr char HDR_TCPUDP_DST_PORT_FIELD[] = "dst_port";
-
-const header_field_t eth_dst_addr{HDR_ETH_SRC_ADDR_FIELD, 48};
-const header_field_t eth_src_addr{HDR_ETH_DST_ADDR_FIELD, 48};
-const header_field_t eth_ether_type{HDR_ETH_ETHER_TYPE_FIELD, 16};
 
 } // namespace tofino
 } // namespace synthesizer

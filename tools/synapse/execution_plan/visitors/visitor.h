@@ -140,6 +140,9 @@ public:
   virtual void visit(const targets::tofino::EthernetModify *node) {}
   virtual void visit(const targets::tofino::TableLookup *node) {}
   virtual void visit(const targets::tofino::Drop *node) {}
+
+protected:
+  void log(const ExecutionPlanNode *ep_node) const;
 };
 
 } // namespace synapse

@@ -610,11 +610,11 @@ void BMv2Generator::visit(const targets::bmv2::Else *node) {
 }
 
 void BMv2Generator::visit(const targets::bmv2::EthernetConsume *node) {
-  header_field_t dstAddr(48, "dstAddr");
-  header_field_t srcAddr(48, "srcAddr");
-  header_field_t etherType(16, "etherType");
+  hdr_field_t dstAddr(48, "dstAddr");
+  hdr_field_t srcAddr(48, "srcAddr");
+  hdr_field_t etherType(16, "etherType");
 
-  std::vector<header_field_t> fields = {dstAddr, srcAddr, etherType};
+  std::vector<hdr_field_t> fields = {dstAddr, srcAddr, etherType};
   auto chunk = node->get_chunk();
   auto label = "ethernet";
 
@@ -715,19 +715,19 @@ void BMv2Generator::visit(const targets::bmv2::If *node) {
 void BMv2Generator::visit(const targets::bmv2::Ignore *node) {}
 
 void BMv2Generator::visit(const targets::bmv2::IPv4Consume *node) {
-  header_field_t version_ihl(8, "version_ihl");
-  header_field_t diff_serv(8, "diff_serv");
-  header_field_t total_len(16, "total_len");
-  header_field_t id(16, "id");
-  header_field_t flags(3, "flags");
-  header_field_t frag_offset(13, "frag_offset");
-  header_field_t ttl(8, "ttl");
-  header_field_t proto(8, "proto");
-  header_field_t checksum(16, "checksum");
-  header_field_t src_addr(32, "src_addr");
-  header_field_t dst_addr(32, "dst_addr");
+  hdr_field_t version_ihl(8, "version_ihl");
+  hdr_field_t diff_serv(8, "diff_serv");
+  hdr_field_t total_len(16, "total_len");
+  hdr_field_t id(16, "id");
+  hdr_field_t flags(3, "flags");
+  hdr_field_t frag_offset(13, "frag_offset");
+  hdr_field_t ttl(8, "ttl");
+  hdr_field_t proto(8, "proto");
+  hdr_field_t checksum(16, "checksum");
+  hdr_field_t src_addr(32, "src_addr");
+  hdr_field_t dst_addr(32, "dst_addr");
 
-  std::vector<header_field_t> fields = {
+  std::vector<hdr_field_t> fields = {
       version_ihl, diff_serv, total_len, id,       flags,   frag_offset,
       ttl,         proto,     checksum,  src_addr, dst_addr};
 
@@ -750,9 +750,9 @@ void BMv2Generator::visit(const targets::bmv2::IPOptionsConsume *node) {
   auto chunk = node->get_chunk();
   auto length = node->get_length();
 
-  header_field_t options(320, "options", length);
+  hdr_field_t options(320, "options", length);
 
-  std::vector<header_field_t> fields = {options};
+  std::vector<hdr_field_t> fields = {options};
 
   auto label = "ipv4_options";
 
@@ -781,10 +781,10 @@ void BMv2Generator::visit(const targets::bmv2::IPOptionsModify *node) {
 }
 
 void BMv2Generator::visit(const targets::bmv2::TcpUdpConsume *node) {
-  header_field_t src_port(16, "src_port");
-  header_field_t dst_port(16, "dst_port");
+  hdr_field_t src_port(16, "src_port");
+  hdr_field_t dst_port(16, "dst_port");
 
-  std::vector<header_field_t> fields = {src_port, dst_port};
+  std::vector<hdr_field_t> fields = {src_port, dst_port};
 
   auto chunk = node->get_chunk();
   auto label = "tcp_udp";

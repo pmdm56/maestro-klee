@@ -1,24 +1,36 @@
 #pragma once
 
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "klee/Expr.h"
 #include "variable.h"
 
+#include "../../constants.h"
+
 namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
-struct header_field_t : public Variable {
+enum hdr_field_id_t {
+  DST_ADDR,
+  SRC_ADDR,
+  ETHER_TYPE,
+};
+
+struct hdr_field_t : public Variable {
+  hdr_field_id_t hdr_field_id;
   klee::ref<klee::Expr> var_length;
 
-  header_field_t(const std::string &_label, unsigned _size_bits)
-      : Variable(_label, _size_bits) {}
+  hdr_field_t(hdr_field_id_t _hdr_field_id, const std::string &_label,
+              unsigned _size_bits)
+      : Variable(_label, _size_bits), hdr_field_id(_hdr_field_id) {}
 
-  header_field_t(const std::string &_label, unsigned _size_bits,
-                 klee::ref<klee::Expr> _var_length)
-      : Variable(_label, _size_bits), var_length(_var_length) {}
+  hdr_field_t(hdr_field_id_t _hdr_field_id, const std::string &_label,
+              unsigned _size_bits, klee::ref<klee::Expr> _var_length)
+      : Variable(_label, _size_bits), hdr_field_id(_hdr_field_id),
+        var_length(_var_length) {}
 
   std::string get_type() const override {
     std::stringstream type;
@@ -33,37 +45,110 @@ struct header_field_t : public Variable {
 
     return Variable::get_type();
   }
-}; // namespace tofino
+};
 
-struct header_t {
-  std::string label;
-  std::string type;
-  klee::ref<klee::Expr> chunk;
-  std::vector<header_field_t> fields;
+enum hdr_id_t {
+  ETHERNET,
+};
 
-  header_t(const std::string &_label, const klee::ref<klee::Expr> &_chunk,
-           const std::vector<header_field_t> &_fields)
-      : label(_label), type(_label + "_t"), chunk(_chunk), fields(_fields) {
-    assert(!chunk.isNull());
+class Header : public Variable {
+private:
+  hdr_id_t hdr_id;
+  std::vector<hdr_field_t> fields;
+
+public:
+  Header(hdr_id_t _hdr_id, const std::string &_label,
+         const klee::ref<klee::Expr> &_chunk,
+         const std::vector<hdr_field_t> &_fields)
+      : Variable(_label, _chunk->getWidth()), hdr_id(_hdr_id), fields(_fields) {
+    assert(!_chunk.isNull());
+    exprs.push_back(_chunk);
 
     bool size_check = true;
     unsigned total_size_bits = 0;
+    auto offset = 0u;
 
-    for (auto field : fields) {
-      total_size_bits += field.get_size_bits();
+    for (auto& field : fields) {
+      auto field_size_bits = field.get_size_bits();
+
+      total_size_bits += field_size_bits;
       size_check &= field.var_length.isNull();
+
+      auto field_expr = kutil::solver_toolbox.exprBuilder->Extract(
+          _chunk, offset, field_size_bits);
+
+      field.set_expr(field_expr);
+      offset += size_bits;
     }
 
-    assert(!size_check || total_size_bits <= chunk->getWidth());
+    assert(!size_check || total_size_bits == _chunk->getWidth());
   }
 
-  bool operator==(const header_t &hdr) const {
-    return hdr.label.compare(label) == 0 && hdr.type.compare(type) == 0;
+public:
+  hdr_id_t get_id() const { return hdr_id; }
+
+  const std::vector<hdr_field_t> &get_fields() const { return fields; }
+
+  variable_query_t get_field_var(hdr_field_id_t hdr_field_id) const {
+    for (const auto &field : fields) {
+      if (field.hdr_field_id != hdr_field_id) {
+        continue;
+      }
+
+      std::stringstream field_label;
+
+      field_label << INGRESS_PACKET_HEADER_VARIABLE;
+      field_label << ".";
+      field_label << label;
+      field_label << ".";
+      field_label << field.get_label();
+
+      auto label = field_label.str();
+      auto size_bits = field.get_size_bits();
+      auto expr = field.get_expr();
+
+      auto var = Variable(label, size_bits, expr);
+
+      return variable_query_t(var, 0);
+    }
+
+    return variable_query_t();
   }
 
-  struct header_hash_t {
-    size_t operator()(const header_t &hdr) const {
-      auto hash = std::hash<std::string>()(hdr.label + hdr.type);
+  variable_query_t get_field(klee::ref<klee::Expr> expr) const {
+    auto symbol = kutil::get_symbol(expr);
+
+    if (!symbol.first || symbol.second != VIGOR_PACKET_CHUNK_SYMBOL) {
+      return variable_query_t();
+    }
+
+    for (const auto &field : fields) {
+      auto field_expr = field.get_expr();
+      auto contains_result = kutil::solver_toolbox.contains(field_expr, expr);
+
+      if (contains_result.contains) {
+        auto field_var = get_field_var(field.hdr_field_id);
+        field_var.offset_bits = contains_result.offset_bits;
+        return field_var;
+      }
+    }
+
+    return variable_query_t();
+  }
+
+  std::string get_type() const override { return label + "_t"; }
+
+  bool operator==(const Header &hdr) const {
+    auto this_type = get_type();
+    auto other_type = hdr.get_type();
+
+    return hdr.label.compare(label) == 0 && this_type.compare(other_type) == 0;
+  }
+
+  struct hdr_hash_t {
+    size_t operator()(const Header &hdr) const {
+      auto type = hdr.get_type();
+      auto hash = std::hash<std::string>()(hdr.label + type);
       return hash;
     }
   };

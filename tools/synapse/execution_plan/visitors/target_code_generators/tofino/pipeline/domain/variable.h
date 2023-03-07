@@ -52,6 +52,11 @@ public:
 
   void add_expr(klee::ref<klee::Expr> expr) { exprs.push_back(expr); }
 
+  void set_expr(klee::ref<klee::Expr> expr) {
+    assert(exprs.size() == 0);
+    return exprs.push_back(expr);
+  }
+
   klee::ref<klee::Expr> get_expr() const {
     assert(exprs.size() == 1);
     return exprs[0];

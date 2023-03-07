@@ -66,20 +66,20 @@ private:
     }
   };
 
-  struct header_field_t {
+  struct hdr_field_t {
     uint64_t sz;
     std::string type;
     std::string label;
     klee::ref<klee::Expr> var_length;
 
-    header_field_t(uint64_t _sz, const std::string &_label)
+    hdr_field_t(uint64_t _sz, const std::string &_label)
         : sz(_sz), label(_label) {
       std::stringstream ss;
       ss << "bit<" << sz << ">";
       type = ss.str();
     }
 
-    header_field_t(uint64_t _sz, const std::string &_label,
+    hdr_field_t(uint64_t _sz, const std::string &_label,
                    klee::ref<klee::Expr> _var_length)
         : sz(_sz), label(_label), var_length(_var_length) {
       assert(!var_length.isNull());
@@ -89,14 +89,14 @@ private:
     }
   };
 
-  struct header_t {
+  struct hdr_t {
     klee::ref<klee::Expr> chunk;
     std::string type_label;
     std::string label;
-    std::vector<header_field_t> fields;
+    std::vector<hdr_field_t> fields;
 
-    header_t(const klee::ref<klee::Expr> &_chunk, const std::string &_label,
-             const std::vector<header_field_t> &_fields)
+    hdr_t(const klee::ref<klee::Expr> &_chunk, const std::string &_label,
+             const std::vector<hdr_field_t> &_fields)
         : chunk(_chunk), type_label(_label + "_t"), label(_label),
           fields(_fields) {
       assert(!chunk.isNull());
@@ -549,7 +549,7 @@ private:
 private:
   bool parsing_headers;
 
-  std::vector<header_t> headers;
+  std::vector<hdr_t> headers;
   metadata_stack_t metadata;
   var_stack_t local_vars;
 

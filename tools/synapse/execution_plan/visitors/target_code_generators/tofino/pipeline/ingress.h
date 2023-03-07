@@ -4,9 +4,13 @@
 
 #include "../../synthesizer.h"
 #include "../constants.h"
+
 #include "domain/stack.h"
 #include "domain/table.h"
 #include "domain/variable.h"
+
+#include "headers.h"
+#include "parser.h"
 
 namespace synapse {
 namespace synthesizer {
@@ -26,11 +30,16 @@ public:
   Synthesizer apply_block_synthesizer;
   Synthesizer user_metadata_synthesizer;
 
+  Headers headers;
+  Parser parser;
+
   stack_t local_vars;
 
-  Ingress(int state_indentation, int apply_block_indentation)
-      : state_synthesizer(state_indentation),
-        apply_block_synthesizer(apply_block_indentation) {
+  Ingress(int state_ind, int apply_block_ind, int user_meta_ind,
+          int headers_defs_ind, int headers_decl_ind, int parser_ind)
+      : state_synthesizer(state_ind), apply_block_synthesizer(apply_block_ind),
+        user_metadata_synthesizer(user_meta_ind),
+        headers(headers_defs_ind, headers_decl_ind), parser(parser_ind) {
     intrinsic_metadata = std::vector<Variable>{
 
         {INGRESS_INTRINSIC_META_RESUBMIT_FLAG,

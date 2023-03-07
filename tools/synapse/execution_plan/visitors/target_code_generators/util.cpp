@@ -1,14 +1,20 @@
 #include "util.h"
+#include "constants.h"
 
 namespace synapse {
 namespace synthesizer {
 
-bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node, synapse::Target target) {
+bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
+                                      synapse::Target target) {
   assert(ep_node);
-  std::vector<ExecutionPlanNode_ptr> nodes;
+  // std::vector<ExecutionPlanNode_ptr> nodes;
+  std::vector<const ExecutionPlanNode *> nodes{ep_node};
 
   auto next = ep_node->get_next();
-  nodes.insert(nodes.end(), next.begin(), next.end());
+
+  for (auto n : next) {
+    nodes.push_back(n.get());
+  }
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -26,13 +32,16 @@ bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node, synapse:
 
     if (bdd_node->get_type() == BDD::Node::NodeType::CALL) {
       auto call_node = static_cast<const BDD::Call *>(bdd_node.get());
-      if (call_node->get_call().function_name == "packet_borrow_next_chunk") {
+      if (call_node->get_call().function_name == VIGOR_FN_PACKET_BORROW_CHUNK) {
         return true;
       }
     }
 
     auto branches = node->get_next();
-    nodes.insert(nodes.end(), branches.begin(), branches.end());
+
+    for (auto n : branches) {
+      nodes.push_back(n.get());
+    }
   }
 
   return false;
