@@ -9,7 +9,7 @@
 #include "link.hpp"
 #include "node.hpp"
 #include "../bdd/visitor.hpp"
-#include "../bdd/bdd-builder.hpp"
+#include "../bdd/builder.hpp"
 
 namespace Clone {
 
@@ -63,7 +63,7 @@ namespace Clone {
 		}
 	}
 
-	void Network::explore_node(const shared_ptr<Node> &node, const unique_ptr<BDDBuilder> &builder, vector<unsigned> &constraints) {
+	void Network::explore_node(const shared_ptr<Node> &node, const unique_ptr<Builder> &builder, vector<unsigned> &constraints) {
 		if(node->get_node_type() == NodeType::NF) {
 			assert(nfs.find(node->get_name()) != nfs.end());
 			const auto &nf { nfs.at(node->get_name()) };
@@ -90,7 +90,7 @@ namespace Clone {
 	}
 	
 	void Network::traverse_all_flows() {
-		const unique_ptr<BDDBuilder> builder { new BDDBuilder() };
+		const unique_ptr<Builder> builder { new Builder() };
 
 		for(auto &source: sources) {
 			vector<unsigned> constraints {};

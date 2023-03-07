@@ -7,12 +7,14 @@ namespace BDD {
 }
 
 namespace Clone {
-	class BDDBuilder { 
+	class Builder { 
 	private:
-
+		
 
 	public:
-		BDDBuilder();
-		~BDDBuilder();
+		Builder();
+		~Builder();
+
+		void append(const BDD::Node *node);
 	};
 }

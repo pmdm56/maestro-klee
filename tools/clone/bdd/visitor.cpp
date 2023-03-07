@@ -2,14 +2,15 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
+#include "solver-toolbox.h"
 #include "klee/Constraints.h"
 #include "call-paths-to-bdd.h"
 
-#include "bdd-builder.hpp"
+#include "builder.hpp"
 
 namespace Clone {
 	/* Constructors and destructors */
-	Visitor::Visitor(vector<unsigned> &constraints, const unique_ptr<BDDBuilder> &builder) : constraints(constraints), builder(builder) {}
+	Visitor::Visitor(vector<unsigned> &constraints, const unique_ptr<Builder> &builder) : constraints(constraints), builder(builder) {}
 	Visitor::~Visitor() = default;
 
 
@@ -17,7 +18,6 @@ namespace Clone {
 
 	void Visitor::visitInitRoot(const BDD::Node *root) {
 		debug("Visiting init root");
-
 		
 		root->visit(*this);
 	}
@@ -36,6 +36,8 @@ namespace Clone {
 
 	BDD::BDDVisitor::Action Visitor::visitCall(const BDD::Call *node) {
 		debug("Visiting call");
+
+		builder->append(node);
 
 		return Action::VISIT_CHILDREN;
 	}
@@ -59,7 +61,7 @@ namespace Clone {
 	/* Public methods */
 
 	void Visitor::visit(const BDD::BDD &bdd)  {
-		info("Visiting BDD init");
+		debug("Visiting BDD init");
 		assert(bdd.get_init() != nullptr);
 		const auto &initRoot = bdd.get_init().get(); 
 		visitInitRoot(initRoot);

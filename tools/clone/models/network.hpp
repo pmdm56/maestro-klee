@@ -16,7 +16,7 @@ namespace Clone {
 	class Device;
 	class Node;
 
-	class BDDBuilder;
+	class Builder;
 
 	/** Typedefs **/
 
@@ -64,8 +64,7 @@ namespace Clone {
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 		
 		void build_graph();
-		void explore_nf(const std::unique_ptr<NF> &nf, const std::unique_ptr<BDDBuilder> &builder, std::vector<unsigned> &constraints);
-		void explore_node(const std::shared_ptr<Node> &node, const std::unique_ptr<BDDBuilder> &builder, std::vector<unsigned> &constraints);
+		void explore_node(const std::shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, std::vector<unsigned> &constraints);
 		void traverse_all_flows();
 		void print_graph() const;
 	public:
