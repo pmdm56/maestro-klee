@@ -72,7 +72,7 @@ namespace Clone {
 			const auto &bdd { nf->get_bdd() };
 
 			const unique_ptr<Visitor> visitor {new Visitor(constraints, builder)};
-			visitor->visit(*bdd);		
+			visitor->visit(*bdd);
 		}
 
 		visited.insert(node);
@@ -90,8 +90,8 @@ namespace Clone {
 	}
 	
 	void Network::traverse_all_flows() {
-		const unique_ptr<Builder> builder { new Builder() };
-
+		const unique_ptr<Builder> builder { std::unique_ptr<Builder>(new Builder()) };
+		
 		for(auto &source: sources) {
 			vector<unsigned> constraints {};
 			

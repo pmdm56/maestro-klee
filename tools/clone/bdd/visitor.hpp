@@ -12,6 +12,10 @@ using BDD::ReturnProcess;
 using BDD::ReturnRaw;
 using BDD::Node;
 
+namespace klee {
+	class Expr;
+	class ConstraintManager;
+}
 
 namespace Clone {	
 	class Builder;

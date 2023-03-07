@@ -11,6 +11,10 @@ namespace Clone {
 	Builder::~Builder() = default;
 
 	/* Public methods */
+	bool Builder::is_empty() const {
+		return true;
+	}
+
 	void Builder::append(const BDD::Node *node) {
 		debug("Appending node");
 	}

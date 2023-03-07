@@ -5,12 +5,21 @@
 #include "solver-toolbox.h"
 #include "klee/Constraints.h"
 #include "call-paths-to-bdd.h"
+#include "klee/Constraints.h"
+#include "klee/ExprBuilder.h"
 
 #include "builder.hpp"
 
+using BDD::solver_toolbox;
+
 namespace Clone {
 	/* Constructors and destructors */
-	Visitor::Visitor(vector<unsigned> &constraints, const unique_ptr<Builder> &builder) : constraints(constraints), builder(builder) {}
+	Visitor::Visitor(vector<unsigned> &constraints, const unique_ptr<Builder> &builder) : 
+						constraints(constraints), builder(builder) {		
+		
+
+	}
+
 	Visitor::~Visitor() = default;
 
 
@@ -36,8 +45,6 @@ namespace Clone {
 
 	BDD::BDDVisitor::Action Visitor::visitCall(const BDD::Call *node) {
 		debug("Visiting call");
-
-		builder->append(node);
 
 		return Action::VISIT_CHILDREN;
 	}

@@ -8,13 +8,12 @@ namespace BDD {
 
 namespace Clone {
 	class Builder { 
-	private:
-		
-
+	private:		
 	public:
 		Builder();
 		~Builder();
 
+		bool is_empty() const;
 		void append(const BDD::Node *node);
 	};
 }
