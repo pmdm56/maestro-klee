@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
-
 #include <netinet/in.h>
 
 namespace synapse {
@@ -16,12 +13,11 @@ private:
 
 public:
   TcpUdpConsume()
-      : Module(ModuleType::BMv2_TcpUdpConsume,
-               Target::BMv2, "TcpUdpConsume") {}
+      : Module(ModuleType::BMv2_TcpUdpConsume, Target::BMv2, "TcpUdpConsume") {}
 
   TcpUdpConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::BMv2_TcpUdpConsume,
-               Target::BMv2, "TcpUdpConsume", node),
+      : Module(ModuleType::BMv2_TcpUdpConsume, Target::BMv2, "TcpUdpConsume",
+               node),
         chunk(_chunk) {}
 
 private:
@@ -34,7 +30,7 @@ private:
 
     for (auto constraint : constraints) {
       if (!kutil::solver_toolbox.is_expr_always_true(constraint, expr,
-                                                   symbol_replacer)) {
+                                                     symbol_replacer)) {
         return false;
       }
     }
@@ -50,15 +46,16 @@ private:
     auto call_node = static_cast<const BDD::Call *>(ethernet_node);
     auto call = call_node->get_call();
 
-    auto ethernet_chunk = call.extra_vars["the_chunk"].second;
+    auto ethernet_chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     assert(!ethernet_chunk.isNull());
 
-    auto eth_type_expr =
-        kutil::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
+    auto eth_type_expr = kutil::solver_toolbox.exprBuilder->Extract(
+        ethernet_chunk, 12 * 8, 2 * 8);
     auto eth_type_ipv4 = kutil::solver_toolbox.exprBuilder->Constant(
         UINT_16_SWAP_ENDIANNESS(0x0800), 2 * 8);
-    auto eq = kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
+    auto eq =
+        kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
     return always_true(eq, constraints);
   }
@@ -72,7 +69,7 @@ private:
     auto call_node = static_cast<const BDD::Call *>(ipv4_node);
     auto call = call_node->get_call();
 
-    auto ipv4_chunk = call.extra_vars["the_chunk"].second;
+    auto ipv4_chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     assert(!ipv4_chunk.isNull());
     assert(!len.isNull());
@@ -113,9 +110,9 @@ private:
 
     auto eq = kutil::solver_toolbox.exprBuilder->Or(
         kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
-                                            next_proto_id_expr_tcp),
+                                              next_proto_id_expr_tcp),
         kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
-                                            next_proto_id_expr_udp));
+                                              next_proto_id_expr_udp));
 
     return always_true(eq, constraints);
   }
@@ -126,23 +123,23 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name != "packet_borrow_next_chunk") {
+    if (call.function_name != symbex::FN_BORROW_CHUNK) {
       return result;
     }
 
     // TCP/UDP should come after IPv4Consume
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, "packet_borrow_next_chunk");
+        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
     if (all_prev_packet_borrow_next_chunk.size() < 2) {
       return result;
     }
 
-    assert(!call.args["length"].expr.isNull());
-    assert(!call.extra_vars["the_chunk"].second.isNull());
+    assert(!call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr.isNull());
+    assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
-    auto _length = call.args["length"].expr;
-    auto _chunk = call.extra_vars["the_chunk"].second;
+    auto _length = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
+    auto _chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     auto valid = true;
 

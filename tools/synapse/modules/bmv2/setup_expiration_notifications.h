@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -18,8 +16,8 @@ private:
 
 public:
   SetupExpirationNotifications()
-      : Module(ModuleType::BMv2_SetupExpirationNotifications,
-               Target::BMv2, "SetupExpirationNotifications") {}
+      : Module(ModuleType::BMv2_SetupExpirationNotifications, Target::BMv2,
+               "SetupExpirationNotifications") {}
 
   SetupExpirationNotifications(BDD::BDDNode_ptr node,
                                klee::ref<klee::Expr> _dchain_addr,
@@ -27,9 +25,8 @@ public:
                                klee::ref<klee::Expr> _map_addr,
                                klee::ref<klee::Expr> _time,
                                klee::ref<klee::Expr> _number_of_freed_flows)
-      : Module(ModuleType::BMv2_SetupExpirationNotifications,
-               Target::BMv2, "SetupExpirationNotifications",
-               node),
+      : Module(ModuleType::BMv2_SetupExpirationNotifications, Target::BMv2,
+               "SetupExpirationNotifications", node),
         dchain_addr(_dchain_addr), vector_addr(_vector_addr),
         map_addr(_map_addr), time(_time),
         number_of_freed_flows(_number_of_freed_flows) {}
@@ -41,17 +38,17 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "expire_items_single_map") {
-      assert(!call.args["chain"].expr.isNull());
-      assert(!call.args["vector"].expr.isNull());
-      assert(!call.args["map"].expr.isNull());
-      assert(!call.args["time"].expr.isNull());
+    if (call.function_name == symbex::FN_EXPIRE_MAP) {
+      assert(!call.args[symbex::FN_EXPIRE_MAP_ARG_CHAIN].expr.isNull());
+      assert(!call.args[symbex::FN_EXPIRE_MAP_ARG_VECTOR].expr.isNull());
+      assert(!call.args[symbex::FN_EXPIRE_MAP_ARG_MAP].expr.isNull());
+      assert(!call.args[symbex::FN_EXPIRE_MAP_ARG_TIME].expr.isNull());
       assert(!call.ret.isNull());
 
-      auto _dchain_addr = call.args["chain"].expr;
-      auto _vector_addr = call.args["vector"].expr;
-      auto _map_addr = call.args["map"].expr;
-      auto _time = call.args["time"].expr;
+      auto _dchain_addr = call.args[symbex::FN_EXPIRE_MAP_ARG_CHAIN].expr;
+      auto _vector_addr = call.args[symbex::FN_EXPIRE_MAP_ARG_VECTOR].expr;
+      auto _map_addr = call.args[symbex::FN_EXPIRE_MAP_ARG_MAP].expr;
+      auto _time = call.args[symbex::FN_EXPIRE_MAP_ARG_TIME].expr;
       auto _number_of_freed_flows = call.ret;
 
       auto new_module = std::make_shared<SetupExpirationNotifications>(
@@ -86,27 +83,27 @@ public:
     auto other_cast = static_cast<const SetupExpirationNotifications *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             dchain_addr, other_cast->get_dchain_addr())) {
+            dchain_addr, other_cast->get_dchain_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             vector_addr, other_cast->get_vector_addr())) {
+            vector_addr, other_cast->get_vector_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             map_addr, other_cast->get_map_addr())) {
+            map_addr, other_cast->get_map_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(time,
-                                                    other_cast->get_time())) {
+                                                      other_cast->get_time())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             number_of_freed_flows, other_cast->get_number_of_freed_flows())) {
+            number_of_freed_flows, other_cast->get_number_of_freed_flows())) {
       return false;
     }
 

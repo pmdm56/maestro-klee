@@ -3,6 +3,8 @@
 #include "call-paths-to-bdd.h"
 
 #include "../execution_plan/visitors/visitor.h"
+#include "../log.h"
+#include "../symbex.h"
 
 #define MODULE(X) (std::make_shared<X>())
 #define UINT_16_SWAP_ENDIANNESS(p) ((((p)&0xff) << 8) | ((p) >> 8 & 0xff))

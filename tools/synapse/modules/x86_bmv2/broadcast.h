@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -10,10 +8,12 @@ namespace x86_bmv2 {
 
 class Broadcast : public Module {
 public:
-  Broadcast() : Module(ModuleType::x86_BMv2_Broadcast, Target::x86_BMv2, "Broadcast") {}
+  Broadcast()
+      : Module(ModuleType::x86_BMv2_Broadcast, Target::x86_BMv2, "Broadcast") {}
 
   Broadcast(BDD::BDDNode_ptr node)
-      : Module(ModuleType::x86_BMv2_Broadcast, Target::x86_BMv2, "Broadcast", node) {}
+      : Module(ModuleType::x86_BMv2_Broadcast, Target::x86_BMv2, "Broadcast",
+               node) {}
 
 private:
   processing_result_t

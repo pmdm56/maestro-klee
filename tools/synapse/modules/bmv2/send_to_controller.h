@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -14,14 +12,14 @@ private:
 
 public:
   SendToController()
-      : Module(ModuleType::BMv2_SendToController,
-               Target::BMv2, "SendToController") {
+      : Module(ModuleType::BMv2_SendToController, Target::BMv2,
+               "SendToController") {
     next_target = Target::x86_BMv2;
   }
 
   SendToController(BDD::BDDNode_ptr node, uint64_t _metadata_code_path)
-      : Module(ModuleType::BMv2_SendToController,
-               Target::BMv2, "SendToController", node),
+      : Module(ModuleType::BMv2_SendToController, Target::BMv2,
+               "SendToController", node),
         metadata_code_path(_metadata_code_path) {
     next_target = Target::x86_BMv2;
   }

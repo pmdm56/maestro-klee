@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -31,16 +29,16 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "map_put") {
-      assert(!call.args["map"].expr.isNull());
-      assert(!call.args["key"].expr.isNull());
-      assert(!call.args["key"].in.isNull());
-      assert(!call.args["value"].expr.isNull());
+    if (call.function_name == symbex::FN_MAP_PUT) {
+      assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
+      assert(!call.args[symbex::FN_MAP_ARG_KEY].expr.isNull());
+      assert(!call.args[symbex::FN_MAP_ARG_KEY].in.isNull());
+      assert(!call.args[symbex::FN_MAP_ARG_VALUE].expr.isNull());
 
-      auto _map_addr = call.args["map"].expr;
-      auto _key_addr = call.args["key"].expr;
-      auto _key = call.args["key"].in;
-      auto _value = call.args["value"].expr;
+      auto _map_addr = call.args[symbex::FN_MAP_ARG_MAP].expr;
+      auto _key_addr = call.args[symbex::FN_MAP_ARG_KEY].expr;
+      auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
+      auto _value = call.args[symbex::FN_MAP_ARG_VALUE].expr;
 
       auto new_module =
           std::make_shared<MapPut>(node, _map_addr, _key_addr, _key, _value);
@@ -71,22 +69,22 @@ public:
     auto other_cast = static_cast<const MapPut *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             map_addr, other_cast->get_map_addr())) {
+            map_addr, other_cast->get_map_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             key_addr, other_cast->get_key_addr())) {
+            key_addr, other_cast->get_key_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(key,
-                                                    other_cast->get_key())) {
+                                                      other_cast->get_key())) {
       return false;
     }
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(value,
-                                                    other_cast->get_value())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            value, other_cast->get_value())) {
       return false;
     }
 

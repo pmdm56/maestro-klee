@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -31,12 +29,12 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "packet_return_chunk") {
-      assert(!call.args["the_chunk"].expr.isNull());
-      assert(!call.args["the_chunk"].in.isNull());
+    if (call.function_name == symbex::FN_RETURN_CHUNK) {
+      assert(!call.args[symbex::FN_BORROW_CHUNK_EXTRA].expr.isNull());
+      assert(!call.args[symbex::FN_BORROW_CHUNK_EXTRA].in.isNull());
 
-      auto _chunk_addr = call.args["the_chunk"].expr;
-      auto _chunk = call.args["the_chunk"].in;
+      auto _chunk_addr = call.args[symbex::FN_BORROW_CHUNK_EXTRA].expr;
+      auto _chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
 
       auto new_module =
           std::make_shared<PacketReturnChunk>(node, _chunk_addr, _chunk);
@@ -66,13 +64,13 @@ public:
 
     auto other_cast = static_cast<const PacketReturnChunk *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(chunk,
-                                                    other_cast->get_chunk())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            chunk, other_cast->get_chunk())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             chunk_addr, other_cast->get_chunk_addr())) {
+            chunk_addr, other_cast->get_chunk_addr())) {
       return false;
     }
 

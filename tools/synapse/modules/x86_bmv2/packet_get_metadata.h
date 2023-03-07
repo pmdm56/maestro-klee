@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -40,7 +38,7 @@ public:
     auto other_cast = static_cast<const PacketGetMetadata *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(metadata,
-                                                    other_cast->metadata)) {
+                                                      other_cast->metadata)) {
       return false;
     }
 

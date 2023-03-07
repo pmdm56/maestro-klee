@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -17,13 +15,14 @@ private:
 
 public:
   RteEtherAddrHash()
-      : Module(ModuleType::x86_BMv2_RteEtherAddrHash, Target::x86_BMv2, "EtherHash") {}
+      : Module(ModuleType::x86_BMv2_RteEtherAddrHash, Target::x86_BMv2,
+               "EtherHash") {}
 
   RteEtherAddrHash(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _obj,
                    klee::ref<klee::Expr> _hash,
                    BDD::symbols_t _generated_symbols)
-      : Module(ModuleType::x86_BMv2_RteEtherAddrHash, Target::x86_BMv2, "EtherHash",
-               node),
+      : Module(ModuleType::x86_BMv2_RteEtherAddrHash, Target::x86_BMv2,
+               "EtherHash", node),
         obj(_obj), hash(_hash), generated_symbols(_generated_symbols) {}
 
 private:
@@ -33,11 +32,11 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "rte_ether_addr_hash") {
-      assert(!call.args["obj"].in.isNull());
+    if (call.function_name == symbex::FN_ETHER_HASH) {
+      assert(!call.args[symbex::FN_ETHER_HASH_ARG_OBJ].in.isNull());
       assert(!call.ret.isNull());
 
-      auto _obj = call.args["obj"].in;
+      auto _obj = call.args[symbex::FN_ETHER_HASH_ARG_OBJ].in;
       auto _hash = call.ret;
 
       auto _generated_symbols = casted->get_generated_symbols();
@@ -71,12 +70,12 @@ public:
     auto other_cast = static_cast<const RteEtherAddrHash *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(obj,
-                                                    other_cast->get_obj())) {
+                                                      other_cast->get_obj())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(hash,
-                                                    other_cast->get_hash())) {
+                                                      other_cast->get_hash())) {
       return false;
     }
 

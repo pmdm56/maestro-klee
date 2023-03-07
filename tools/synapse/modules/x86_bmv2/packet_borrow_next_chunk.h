@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -36,16 +34,16 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "packet_borrow_next_chunk") {
-      assert(!call.args["p"].expr.isNull());
-      assert(!call.args["chunk"].out.isNull());
-      assert(!call.extra_vars["the_chunk"].second.isNull());
-      assert(!call.args["length"].expr.isNull());
+    if (call.function_name == symbex::FN_BORROW_CHUNK) {
+      assert(!call.args[symbex::FN_BORROW_ARG_PACKET].expr.isNull());
+      assert(!call.args[symbex::FN_BORROW_ARG_CHUNK].out.isNull());
+      assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
+      assert(!call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr.isNull());
 
-      auto _p_addr = call.args["p"].expr;
-      auto _chunk_addr = call.args["chunk"].out;
-      auto _chunk = call.extra_vars["the_chunk"].second;
-      auto _length = call.args["length"].expr;
+      auto _p_addr = call.args[symbex::FN_BORROW_ARG_PACKET].expr;
+      auto _chunk_addr = call.args[symbex::FN_BORROW_ARG_CHUNK].out;
+      auto _chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
+      auto _length = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
 
       auto new_module = std::make_shared<PacketBorrowNextChunk>(
           node, _p_addr, _chunk_addr, _chunk, _length);
@@ -76,23 +74,23 @@ public:
 
     auto other_cast = static_cast<const PacketBorrowNextChunk *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(p_addr,
-                                                    other_cast->get_p_addr())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            p_addr, other_cast->get_p_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             chunk_addr, other_cast->get_chunk_addr())) {
+            chunk_addr, other_cast->get_chunk_addr())) {
       return false;
     }
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(chunk,
-                                                    other_cast->get_chunk())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            chunk, other_cast->get_chunk())) {
       return false;
     }
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(length,
-                                                    other_cast->get_length())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            length, other_cast->get_length())) {
       return false;
     }
 

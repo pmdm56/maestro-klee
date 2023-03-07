@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -35,11 +33,11 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "packet_get_unread_length") {
+    if (call.function_name == symbex::FN_GET_UNREAD_LEN) {
       assert(!call.ret.isNull());
-      assert(!call.args["p"].expr.isNull());
+      assert(!call.args[symbex::FN_BORROW_ARG_PACKET].expr.isNull());
 
-      auto _p_addr = call.args["p"].expr;
+      auto _p_addr = call.args[symbex::FN_BORROW_ARG_PACKET].expr;
       auto _unread_length = call.ret;
 
       auto _generated_symbols = casted->get_generated_symbols();
@@ -73,13 +71,13 @@ public:
 
     auto other_cast = static_cast<const PacketGetUnreadLength *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(p_addr,
-                                                    other_cast->get_p_addr())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            p_addr, other_cast->get_p_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             unread_length, other_cast->get_unread_length())) {
+            unread_length, other_cast->get_unread_length())) {
       return false;
     }
 

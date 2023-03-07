@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -10,12 +8,9 @@ namespace tofino {
 
 class Drop : public Module {
 public:
-  Drop()
-      : Module(ModuleType::Tofino_Drop,
-               Target::Tofino, "Drop") {}
+  Drop() : Module(ModuleType::Tofino_Drop, Target::Tofino, "Drop") {}
   Drop(BDD::BDDNode_ptr node)
-      : Module(ModuleType::Tofino_Drop,
-               Target::Tofino, "Drop", node) {}
+      : Module(ModuleType::Tofino_Drop, Target::Tofino, "Drop", node) {}
 
 private:
   processing_result_t

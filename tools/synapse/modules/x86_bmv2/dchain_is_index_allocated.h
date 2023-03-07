@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -38,13 +36,13 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "dchain_is_index_allocated") {
-      assert(!call.args["chain"].expr.isNull());
-      assert(!call.args["index"].expr.isNull());
+    if (call.function_name == symbex::FN_DCHAIN_IS_ALLOCATED) {
+      assert(!call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr.isNull());
+      assert(!call.args[symbex::FN_DCHAIN_ARG_INDEX].expr.isNull());
       assert(!call.ret.isNull());
 
-      auto _dchain_addr = call.args["chain"].expr;
-      auto _index = call.args["index"].expr;
+      auto _dchain_addr = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
+      auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
       auto _is_allocated = call.ret;
       auto _generated_symbols = casted->get_generated_symbols();
 
@@ -78,17 +76,17 @@ public:
     auto other_cast = static_cast<const DchainIsIndexAllocated *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             dchain_addr, other_cast->get_dchain_addr())) {
-      return false;
-    }
-
-    if (!kutil::solver_toolbox.are_exprs_always_equal(index,
-                                                    other_cast->get_index())) {
+            dchain_addr, other_cast->get_dchain_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             is_allocated, other_cast->get_is_allocated())) {
+            index, other_cast->get_index())) {
+      return false;
+    }
+
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            is_allocated, other_cast->get_is_allocated())) {
       return false;
     }
 

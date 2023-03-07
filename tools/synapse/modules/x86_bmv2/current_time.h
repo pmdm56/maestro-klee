@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -15,11 +13,13 @@ private:
 
 public:
   CurrentTime()
-      : Module(ModuleType::x86_BMv2_CurrentTime, Target::x86_BMv2, "CurrentTime") {}
+      : Module(ModuleType::x86_BMv2_CurrentTime, Target::x86_BMv2,
+               "CurrentTime") {}
 
   CurrentTime(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _time,
               BDD::symbols_t _generated_symbols)
-      : Module(ModuleType::x86_BMv2_CurrentTime, Target::x86_BMv2, "CurrentTime", node),
+      : Module(ModuleType::x86_BMv2_CurrentTime, Target::x86_BMv2,
+               "CurrentTime", node),
         time(_time), generated_symbols(_generated_symbols) {}
 
 private:
@@ -29,7 +29,7 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "current_time") {
+    if (call.function_name == symbex::FN_CURRENT_TIME) {
       assert(!call.ret.isNull());
       auto _time = call.ret;
       auto _generated_symbols = casted->get_generated_symbols();
@@ -63,7 +63,7 @@ public:
     auto other_cast = static_cast<const CurrentTime *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(time,
-                                                    other_cast->get_time())) {
+                                                      other_cast->get_time())) {
       return false;
     }
 

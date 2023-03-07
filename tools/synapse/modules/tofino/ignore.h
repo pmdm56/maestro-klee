@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -14,8 +12,9 @@ private:
 
 public:
   Ignore() : Module(ModuleType::Tofino_Ignore, Target::Tofino, "Ignore") {
-    functions_to_ignore = std::vector<std::string>{
-        "current_time", "rte_ether_addr_hash", "dchain_rejuvenate_index"};
+    functions_to_ignore =
+        std::vector<std::string>{symbex::FN_CURRENT_TIME, symbex::FN_ETHER_HASH,
+                                 symbex::FN_DCHAIN_REJUVENATE};
   }
 
   Ignore(BDD::BDDNode_ptr node)

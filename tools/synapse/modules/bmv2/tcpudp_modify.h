@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
-
 #include "ignore.h"
 
 namespace synapse {
@@ -16,13 +13,12 @@ private:
 
 public:
   TcpUdpModify()
-      : Module(ModuleType::BMv2_TcpUdpModify,
-               Target::BMv2, "TcpUdpModify") {}
+      : Module(ModuleType::BMv2_TcpUdpModify, Target::BMv2, "TcpUdpModify") {}
 
   TcpUdpModify(BDD::BDDNode_ptr node,
                const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::BMv2_TcpUdpModify,
-               Target::BMv2, "TcpUdpModify", node),
+      : Module(ModuleType::BMv2_TcpUdpModify, Target::BMv2, "TcpUdpModify",
+               node),
         modifications(_modifications) {}
 
 private:
@@ -32,10 +28,10 @@ private:
     auto call_node = static_cast<const BDD::Call *>(node);
     auto call = call_node->get_call();
 
-    assert(call.function_name == "packet_borrow_next_chunk");
-    assert(!call.extra_vars["the_chunk"].second.isNull());
+    assert(call.function_name == symbex::FN_BORROW_CHUNK);
+    assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
-    return call.extra_vars["the_chunk"].second;
+    return call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
   }
 
   bool is_ip_options(const BDD::Node *node) const {
@@ -44,7 +40,7 @@ private:
     auto call_node = static_cast<const BDD::Call *>(node);
     auto call = call_node->get_call();
 
-    auto len = call.args["length"].expr;
+    auto len = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
     return len->getKind() != klee::Expr::Kind::Constant;
   }
 
@@ -54,17 +50,17 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name != "packet_return_chunk") {
+    if (call.function_name != symbex::FN_RETURN_CHUNK) {
       return result;
     }
 
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, "packet_borrow_next_chunk");
+        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
     assert(all_prev_packet_borrow_next_chunk.size());
 
     auto all_prev_packet_return_chunk =
-        get_all_prev_functions(casted, "packet_return_chunk");
+        get_all_prev_functions(casted, symbex::FN_RETURN_CHUNK);
 
     if (all_prev_packet_return_chunk.size() != 0 ||
         all_prev_packet_borrow_next_chunk.size() < 3 ||
@@ -74,7 +70,7 @@ private:
 
     auto borrow_tcpudp = all_prev_packet_borrow_next_chunk[0].get();
 
-    auto curr_tcpudp_chunk = call.args["the_chunk"].in;
+    auto curr_tcpudp_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
     auto prev_tcpudp_chunk = get_tcpudp_chunk(borrow_tcpudp);
 
     assert(curr_tcpudp_chunk->getWidth() == 4 * 8);
@@ -85,8 +81,7 @@ private:
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep =
-          ep.ignore_leaf(node->get_next(), Target::BMv2);
+      auto new_ep = ep.ignore_leaf(node->get_next(), Target::BMv2);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);
@@ -135,7 +130,7 @@ public:
       }
 
       if (!kutil::solver_toolbox.are_exprs_always_equal(
-               modification.expr, other_modification.expr)) {
+              modification.expr, other_modification.expr)) {
         return false;
       }
     }

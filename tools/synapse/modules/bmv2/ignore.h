@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -13,17 +11,16 @@ private:
   std::vector<std::string> functions_to_ignore;
 
 public:
-  Ignore()
-      : Module(ModuleType::BMv2_Ignore,
-               Target::BMv2, "Ignore") {
-    functions_to_ignore =
-        std::vector<std::string>{ "current_time", "rte_ether_addr_hash",
-                                  "dchain_rejuvenate_index" };
+  Ignore() : Module(ModuleType::BMv2_Ignore, Target::BMv2, "Ignore") {
+    functions_to_ignore = std::vector<std::string>{
+        symbex::FN_CURRENT_TIME,
+        symbex::FN_ETHER_HASH,
+        symbex::FN_DCHAIN_REJUVENATE,
+    };
   }
 
   Ignore(BDD::BDDNode_ptr node)
-      : Module(ModuleType::BMv2_Ignore,
-               Target::BMv2, "Ignore", node) {}
+      : Module(ModuleType::BMv2_Ignore, Target::BMv2, "Ignore", node) {}
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
@@ -37,8 +34,7 @@ private:
 
     if (found_it != functions_to_ignore.end()) {
       auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep =
-          ep.ignore_leaf(node->get_next(), Target::BMv2);
+      auto new_ep = ep.ignore_leaf(node->get_next(), Target::BMv2);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);

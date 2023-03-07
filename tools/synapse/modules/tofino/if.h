@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
-
 #include "else.h"
 #include "then.h"
 
@@ -16,13 +13,10 @@ private:
   klee::ref<klee::Expr> condition;
 
 public:
-  If()
-      : Module(ModuleType::Tofino_If,
-               Target::Tofino, "If") {}
+  If() : Module(ModuleType::Tofino_If, Target::Tofino, "If") {}
 
   If(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _condition)
-      : Module(ModuleType::Tofino_If,
-               Target::Tofino, "If", node),
+      : Module(ModuleType::Tofino_If, Target::Tofino, "If", node),
         condition(_condition) {}
 
 private:
@@ -44,8 +38,8 @@ private:
     auto else_leaf =
         ExecutionPlan::leaf_t(new_else_module, casted->get_on_false());
 
-    std::vector<ExecutionPlan::leaf_t> if_leaves{ if_leaf };
-    std::vector<ExecutionPlan::leaf_t> then_else_leaves{ then_leaf, else_leaf };
+    std::vector<ExecutionPlan::leaf_t> if_leaves{if_leaf};
+    std::vector<ExecutionPlan::leaf_t> then_else_leaves{then_leaf, else_leaf};
 
     auto ep_if = ep.add_leaves(if_leaves);
     auto ep_if_then_else = ep_if.add_leaves(then_else_leaves);
@@ -74,7 +68,7 @@ public:
     auto other_cast = static_cast<const If *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             condition, other_cast->get_condition())) {
+            condition, other_cast->get_condition())) {
       return false;
     }
 
@@ -83,6 +77,6 @@ public:
 
   const klee::ref<klee::Expr> &get_condition() const { return condition; }
 };
-} // namespace bmv2
+} // namespace tofino
 } // namespace targets
 } // namespace synapse

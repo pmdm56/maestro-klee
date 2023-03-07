@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../constants.h"
-
 namespace synapse {
 namespace synthesizer {
 namespace tofino {

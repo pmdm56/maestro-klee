@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -40,15 +38,15 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "dchain_allocate_new_index") {
-      assert(!call.args["chain"].expr.isNull());
-      assert(!call.args["time"].expr.isNull());
-      assert(!call.args["index_out"].out.isNull());
+    if (call.function_name == symbex::FN_DCHAIN_ALLOCATE) {
+      assert(!call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr.isNull());
+      assert(!call.args[symbex::FN_DCHAIN_ARG_TIME].expr.isNull());
+      assert(!call.args[symbex::FN_DCHAIN_ARG_OUT].out.isNull());
       assert(!call.ret.isNull());
 
-      auto _dchain_addr = call.args["chain"].expr;
-      auto _time = call.args["time"].expr;
-      auto _index_out = call.args["index_out"].out;
+      auto _dchain_addr = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
+      auto _time = call.args[symbex::FN_DCHAIN_ARG_TIME].expr;
+      auto _index_out = call.args[symbex::FN_DCHAIN_ARG_OUT].out;
       auto _success = call.ret;
 
       auto _generated_symbols = casted->get_generated_symbols();
@@ -83,22 +81,22 @@ public:
     auto other_cast = static_cast<const DchainAllocateNewIndex *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             dchain_addr, other_cast->get_dchain_addr())) {
+            dchain_addr, other_cast->get_dchain_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(time,
-                                                    other_cast->get_time())) {
+                                                      other_cast->get_time())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             index_out, other_cast->get_index_out())) {
+            index_out, other_cast->get_index_out())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             success, other_cast->get_success())) {
+            success, other_cast->get_success())) {
       return false;
     }
 

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -35,16 +33,16 @@ private:
 
     auto call = casted->get_call();
 
-    if (call.function_name == "map_get") {
-      assert(!call.args["map"].expr.isNull());
-      assert(!call.args["key"].in.isNull());
+    if (call.function_name == symbex::FN_MAP_GET) {
+      assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
+      assert(!call.args[symbex::FN_MAP_ARG_KEY].in.isNull());
       assert(!call.ret.isNull());
-      assert(!call.args["value_out"].out.isNull());
+      assert(!call.args[symbex::FN_MAP_ARG_OUT].out.isNull());
 
-      auto _map_addr = call.args["map"].expr;
-      auto _key = call.args["key"].in;
+      auto _map_addr = call.args[symbex::FN_MAP_ARG_MAP].expr;
+      auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
       auto _map_has_this_key = call.ret;
-      auto _value_out = call.args["value_out"].out;
+      auto _value_out = call.args[symbex::FN_MAP_ARG_OUT].out;
 
       auto _generated_symbols = casted->get_generated_symbols();
 
@@ -79,22 +77,22 @@ public:
     auto other_cast = static_cast<const MapGet *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             map_addr, other_cast->get_map_addr())) {
+            map_addr, other_cast->get_map_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(key,
-                                                    other_cast->get_key())) {
+                                                      other_cast->get_key())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             map_has_this_key, other_cast->get_map_has_this_key())) {
+            map_has_this_key, other_cast->get_map_has_this_key())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             value_out, other_cast->get_value_out())) {
+            value_out, other_cast->get_value_out())) {
       return false;
     }
 

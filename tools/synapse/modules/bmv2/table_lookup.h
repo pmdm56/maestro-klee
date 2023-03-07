@@ -1,10 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-
-#include "call-paths-to-bdd.h"
-
 #include "ignore.h"
 
 namespace synapse {
@@ -47,16 +43,14 @@ private:
 
 public:
   TableLookup()
-      : Module(ModuleType::BMv2_TableLookup,
-               Target::BMv2, "TableLookup") {}
+      : Module(ModuleType::BMv2_TableLookup, Target::BMv2, "TableLookup") {}
 
   TableLookup(BDD::BDDNode_ptr node, uint64_t _table_id,
               klee::ref<klee::Expr> _obj, const std::vector<key_t> &_keys,
               const std::vector<param_t> &_params,
               const std::vector<std::string> &_map_has_this_key_labels,
               const std::string &_bdd_function)
-      : Module(ModuleType::BMv2_TableLookup,
-               Target::BMv2, "TableLookup", node),
+      : Module(ModuleType::BMv2_TableLookup, Target::BMv2, "TableLookup", node),
         table_id(_table_id), obj(_obj), keys(_keys), params(_params),
         map_has_this_key_labels(_map_has_this_key_labels),
         bdd_function(_bdd_function) {}
@@ -78,21 +72,23 @@ private:
       auto call_node = static_cast<const BDD::Call *>(node.get());
       auto call = call_node->get_call();
 
-      if (call.function_name != "map_get" && call.function_name != "map_put" &&
-          call.function_name != "vector_borrow") {
+      if (call.function_name != symbex::FN_MAP_GET &&
+          call.function_name != symbex::FN_MAP_PUT &&
+          call.function_name != symbex::FN_VECTOR_BORROW) {
         node = node->get_prev();
         continue;
       }
 
       uint64_t this_table_id = 0;
-      if (call.function_name == "map_get" || call.function_name == "map_put") {
-        assert(!call.args["map"].expr.isNull());
-        this_table_id =
-            kutil::solver_toolbox.value_from_expr(call.args["map"].expr);
-      } else if (call.function_name == "vector_borrow") {
-        assert(!call.args["vector"].expr.isNull());
-        this_table_id =
-            kutil::solver_toolbox.value_from_expr(call.args["vector"].expr);
+      if (call.function_name == symbex::FN_MAP_GET ||
+          call.function_name == symbex::FN_MAP_PUT) {
+        assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
+        this_table_id = kutil::solver_toolbox.value_from_expr(
+            call.args[symbex::FN_MAP_ARG_MAP].expr);
+      } else if (call.function_name == symbex::FN_VECTOR_BORROW) {
+        assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+        this_table_id = kutil::solver_toolbox.value_from_expr(
+            call.args[symbex::FN_VECTOR_ARG_VECTOR].expr);
       }
 
       if (this_table_id == _table_id) {
@@ -124,8 +120,7 @@ private:
     auto module = active_leaf->get_module();
     assert(module);
 
-    if (module->get_type() !=
-        Module::ModuleType::BMv2_TableLookup) {
+    if (module->get_type() != Module::ModuleType::BMv2_TableLookup) {
       return result;
     }
 
@@ -145,18 +140,18 @@ private:
                        const BDD::Call *casted, processing_result_t &result) {
     auto call = casted->get_call();
 
-    if (call.function_name != "map_get") {
+    if (call.function_name != symbex::FN_MAP_GET) {
       return false;
     }
 
-    assert(call.function_name == "map_get");
-    assert(!call.args["map"].expr.isNull());
-    assert(!call.args["key"].in.isNull());
-    assert(!call.args["value_out"].out.isNull());
+    assert(call.function_name == symbex::FN_MAP_GET);
+    assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
+    assert(!call.args[symbex::FN_MAP_ARG_KEY].in.isNull());
+    assert(!call.args[symbex::FN_MAP_ARG_OUT].out.isNull());
 
-    auto _map = call.args["map"].expr;
-    auto _key = call.args["key"].in;
-    auto _value = call.args["value_out"].out;
+    auto _map = call.args[symbex::FN_MAP_ARG_MAP].expr;
+    auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
+    auto _value = call.args[symbex::FN_MAP_ARG_OUT].out;
 
     assert(_map->getKind() == klee::Expr::Kind::Constant);
     auto _map_value = kutil::solver_toolbox.value_from_expr(_map);
@@ -169,7 +164,7 @@ private:
     assert(symbols.size() == 2);
 
     auto symbols_it = symbols.begin();
-    assert(symbols_it->label_base == "map_has_this_key");
+    assert(symbols_it->label_base == symbex::MAP_HAS_THIS_KEY);
     auto _map_has_this_key_label = symbols_it->label;
 
     auto merged_response = can_be_merged(ep, node, _map);
@@ -208,10 +203,8 @@ private:
       _keys.emplace_back(_key);
     }
 
-    std::vector<param_t> _params{ _value };
-    std::vector<std::string> _map_has_this_key_labels{
-      _map_has_this_key_label
-    };
+    std::vector<param_t> _params{_value};
+    std::vector<std::string> _map_has_this_key_labels{_map_has_this_key_label};
 
     auto new_module = std::make_shared<TableLookup>(
         node, _table_id, _map, _keys, _params, _map_has_this_key_labels,
@@ -230,18 +223,18 @@ private:
                              processing_result_t &result) {
     auto call = casted->get_call();
 
-    if (call.function_name != "vector_borrow") {
+    if (call.function_name != symbex::FN_VECTOR_BORROW) {
       return false;
     }
 
-    assert(call.function_name == "vector_borrow");
-    assert(!call.args["vector"].expr.isNull());
-    assert(!call.args["index"].expr.isNull());
-    assert(!call.extra_vars["borrowed_cell"].second.isNull());
+    assert(call.function_name == symbex::FN_VECTOR_BORROW);
+    assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+    assert(!call.args[symbex::FN_VECTOR_ARG_INDEX].expr.isNull());
+    assert(!call.extra_vars[symbex::FN_VECTOR_EXTRA].second.isNull());
 
-    auto _vector = call.args["vector"].expr;
-    auto _index = call.args["index"].expr;
-    auto _borrowed_cell = call.extra_vars["borrowed_cell"].second;
+    auto _vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+    auto _index = call.args[symbex::FN_VECTOR_ARG_INDEX].expr;
+    auto _borrowed_cell = call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
 
     assert(_vector->getKind() == klee::Expr::Kind::Constant);
     auto _vector_value = kutil::solver_toolbox.value_from_expr(_vector);
@@ -353,7 +346,7 @@ public:
 
     for (auto i = 0u; i < keys.size(); i++) {
       if (!kutil::solver_toolbox.are_exprs_always_equal(keys[i].expr,
-                                                      other_keys[i].expr)) {
+                                                        other_keys[i].expr)) {
         return false;
       }
     }
@@ -371,7 +364,7 @@ public:
 
       for (auto j = 0u; j < params[i].exprs.size(); j++) {
         if (!kutil::solver_toolbox.are_exprs_always_equal(
-                 params[i].exprs[j], other_params[i].exprs[j])) {
+                params[i].exprs[j], other_params[i].exprs[j])) {
           return false;
         }
       }

@@ -7,6 +7,7 @@
 #include "klee/Expr.h"
 #include "variable.h"
 
+#include "../../../../../../symbex.h"
 #include "../../constants.h"
 
 namespace synapse {
@@ -68,7 +69,7 @@ public:
     unsigned total_size_bits = 0;
     auto offset = 0u;
 
-    for (auto& field : fields) {
+    for (auto &field : fields) {
       auto field_size_bits = field.get_size_bits();
 
       total_size_bits += field_size_bits;
@@ -118,7 +119,7 @@ public:
   variable_query_t get_field(klee::ref<klee::Expr> expr) const {
     auto symbol = kutil::get_symbol(expr);
 
-    if (!symbol.first || symbol.second != VIGOR_PACKET_CHUNK_SYMBOL) {
+    if (!symbol.first || symbol.second != symbex::CHUNK) {
       return variable_query_t();
     }
 

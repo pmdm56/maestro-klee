@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -17,12 +15,14 @@ private:
 
 public:
   VectorReturn()
-      : Module(ModuleType::x86_BMv2_VectorReturn, Target::x86_BMv2, "VectorReturn") {}
+      : Module(ModuleType::x86_BMv2_VectorReturn, Target::x86_BMv2,
+               "VectorReturn") {}
 
   VectorReturn(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _vector_addr,
                klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value_addr,
                klee::ref<klee::Expr> _value)
-      : Module(ModuleType::x86_BMv2_VectorReturn, Target::x86_BMv2, "VectorReturn", node),
+      : Module(ModuleType::x86_BMv2_VectorReturn, Target::x86_BMv2,
+               "VectorReturn", node),
         vector_addr(_vector_addr), index(_index), value_addr(_value_addr),
         value(_value) {}
 
@@ -33,16 +33,16 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "vector_return") {
-      assert(!call.args["vector"].expr.isNull());
-      assert(!call.args["index"].expr.isNull());
-      assert(!call.args["value"].expr.isNull());
-      assert(!call.args["value"].in.isNull());
+    if (call.function_name == symbex::FN_VECTOR_RETURN) {
+      assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+      assert(!call.args[symbex::FN_VECTOR_ARG_INDEX].expr.isNull());
+      assert(!call.args[symbex::FN_VECTOR_ARG_VALUE].expr.isNull());
+      assert(!call.args[symbex::FN_VECTOR_ARG_VALUE].in.isNull());
 
-      auto _vector_addr = call.args["vector"].expr;
-      auto _index = call.args["index"].expr;
-      auto _value_addr = call.args["value"].expr;
-      auto _value = call.args["value"].in;
+      auto _vector_addr = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+      auto _index = call.args[symbex::FN_VECTOR_ARG_INDEX].expr;
+      auto _value_addr = call.args[symbex::FN_VECTOR_ARG_VALUE].expr;
+      auto _value = call.args[symbex::FN_VECTOR_ARG_VALUE].in;
 
       auto new_module = std::make_shared<VectorReturn>(
           node, _vector_addr, _index, _value_addr, _value);
@@ -73,22 +73,22 @@ public:
     auto other_cast = static_cast<const VectorReturn *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             vector_addr, other_cast->get_vector_addr())) {
-      return false;
-    }
-
-    if (!kutil::solver_toolbox.are_exprs_always_equal(index,
-                                                    other_cast->get_index())) {
+            vector_addr, other_cast->get_vector_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             value_addr, other_cast->get_value_addr())) {
+            index, other_cast->get_index())) {
       return false;
     }
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(value,
-                                                    other_cast->get_value())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            value_addr, other_cast->get_value_addr())) {
+      return false;
+    }
+
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            value, other_cast->get_value())) {
       return false;
     }
 

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -19,13 +17,15 @@ private:
 
 public:
   VectorBorrow()
-      : Module(ModuleType::x86_BMv2_VectorBorrow, Target::x86_BMv2, "VectorBorrow") {}
+      : Module(ModuleType::x86_BMv2_VectorBorrow, Target::x86_BMv2,
+               "VectorBorrow") {}
 
   VectorBorrow(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _vector_addr,
                klee::ref<klee::Expr> _index, klee::ref<klee::Expr> _value_out,
                klee::ref<klee::Expr> _borrowed_cell,
                BDD::symbols_t _generated_symbols)
-      : Module(ModuleType::x86_BMv2_VectorBorrow, Target::x86_BMv2, "VectorBorrow", node),
+      : Module(ModuleType::x86_BMv2_VectorBorrow, Target::x86_BMv2,
+               "VectorBorrow", node),
         vector_addr(_vector_addr), index(_index), value_out(_value_out),
         borrowed_cell(_borrowed_cell), generated_symbols(_generated_symbols) {}
 
@@ -36,16 +36,16 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "vector_borrow") {
-      assert(!call.args["vector"].expr.isNull());
-      assert(!call.args["index"].expr.isNull());
-      assert(!call.args["val_out"].out.isNull());
-      assert(!call.extra_vars["borrowed_cell"].second.isNull());
+    if (call.function_name == symbex::FN_VECTOR_BORROW) {
+      assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+      assert(!call.args[symbex::FN_VECTOR_ARG_INDEX].expr.isNull());
+      assert(!call.args[symbex::FN_VECTOR_ARG_OUT].out.isNull());
+      assert(!call.extra_vars[symbex::FN_VECTOR_EXTRA].second.isNull());
 
-      auto _vector_addr = call.args["vector"].expr;
-      auto _index = call.args["index"].expr;
-      auto _value_out = call.args["val_out"].out;
-      auto _borrowed_cell = call.extra_vars["borrowed_cell"].second;
+      auto _vector_addr = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+      auto _index = call.args[symbex::FN_VECTOR_ARG_INDEX].expr;
+      auto _value_out = call.args[symbex::FN_VECTOR_ARG_OUT].out;
+      auto _borrowed_cell = call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
 
       auto _generated_symbols = casted->get_generated_symbols();
 
@@ -80,22 +80,22 @@ public:
     auto other_cast = static_cast<const VectorBorrow *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             vector_addr, other_cast->get_vector_addr())) {
-      return false;
-    }
-
-    if (!kutil::solver_toolbox.are_exprs_always_equal(index,
-                                                    other_cast->get_index())) {
+            vector_addr, other_cast->get_vector_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             value_out, other_cast->get_value_out())) {
+            index, other_cast->get_index())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             borrowed_cell, other_cast->get_borrowed_cell())) {
+            value_out, other_cast->get_value_out())) {
+      return false;
+    }
+
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            borrowed_cell, other_cast->get_borrowed_cell())) {
       return false;
     }
 

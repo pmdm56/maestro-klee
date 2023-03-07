@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -13,13 +11,10 @@ private:
   int port;
 
 public:
-  Forward()
-      : Module(ModuleType::Tofino_Forward,
-               Target::Tofino, "Forward") {}
+  Forward() : Module(ModuleType::Tofino_Forward, Target::Tofino, "Forward") {}
 
   Forward(BDD::BDDNode_ptr node, int _port)
-      : Module(ModuleType::Tofino_Forward,
-               Target::Tofino, "Forward", node),
+      : Module(ModuleType::Tofino_Forward, Target::Tofino, "Forward", node),
         port(_port) {}
 
 private:
@@ -66,6 +61,6 @@ public:
 
   int get_port() const { return port; }
 };
-} // namespace bmv2
+} // namespace tofino
 } // namespace targets
 } // namespace synapse

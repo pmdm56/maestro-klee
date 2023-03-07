@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../constants.h"
+#include "../../../../../symbex.h"
 #include "../../synthesizer.h"
 #include "../constants.h"
 #include "domain/header.h"
@@ -18,7 +18,6 @@ private:
   Synthesizer synthesizer_defs;
   Synthesizer synthesizer_decl;
   std::vector<Header> headers;
-  
 
 public:
   Headers(int ind_def, int ind_decl)
@@ -77,7 +76,7 @@ public:
   variable_query_t get_hdr_field_from_chunk(klee::ref<klee::Expr> chunk) const {
     auto symbol = kutil::get_symbol(chunk);
 
-    if (!symbol.first || symbol.second != VIGOR_PACKET_CHUNK_SYMBOL) {
+    if (!symbol.first || symbol.second != symbex::CHUNK) {
       return variable_query_t();
     }
 

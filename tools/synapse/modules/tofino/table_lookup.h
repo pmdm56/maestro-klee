@@ -1,10 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-
-#include "call-paths-to-bdd.h"
-
 #include "ignore.h"
 
 namespace synapse {
@@ -64,21 +60,23 @@ private:
       auto call_node = static_cast<const BDD::Call *>(node.get());
       auto call = call_node->get_call();
 
-      if (call.function_name != "map_get" && call.function_name != "map_put" &&
-          call.function_name != "vector_borrow") {
+      if (call.function_name != symbex::FN_MAP_GET &&
+          call.function_name != symbex::FN_MAP_PUT &&
+          call.function_name != symbex::FN_VECTOR_BORROW) {
         node = node->get_prev();
         continue;
       }
 
       uint64_t this_table_id = 0;
-      if (call.function_name == "map_get" || call.function_name == "map_put") {
-        assert(!call.args["map"].expr.isNull());
-        this_table_id =
-            kutil::solver_toolbox.value_from_expr(call.args["map"].expr);
-      } else if (call.function_name == "vector_borrow") {
-        assert(!call.args["vector"].expr.isNull());
-        this_table_id =
-            kutil::solver_toolbox.value_from_expr(call.args["vector"].expr);
+      if (call.function_name == symbex::FN_MAP_GET ||
+          call.function_name == symbex::FN_MAP_PUT) {
+        assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
+        this_table_id = kutil::solver_toolbox.value_from_expr(
+            call.args[symbex::FN_MAP_ARG_MAP].expr);
+      } else if (call.function_name == symbex::FN_VECTOR_BORROW) {
+        assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+        this_table_id = kutil::solver_toolbox.value_from_expr(
+            call.args[symbex::FN_VECTOR_ARG_VECTOR].expr);
       }
 
       if (this_table_id == _table_id) {
@@ -112,24 +110,24 @@ private:
     auto call = casted->get_call();
     extracted_data_t data(call.function_name);
 
-    if (call.function_name != "map_get") {
+    if (call.function_name != symbex::FN_MAP_GET) {
       return data;
     }
 
-    assert(call.function_name == "map_get");
-    assert(!call.args["map"].expr.isNull());
-    assert(!call.args["key"].in.isNull());
-    assert(!call.args["value_out"].out.isNull());
+    assert(call.function_name == symbex::FN_MAP_GET);
+    assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
+    assert(!call.args[symbex::FN_MAP_ARG_KEY].in.isNull());
+    assert(!call.args[symbex::FN_MAP_ARG_OUT].out.isNull());
 
-    auto _map = call.args["map"].expr;
-    auto _key = call.args["key"].in;
-    auto _value = call.args["value_out"].out;
+    auto _map = call.args[symbex::FN_MAP_ARG_MAP].expr;
+    auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
+    auto _value = call.args[symbex::FN_MAP_ARG_OUT].out;
 
     auto symbols = casted->get_generated_symbols();
     assert(symbols.size() == 2);
 
     auto symbols_it = symbols.begin();
-    assert(symbols_it->label_base == "map_has_this_key");
+    assert(symbols_it->label_base == symbex::MAP_HAS_THIS_KEY);
     auto _map_has_this_key_label = symbols_it->label;
 
     data.valid = true;
@@ -147,18 +145,18 @@ private:
     auto call = casted->get_call();
     extracted_data_t data(call.function_name);
 
-    if (call.function_name != "vector_borrow") {
+    if (call.function_name != symbex::FN_VECTOR_BORROW) {
       return data;
     }
 
-    assert(call.function_name == "vector_borrow");
-    assert(!call.args["vector"].expr.isNull());
-    assert(!call.args["index"].expr.isNull());
-    assert(!call.extra_vars["borrowed_cell"].second.isNull());
+    assert(call.function_name == symbex::FN_VECTOR_BORROW);
+    assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+    assert(!call.args[symbex::FN_VECTOR_ARG_INDEX].expr.isNull());
+    assert(!call.extra_vars[symbex::FN_VECTOR_EXTRA].second.isNull());
 
-    auto _vector = call.args["vector"].expr;
-    auto _index = call.args["index"].expr;
-    auto _borrowed_cell = call.extra_vars["borrowed_cell"].second;
+    auto _vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+    auto _index = call.args[symbex::FN_VECTOR_ARG_INDEX].expr;
+    auto _borrowed_cell = call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
 
     data.valid = true;
     data.obj = _vector;
@@ -290,9 +288,7 @@ public:
   const klee::ref<klee::Expr> &get_obj() const { return obj; }
   const std::vector<key_t> &get_keys() const { return keys; }
   const std::vector<param_t> &get_params() const { return params; }
-  const std::string &get_contains_symbol() const {
-    return contains_symbol;
-  }
+  const std::string &get_contains_symbol() const { return contains_symbol; }
   const std::string &get_bdd_function() const { return bdd_function; }
 };
 } // namespace tofino

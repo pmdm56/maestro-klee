@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -13,7 +11,8 @@ private:
   int port;
 
 public:
-  Forward() : Module(ModuleType::x86_BMv2_Forward, Target::x86_BMv2, "Forward") {}
+  Forward()
+      : Module(ModuleType::x86_BMv2_Forward, Target::x86_BMv2, "Forward") {}
 
   Forward(BDD::BDDNode_ptr node, int _port)
       : Module(ModuleType::x86_BMv2_Forward, Target::x86_BMv2, "Forward", node),

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -14,12 +12,12 @@ private:
 
 public:
   EthernetConsume()
-      : Module(ModuleType::Tofino_EthernetConsume,
-               Target::Tofino, "EthernetConsume") {}
+      : Module(ModuleType::Tofino_EthernetConsume, Target::Tofino,
+               "EthernetConsume") {}
 
   EthernetConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::Tofino_EthernetConsume,
-               Target::Tofino, "EthernetConsume", node),
+      : Module(ModuleType::Tofino_EthernetConsume, Target::Tofino,
+               "EthernetConsume", node),
         chunk(_chunk) {}
 
 private:
@@ -29,22 +27,22 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name != "packet_borrow_next_chunk") {
+    if (call.function_name != symbex::FN_BORROW_CHUNK) {
       return result;
     }
 
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, "packet_borrow_next_chunk");
+        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
     if (all_prev_packet_borrow_next_chunk.size() != 0) {
       return result;
     }
 
-    assert(!call.args["length"].expr.isNull());
-    assert(!call.extra_vars["the_chunk"].second.isNull());
+    assert(!call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr.isNull());
+    assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
-    auto _length = call.args["length"].expr;
-    auto _chunk = call.extra_vars["the_chunk"].second;
+    auto _length = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
+    auto _chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     // Make sure that packet_borrow_next_chunk borrows the
     // 14 ethernet bytes
@@ -76,6 +74,6 @@ public:
 
   const klee::ref<klee::Expr> &get_chunk() const { return chunk; }
 };
-} // namespace bmv2
+} // namespace tofino
 } // namespace targets
 } // namespace synapse

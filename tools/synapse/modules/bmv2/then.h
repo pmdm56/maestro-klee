@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
-
 #include "else.h"
 
 namespace synapse {
@@ -12,13 +9,10 @@ namespace bmv2 {
 
 class Then : public Module {
 public:
-  Then()
-      : Module(ModuleType::BMv2_Then,
-               Target::BMv2, "Then") {}
+  Then() : Module(ModuleType::BMv2_Then, Target::BMv2, "Then") {}
 
   Then(BDD::BDDNode_ptr node)
-      : Module(ModuleType::BMv2_Then,
-               Target::BMv2, "Then", node) {}
+      : Module(ModuleType::BMv2_Then, Target::BMv2, "Then", node) {}
 
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const override {

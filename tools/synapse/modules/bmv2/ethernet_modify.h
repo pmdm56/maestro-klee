@@ -1,9 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
-
 #include "ignore.h"
 
 namespace synapse {
@@ -17,14 +14,14 @@ private:
 
 public:
   EthernetModify()
-      : Module(ModuleType::BMv2_EthernetModify,
-               Target::BMv2, "EthernetModify") {}
+      : Module(ModuleType::BMv2_EthernetModify, Target::BMv2,
+               "EthernetModify") {}
 
   EthernetModify(BDD::BDDNode_ptr node,
                  const klee::ref<klee::Expr> &_ethernet_chunk,
                  const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::BMv2_EthernetModify,
-               Target::BMv2, "EthernetModify", node),
+      : Module(ModuleType::BMv2_EthernetModify, Target::BMv2, "EthernetModify",
+               node),
         ethernet_chunk(_ethernet_chunk), modifications(_modifications) {}
 
 private:
@@ -34,10 +31,10 @@ private:
     auto call_node = static_cast<const BDD::Call *>(node);
     auto call = call_node->get_call();
 
-    assert(call.function_name == "packet_borrow_next_chunk");
-    assert(!call.extra_vars["the_chunk"].second.isNull());
+    assert(call.function_name == symbex::FN_BORROW_CHUNK);
+    assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
-    return call.extra_vars["the_chunk"].second;
+    return call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
@@ -46,28 +43,28 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name != "packet_return_chunk") {
+    if (call.function_name != symbex::FN_RETURN_CHUNK) {
       return result;
     }
 
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, "packet_borrow_next_chunk");
+        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
     assert(all_prev_packet_borrow_next_chunk.size());
 
     auto all_prev_packet_return_chunk =
-        get_all_prev_functions(casted, "packet_return_chunk");
+        get_all_prev_functions(casted, symbex::FN_RETURN_CHUNK);
 
     if (all_prev_packet_return_chunk.size() !=
         all_prev_packet_borrow_next_chunk.size() - 1) {
       return result;
     }
 
-    assert(!call.args["the_chunk"].in.isNull());
+    assert(!call.args[symbex::FN_BORROW_CHUNK_EXTRA].in.isNull());
 
     auto borrow_ethernet = all_prev_packet_borrow_next_chunk.back();
 
-    auto curr_ether_chunk = call.args["the_chunk"].in;
+    auto curr_ether_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
     auto prev_ether_chunk = get_ethernet_chunk(borrow_ethernet.get());
 
     assert(curr_ether_chunk->getWidth() == 14 * 8);
@@ -78,8 +75,7 @@ private:
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep =
-          ep.ignore_leaf(node->get_next(), Target::BMv2);
+      auto new_ep = ep.ignore_leaf(node->get_next(), Target::BMv2);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);
@@ -115,7 +111,7 @@ public:
     auto other_cast = static_cast<const EthernetModify *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             ethernet_chunk, other_cast->ethernet_chunk)) {
+            ethernet_chunk, other_cast->ethernet_chunk)) {
       return false;
     }
 
@@ -134,7 +130,7 @@ public:
       }
 
       if (!kutil::solver_toolbox.are_exprs_always_equal(
-               modification.expr, other_modification.expr)) {
+              modification.expr, other_modification.expr)) {
         return false;
       }
     }

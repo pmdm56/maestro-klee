@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -38,14 +36,14 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "nf_set_rte_ipv4_udptcp_checksum") {
-      assert(!call.args["ip_header"].expr.isNull());
-      assert(!call.args["l4_header"].expr.isNull());
-      assert(!call.args["packet"].expr.isNull());
+    if (call.function_name == symbex::FN_SET_CHECKSUM) {
+      assert(!call.args[symbex::FN_SET_CHECKSUM_ARG_IP].expr.isNull());
+      assert(!call.args[symbex::FN_SET_CHECKSUM_ARG_L4].expr.isNull());
+      assert(!call.args[symbex::FN_SET_CHECKSUM_ARG_PACKET].expr.isNull());
 
-      auto _ip_header_addr = call.args["ip_header"].expr;
-      auto _l4_header_addr = call.args["l4_header"].expr;
-      auto _p_addr = call.args["packet"].expr;
+      auto _ip_header_addr = call.args[symbex::FN_SET_CHECKSUM_ARG_IP].expr;
+      auto _l4_header_addr = call.args[symbex::FN_SET_CHECKSUM_ARG_L4].expr;
+      auto _p_addr = call.args[symbex::FN_SET_CHECKSUM_ARG_PACKET].expr;
       auto _generated_symbols = casted->get_generated_symbols();
 
       auto new_module = std::make_shared<SetIpv4UdpTcpChecksum>(
@@ -78,17 +76,17 @@ public:
     auto other_cast = static_cast<const SetIpv4UdpTcpChecksum *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             ip_header_addr, other_cast->get_ip_header_addr())) {
+            ip_header_addr, other_cast->get_ip_header_addr())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             l4_header_addr, other_cast->get_l4_header_addr())) {
+            l4_header_addr, other_cast->get_l4_header_addr())) {
       return false;
     }
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(p_addr,
-                                                    other_cast->get_p_addr())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            p_addr, other_cast->get_p_addr())) {
       return false;
     }
 

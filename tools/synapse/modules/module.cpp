@@ -132,7 +132,7 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
 
   auto found_it = std::find_if(
       symbols.begin(), symbols.end(), [](const std::string &symbol) -> bool {
-        return symbol.find("map_has_this_key") != std::string::npos;
+        return symbol.find(symbex::MAP_HAS_THIS_KEY) != std::string::npos;
       });
 
   if (found_it == symbols.end()) {

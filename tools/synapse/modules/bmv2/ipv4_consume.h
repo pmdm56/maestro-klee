@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -14,12 +12,10 @@ private:
 
 public:
   IPv4Consume()
-      : Module(ModuleType::BMv2_IPv4Consume,
-               Target::BMv2, "IPv4Consume") {}
+      : Module(ModuleType::BMv2_IPv4Consume, Target::BMv2, "IPv4Consume") {}
 
   IPv4Consume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::BMv2_IPv4Consume,
-               Target::BMv2, "IPv4Consume", node),
+      : Module(ModuleType::BMv2_IPv4Consume, Target::BMv2, "IPv4Consume", node),
         chunk(_chunk) {}
 
 private:
@@ -31,7 +27,7 @@ private:
     auto call_node = static_cast<const BDD::Call *>(ethernet_node);
     auto call = call_node->get_call();
 
-    auto ethernet_chunk = call.extra_vars["the_chunk"].second;
+    auto ethernet_chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     assert(!ethernet_chunk.isNull());
     assert(!len.isNull());
@@ -42,11 +38,12 @@ private:
       return false;
     }
 
-    auto eth_type_expr =
-        kutil::solver_toolbox.exprBuilder->Extract(ethernet_chunk, 12 * 8, 2 * 8);
+    auto eth_type_expr = kutil::solver_toolbox.exprBuilder->Extract(
+        ethernet_chunk, 12 * 8, 2 * 8);
     auto eth_type_ipv4 = kutil::solver_toolbox.exprBuilder->Constant(
         UINT_16_SWAP_ENDIANNESS(0x0800), 2 * 8);
-    auto eq = kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
+    auto eq =
+        kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
     kutil::RetrieveSymbols symbol_retriever;
     symbol_retriever.visit(eq);
@@ -55,7 +52,7 @@ private:
 
     for (auto constraint : constraints) {
       if (!kutil::solver_toolbox.is_expr_always_true(constraint, eq,
-                                                   symbol_replacer)) {
+                                                     symbol_replacer)) {
         return false;
       }
     }
@@ -69,23 +66,23 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name != "packet_borrow_next_chunk") {
+    if (call.function_name != symbex::FN_BORROW_CHUNK) {
       return result;
     }
 
     // IPv4 should come after L2 Consume
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, "packet_borrow_next_chunk");
+        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
     if (all_prev_packet_borrow_next_chunk.size() != 1) {
       return result;
     }
 
-    assert(!call.args["length"].expr.isNull());
-    assert(!call.extra_vars["the_chunk"].second.isNull());
+    assert(!call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr.isNull());
+    assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
-    auto _length = call.args["length"].expr;
-    auto _chunk = call.extra_vars["the_chunk"].second;
+    auto _length = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
+    auto _chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     auto valid = is_valid_ipv4(all_prev_packet_borrow_next_chunk[0].get(),
                                _length, node->get_constraints());

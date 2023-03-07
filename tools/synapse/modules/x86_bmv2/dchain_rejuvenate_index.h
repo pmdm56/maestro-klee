@@ -1,8 +1,6 @@
 #pragma once
 
-#include "../../log.h"
 #include "../module.h"
-#include "call-paths-to-bdd.h"
 
 namespace synapse {
 namespace targets {
@@ -34,14 +32,14 @@ private:
     processing_result_t result;
     auto call = casted->get_call();
 
-    if (call.function_name == "dchain_rejuvenate_index") {
-      assert(!call.args["chain"].expr.isNull());
-      assert(!call.args["index"].expr.isNull());
-      assert(!call.args["time"].expr.isNull());
+    if (call.function_name == symbex::FN_DCHAIN_REJUVENATE) {
+      assert(!call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr.isNull());
+      assert(!call.args[symbex::FN_DCHAIN_ARG_INDEX].expr.isNull());
+      assert(!call.args[symbex::FN_DCHAIN_ARG_TIME].expr.isNull());
 
-      auto _dchain_addr = call.args["chain"].expr;
-      auto _index = call.args["index"].expr;
-      auto _time = call.args["time"].expr;
+      auto _dchain_addr = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
+      auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
+      auto _time = call.args[symbex::FN_DCHAIN_ARG_TIME].expr;
 
       auto new_module = std::make_shared<DchainRejuvenateIndex>(
           node, _dchain_addr, _index, _time);
@@ -72,17 +70,17 @@ public:
     auto other_cast = static_cast<const DchainRejuvenateIndex *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-             dchain_addr, other_cast->get_dchain_addr())) {
+            dchain_addr, other_cast->get_dchain_addr())) {
       return false;
     }
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(index,
-                                                    other_cast->get_index())) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            index, other_cast->get_index())) {
       return false;
     }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(time,
-                                                    other_cast->get_time())) {
+                                                      other_cast->get_time())) {
       return false;
     }
 
