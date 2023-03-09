@@ -33,6 +33,7 @@ private:
 
 private:
   ExecutionPlan x86_bmv2_extractor(const ExecutionPlan &execution_plan) const;
+  ExecutionPlan x86_tofino_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan bmv2_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan fpga_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan tofino_extractor(const ExecutionPlan &execution_plan) const;
@@ -55,10 +56,16 @@ public:
 
         {Target::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
 
-        {Target::Tofino,
+        {Target::x86_Tofino,
          target_helper_t(
-             &CodeGenerator::tofino_extractor,
-             std::make_shared<synapse::synthesizer::tofino::TofinoGenerator>())},
+             &CodeGenerator::x86_tofino_extractor,
+             std::make_shared<
+                 synapse::synthesizer::x86_tofino::x86TofinoGenerator>())},
+
+        {Target::Tofino,
+         target_helper_t(&CodeGenerator::tofino_extractor,
+                         std::make_shared<
+                             synapse::synthesizer::tofino::TofinoGenerator>())},
 
         {Target::Netronome,
          target_helper_t(&CodeGenerator::netronome_extractor)},
@@ -80,13 +87,16 @@ public:
 
     switch (target) {
     case Target::x86_BMv2:
-      output_file += "x86-bmv2.c";
+      output_file += "bmv2-x86.c";
       break;
     case Target::BMv2:
       output_file += "bmv2.p4";
       break;
     case Target::FPGA:
       output_file += "fpga.v";
+      break;
+    case Target::x86_Tofino:
+      output_file += "tofino-x86.c";
       break;
     case Target::Tofino:
       output_file += "tofino.p4";

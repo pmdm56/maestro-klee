@@ -42,11 +42,13 @@ llvm::cl::list<synapse::Target>
                llvm::cl::values(
                    clEnumValN(synapse::Target::x86_BMv2, "x86-bmv2",
                               "x86 controller for BMv2 (C)"),
-                   clEnumValN(synapse::Target::BMv2, "bmv2", "BMv2 (P4)"),
+                   clEnumValN(synapse::Target::BMv2, "bmv2", "BMv2 Lab 5: Apoio ao projeto -- mE1(P4)"),
                    clEnumValN(synapse::Target::FPGA, "fpga", "FPGA (veriLog)"),
                    clEnumValN(synapse::Target::Netronome, "netronome",
                               "Netronome (micro C)"),
                    clEnumValN(synapse::Target::Tofino, "tofino", "Tofino (P4)"),
+                   clEnumValN(synapse::Target::x86_Tofino, "x86-tofino",
+                              "x86 controller for Tofino (C)"),
                    clEnumValEnd),
                llvm::cl::cat(SyNAPSE));
 
@@ -103,8 +105,9 @@ int main(int argc, char **argv) {
   synapse::CodeGenerator code_generator(Out);
 
   for (unsigned i = 0; i != TargetList.size(); ++i) {
-    search_engine.add_target(TargetList[i]);
-    code_generator.add_target(TargetList[i]);
+    auto target = TargetList[i];
+    search_engine.add_target(target);
+    code_generator.add_target(target);
   }
 
   synapse::Biggest biggest;

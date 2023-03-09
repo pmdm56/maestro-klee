@@ -7,3 +7,4 @@
 #include "netronome/netronome.h"
 #include "tofino/tofino.h"
 #include "x86_bmv2/x86_bmv2.h"
+#include "x86_tofino/x86_tofino.h"

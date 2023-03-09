@@ -34,6 +34,9 @@ public:
     case Target::x86_BMv2:
       _modules = targets::x86_bmv2::get_modules();
       break;
+    case Target::x86_Tofino:
+      _modules = targets::x86_tofino::get_modules();
+      break;
     case Target::Tofino:
       _modules = targets::tofino::get_modules();
       break;
@@ -62,7 +65,7 @@ public:
       auto next_ep = h.pop();
       auto next_node = next_ep.get_next_node();
       assert(next_node);
-      
+
       // Graphviz::visualize(next_ep);
 
       struct report_t {

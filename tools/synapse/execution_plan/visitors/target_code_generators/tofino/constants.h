@@ -23,7 +23,7 @@ constexpr char INGRESS_SEND_TO_CPU_ACTION[] = "send_to_cpu";
 constexpr char PARSER_CONDITIONAL_LABEL[] = "conditional_state_t_";
 constexpr char PARSER_PACKET_VARIABLE_LABEL[] = "pkt";
 constexpr char PARSER_INITIAL_STATE_LABEL[] = "parse_headers";
-constexpr char KEY_BYTE_LABEL[] = "key_byte_";
+constexpr char KEY_BYTE_LABEL[] = "key_byte_free";
 
 constexpr char INGRESS_USER_METADATA_VARIABLE[] = "meta";
 constexpr char INGRESS_PACKET_HEADER_VARIABLE[] = "hdr";

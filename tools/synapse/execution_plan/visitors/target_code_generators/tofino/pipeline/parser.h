@@ -5,6 +5,7 @@
 #include "domain/state.h"
 
 #include <assert.h>
+#include <iostream>
 #include <stack>
 #include <vector>
 

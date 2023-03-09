@@ -13,6 +13,7 @@ namespace synapse {
 
 enum Target {
   x86_BMv2,
+  x86_Tofino,
   Tofino,
   Netronome,
   FPGA,
@@ -83,6 +84,7 @@ public:
     Tofino_EthernetModify,
     Tofino_TableLookup,
     Tofino_Drop,
+    Tofino_SendToController,
   };
 
 protected:
@@ -142,7 +144,9 @@ public:
   static std::string target_to_string(Target target) {
     switch (target) {
     case x86_BMv2:
-      return "x86_BMv2";
+      return "x86 (BMv2)";
+    case x86_Tofino:
+      return "x86 (Tofino)";
     case Tofino:
       return "Tofino";
     case Netronome:

@@ -8,6 +8,7 @@ class ExecutionPlan;
 class ExecutionPlanNode;
 
 namespace targets {
+
 namespace x86_bmv2 {
 class MapGet;
 class CurrentTime;
@@ -31,6 +32,8 @@ class PacketGetUnreadLength;
 class SetIpv4UdpTcpChecksum;
 class DchainIsIndexAllocated;
 } // namespace x86_bmv2
+
+namespace x86_tofino {}
 
 namespace bmv2 {
 class SendToController;
@@ -64,7 +67,9 @@ class EthernetConsume;
 class EthernetModify;
 class TableLookup;
 class Drop;
+class SendToController;
 } // namespace tofino
+
 } // namespace targets
 
 class ExecutionPlanVisitor {
@@ -140,6 +145,7 @@ public:
   virtual void visit(const targets::tofino::EthernetModify *node) {}
   virtual void visit(const targets::tofino::TableLookup *node) {}
   virtual void visit(const targets::tofino::Drop *node) {}
+  virtual void visit(const targets::tofino::SendToController *node) {}
 
 protected:
   void log(const ExecutionPlanNode *ep_node) const;

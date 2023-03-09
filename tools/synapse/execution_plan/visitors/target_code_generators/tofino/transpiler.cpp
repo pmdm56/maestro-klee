@@ -54,20 +54,23 @@ private:
 };
 
 std::vector<std::string>
-Transpiler::assign_key_bytes(klee::ref<klee::Expr> expr) {
+Transpiler::assign_key_bytes(klee::ref<klee::Expr> key) {
   std::vector<std::string> assignments;
-  auto size_bits = expr->getWidth();
+  auto key_vars = get_key_vars(tg.ingress, key);
 
-  for (auto byte = 0u; byte * 8 < size_bits; byte++) {
+  for (const auto &kv : key_vars) {
+    if (!kv.is_free) {
+      continue;
+    }
+
     auto key_byte =
-        kutil::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
+        kutil::solver_toolbox.exprBuilder->Extract(key, kv.offset_bits, 8);
 
     auto key_byte_code = tg.transpile(key_byte);
-    auto key_byte_var = tg.allocate_key_byte(byte);
 
     std::stringstream assignment;
 
-    assignment << key_byte_var.get_label();
+    assignment << kv.variable.get_label();
     assignment << " = ";
     assignment << key_byte_code;
 

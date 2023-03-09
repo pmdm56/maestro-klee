@@ -16,6 +16,8 @@ namespace synthesizer {
 namespace tofino {
 
 class TofinoGenerator : public Target {
+  friend Transpiler;
+
 private:
   Ingress ingress;
   Transpiler transpiler;
@@ -49,8 +51,8 @@ public:
   variable_query_t search_variable(std::string symbol) const;
   variable_query_t search_variable(klee::ref<klee::Expr> expr) const;
 
-  Variable allocate_key_byte(int byte);
-  std::vector<Variable> allocate_key_bytes(klee::ref<klee::Expr> expr);
+  // Variable allocate_key_byte(int byte);
+  // std::vector<Variable> allocate_key_bytes(klee::ref<klee::Expr> expr);
 };
 
 } // namespace tofino

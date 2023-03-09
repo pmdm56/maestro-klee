@@ -17,11 +17,12 @@ const port_t RECIRCULATING_PORT = 68;
 // BFN-T10-032D-024
 // BFN-T10-032D-020
 // BFN-T10-032D-018
-const PortId_t CPU_PCIE_PORT = 192;
+// const PortId_t CPU_PCIE_PORT = 192;
 
 // BFN-T10-064Q
 // BFN-T10-032Q
-// const PortId_t CPU_PCIE_PORT = 320;
+// PCIe port when using the tofino model
+const PortId_t CPU_PCIE_PORT = 320;
 
 const ether_type_t  ETHERTYPE_IPV4 = 0x0800;
 const ether_type_t  ETHERTYPE_ARP  = 0x0806;

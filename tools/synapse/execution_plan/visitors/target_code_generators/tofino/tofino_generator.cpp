@@ -51,26 +51,6 @@ TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   return variable_query_t();
 }
 
-Variable TofinoGenerator::allocate_key_byte(int byte) {
-  return ingress.allocate_key_byte(byte);
-}
-
-std::vector<Variable>
-TofinoGenerator::allocate_key_bytes(klee::ref<klee::Expr> expr) {
-  std::vector<Variable> key_bytes;
-  auto size_bits = expr->getWidth();
-
-  for (auto byte = 0u; byte * 8 < size_bits; byte++) {
-    auto key_byte =
-        kutil::solver_toolbox.exprBuilder->Extract(expr, byte * 8, 8);
-
-    auto key_byte_var = allocate_key_byte(byte);
-    key_bytes.push_back(key_byte_var);
-  }
-
-  return key_bytes;
-}
-
 void TofinoGenerator::visit(ExecutionPlan ep) {
   ExecutionPlanVisitor::visit(ep);
 
@@ -232,9 +212,6 @@ void TofinoGenerator::visit(const targets::tofino::EthernetModify *node) {
   auto ethernet_chunk = node->get_ethernet_chunk();
   auto modifications = node->get_modifications();
 
-  auto field = std::string();
-  auto offset = 0u;
-
   for (auto mod : modifications) {
     auto byte = mod.byte;
     auto expr = mod.expr;
@@ -273,13 +250,13 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
 
   auto table_label = table_label_builder.str();
 
-  std::vector<std::string> keys_bytes_labels;
+  std::vector<std::string> key_labels;
 
   for (auto key : keys) {
-    auto key_bytes = allocate_key_bytes(key.expr);
+    auto key_vars = get_key_vars(ingress, key.expr);
 
-    for (auto kb : key_bytes) {
-      keys_bytes_labels.push_back(kb.get_label());
+    for (auto kv : key_vars) {
+      key_labels.push_back(kv.variable.get_label());
     }
   }
 
@@ -297,7 +274,7 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
     meta_params.push_back(meta_param);
   }
 
-  table_t table(table_label, keys_bytes_labels, meta_params);
+  table_t table(table_label, key_labels, meta_params);
   ingress.add_table(table);
 
   assert(keys.size() == assignments.size());

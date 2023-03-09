@@ -102,7 +102,7 @@ struct table_t {
 
     synthesizer.append("table ");
     synthesizer.append(label);
-    synthesizer.append("{");
+    synthesizer.append(" {");
     synthesizer.append_new_line();
 
     synthesizer.inc_indentation();

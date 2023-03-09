@@ -250,6 +250,12 @@ CodeGenerator::fpga_extractor(const ExecutionPlan &execution_plan) const {
 }
 
 ExecutionPlan
+CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
+  assert(false && "TODO");
+  exit(1);
+}
+
+ExecutionPlan
 CodeGenerator::tofino_extractor(const ExecutionPlan &execution_plan) const {
   auto extracted = execution_plan.clone(true);
   auto nodes = std::vector<ExecutionPlanNode_ptr>{extracted.get_root()};
