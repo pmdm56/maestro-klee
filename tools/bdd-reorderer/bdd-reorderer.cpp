@@ -145,10 +145,12 @@ bool fn_can_be_reordered(std::string fn) {
 uint64_t get_readLSB_base(klee::ref<klee::Expr> chunk) {
   std::vector<unsigned> bytes_read;
   auto success = kutil::get_bytes_read(chunk, bytes_read);
+  
   assert(success);
   assert(bytes_read.size());
 
   unsigned min = bytes_read[0];
+
   for (auto read : bytes_read) {
     min = read < min ? read : min;
   }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "load-call-paths.h"
 #include "klee-util.h"
+#include "load-call-paths.h"
 
 namespace BDD {
 struct symbol_t {
@@ -10,6 +10,8 @@ struct symbol_t {
   klee::ref<klee::Expr> expr;
   klee::ref<klee::Expr> addr;
 
+  symbol_t() {}
+
   symbol_t(std::string _label, std::string _label_base,
            klee::ref<klee::Expr> _expr)
       : label(_label), label_base(_label_base), expr(_expr) {}
@@ -17,6 +19,21 @@ struct symbol_t {
   symbol_t(std::string _label, std::string _label_base,
            klee::ref<klee::Expr> _expr, klee::ref<klee::Expr> _addr)
       : label(_label), label_base(_label_base), expr(_expr), addr(_addr) {}
+
+  symbol_t(const symbol_t &symbol)
+      : label(symbol.label), label_base(symbol.label_base), expr(symbol.expr),
+        addr(symbol.addr) {}
+
+  symbol_t &operator=(const symbol_t &other) {
+    if (this != &other) {
+      label = other.label;
+      label_base = other.label_base;
+      expr = other.expr;
+      addr = other.addr;
+    }
+
+    return *this;
+  }
 };
 
 inline bool operator==(const symbol_t &lhs, const symbol_t &rhs) {

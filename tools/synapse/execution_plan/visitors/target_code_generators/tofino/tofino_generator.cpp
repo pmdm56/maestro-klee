@@ -315,9 +315,10 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
     }
   }
 
-  if (contains_symbol.size()) {
-    // FIXME: this shouldn't be a literal here
-    auto hit_var = Variable(table_label + "_hit", 1, {contains_symbol}, 32);
+  if (contains_symbol) {
+    auto symbol_size = contains_symbol->expr->getWidth();
+    auto symbol_label = contains_symbol->label;
+    auto hit_var = Variable(table_label + "_hit", symbol_size, {symbol_label});
 
     ingress.local_vars.append(hit_var);
 

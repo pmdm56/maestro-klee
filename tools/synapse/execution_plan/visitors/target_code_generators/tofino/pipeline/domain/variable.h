@@ -17,7 +17,6 @@ protected:
   bits_t size_bits;
 
   std::string prefix;
-
   std::vector<std::string> vigor_symbols;
 
   std::vector<klee::ref<klee::Expr>> exprs;
@@ -29,7 +28,7 @@ public:
         exprs(variable.exprs) {}
 
   Variable(std::string _label, bits_t _size_bits,
-           std::vector<std::string> _vigor_symbols, bits_t _vigor_symbols_size)
+           std::vector<std::string> _vigor_symbols)
       : label(_label), size_bits(_size_bits), vigor_symbols(_vigor_symbols) {}
 
   Variable(std::string _label, bits_t _size_bits, klee::ref<klee::Expr> expr)

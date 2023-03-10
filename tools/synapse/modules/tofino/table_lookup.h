@@ -24,7 +24,7 @@ private:
   klee::ref<klee::Expr> obj;
   std::vector<key_t> keys;
   std::vector<param_t> params;
-  std::string contains_symbol;
+  std::unique_ptr<BDD::symbol_t> contains_symbol;
   std::string bdd_function;
 
 public:
@@ -34,12 +34,17 @@ public:
   TableLookup(BDD::BDDNode_ptr node, uint64_t _table_id,
               klee::ref<klee::Expr> _obj, const std::vector<key_t> &_keys,
               const std::vector<param_t> &_params,
-              const std::string &_contains_symbol,
+              const BDD::symbol_t *_contains_symbol,
               const std::string &_bdd_function)
       : Module(ModuleType::Tofino_TableLookup, Target::Tofino, "TableLookup",
                node),
         table_id(_table_id), obj(_obj), keys(_keys), params(_params),
-        contains_symbol(_contains_symbol), bdd_function(_bdd_function) {}
+        bdd_function(_bdd_function) {
+    if (_contains_symbol) {
+      contains_symbol =
+          std::unique_ptr<BDD::symbol_t>(new BDD::symbol_t(*_contains_symbol));
+    }
+  }
 
 private:
   bool multiple_queries_to_this_table(BDD::BDDNode_ptr current_node,
@@ -98,7 +103,7 @@ private:
     klee::ref<klee::Expr> key;
     klee::ref<klee::Expr> value;
     std::vector<meta_t> key_meta;
-    std::string contains_symbol;
+    std::pair<bool, BDD::symbol_t> contains_symbol;
 
     extracted_data_t(const std::string &_fname) : valid(false), fname(_fname) {}
   };
@@ -128,14 +133,16 @@ private:
 
     auto symbols_it = symbols.begin();
     assert(symbols_it->label_base == symbex::MAP_HAS_THIS_KEY);
-    auto _map_has_this_key_label = symbols_it->label;
+    auto _map_has_this_key = *symbols_it;
 
     data.valid = true;
     data.obj = _map;
     data.key = _key;
     data.key_meta = _key_meta;
     data.value = _value;
-    data.contains_symbol = _map_has_this_key_label;
+
+    data.contains_symbol.first = true;
+    data.contains_symbol.second = _map_has_this_key;
 
     return data;
   }
@@ -163,6 +170,7 @@ private:
     data.obj = _vector;
     data.key = _index;
     data.value = _borrowed_cell;
+    data.contains_symbol.first = false;
 
     return data;
   }
@@ -187,24 +195,23 @@ private:
     }
 
     auto _table_id = node->get_id();
-
-    std::vector<key_t> _keys;
-
+    auto _keys = std::vector<key_t>();
     auto _key = key_t(data.key);
 
     if (ep.can_recall<klee::ref<klee::Expr>>(node->get_id())) {
       auto _key_condition = ep.recall<klee::ref<klee::Expr>>(node->get_id());
       _key.condition = _key_condition;
     }
-    
+
     if (data.key_meta.size()) {
       _key.meta = data.key_meta;
     }
 
     _keys.push_back(_key);
 
-    std::vector<param_t> _params{data.value};
-    std::string _contains_symbol = data.contains_symbol;
+    auto _params = std::vector<param_t>{data.value};
+    auto _contains_symbol =
+        data.contains_symbol.first ? &data.contains_symbol.second : nullptr;
 
     auto new_module =
         std::make_shared<TableLookup>(node, _table_id, data.obj, _keys, _params,
@@ -233,7 +240,7 @@ public:
 
   virtual Module_ptr clone() const override {
     auto cloned = new TableLookup(node, table_id, obj, keys, params,
-                                  contains_symbol, bdd_function);
+                                  contains_symbol.get(), bdd_function);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -280,7 +287,15 @@ public:
 
     auto other_contains_symbol = other_cast->get_contains_symbol();
 
-    if (contains_symbol != other_contains_symbol) {
+    auto this_contains_is_null = (contains_symbol == nullptr);
+    auto other_contains_is_null = (other_contains_symbol == nullptr);
+
+    if (this_contains_is_null != other_contains_is_null) {
+      return false;
+    }
+
+    if (!this_contains_is_null &&
+        contains_symbol->label != other_contains_symbol->label) {
       return false;
     }
 
@@ -295,7 +310,9 @@ public:
   const klee::ref<klee::Expr> &get_obj() const { return obj; }
   const std::vector<key_t> &get_keys() const { return keys; }
   const std::vector<param_t> &get_params() const { return params; }
-  const std::string &get_contains_symbol() const { return contains_symbol; }
+  const BDD::symbol_t *get_contains_symbol() const {
+    return contains_symbol.get();
+  }
   const std::string &get_bdd_function() const { return bdd_function; }
 };
 } // namespace tofino

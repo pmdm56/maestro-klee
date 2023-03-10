@@ -48,10 +48,11 @@ public:
         {INGRESS_INTRINSIC_META_PACKET_VERSION,
          INGRESS_INTRINSIC_META_PACKET_VERSION_SIZE_BITS},
 
-        {INGRESS_INTRINSIC_META_INGRESS_PORT,
-         INGRESS_INTRINSIC_META_INGRESS_PORT_SIZE_BITS,
-         {symbex::PORT, symbex::PORT2},
-         symbex::PORT_SYMBOL_SIZE},
+        {
+            INGRESS_INTRINSIC_META_INGRESS_PORT,
+            INGRESS_INTRINSIC_META_INGRESS_PORT_SIZE_BITS,
+            {symbex::PORT},
+        },
 
         {INGRESS_INTRINSIC_META_TIMESTAMP,
          INGRESS_INTRINSIC_META_TIMESTAMP_SIZE_BITS},
@@ -205,7 +206,7 @@ public:
   void synthesize_user_metadata(std::ostream &os) const {
     user_metadata_synthesizer.dump(os);
   }
-};
+}; // namespace tofino
 
 } // namespace tofino
 } // namespace synthesizer
