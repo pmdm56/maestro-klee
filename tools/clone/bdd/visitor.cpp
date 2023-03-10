@@ -16,8 +16,6 @@ namespace Clone {
 	/* Constructors and destructors */
 	Visitor::Visitor(vector<unsigned> &constraints, const unique_ptr<Builder> &builder) : 
 						constraints(constraints), builder(builder) {		
-		
-
 	}
 
 	Visitor::~Visitor() = default;
@@ -69,8 +67,14 @@ namespace Clone {
 
 	void Visitor::visit(const BDD::BDD &bdd)  {
 		debug("Visiting BDD init");
+		
+		if(builder->is_empty()) {
+			builder->init();
+		}
+
 		assert(bdd.get_init() != nullptr);
 		const auto &initRoot = bdd.get_init().get(); 
+
 		visitInitRoot(initRoot);
 	}
 }

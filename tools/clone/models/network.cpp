@@ -91,6 +91,8 @@ namespace Clone {
 	
 	void Network::traverse_all_flows() {
 		const unique_ptr<Builder> builder { std::unique_ptr<Builder>(new Builder()) };
+
+		builder->init();
 		
 		for(auto &source: sources) {
 			vector<unsigned> constraints {};
