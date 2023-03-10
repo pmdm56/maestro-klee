@@ -6,7 +6,7 @@
 #include "../../visitor.h"
 #include "../target_code_generator.h"
 
-#define X86_TOFINO_BOILERPLATE_FILE "boilerplate.c"
+#define X86_TOFINO_BOILERPLATE_FILE "boilerplate.cpp"
 
 namespace synapse {
 namespace synthesizer {

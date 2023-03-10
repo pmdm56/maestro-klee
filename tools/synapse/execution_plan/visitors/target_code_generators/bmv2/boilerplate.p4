@@ -23,16 +23,16 @@ header packet_out_t {
   bit<6> pad;
 }
 
-{{headers_definitions}}
+/*@{headers_definitions}@*/
 
 struct headers {
   packet_in_t packet_in;
   packet_out_t packet_out;
-  {{headers_declarations}}
+  /*@{headers_declarations}@*/
 }
 
 struct metadata {
-  {{metadata_fields}}
+  /*@{metadata_fields}@*/
 }
 
 /****************************************************************
@@ -55,7 +55,7 @@ parser SyNAPSE_Parser(packet_in packet,
     transition parse_headers;
   }
 
-  {{parse_headers}}
+  /*@{parse_headers}@*/
 }
 
 /****************************************************************
@@ -77,7 +77,7 @@ control SyNAPSE_Ingress(inout headers hdr,
   
   /**************** B O I L E R P L A T E  ****************/
 
-  {{ingress_tag_versions_action}}  
+  /*@{ingress_tag_versions_action}@*/  
 
   table tag_control {
     actions = {
@@ -111,7 +111,7 @@ control SyNAPSE_Ingress(inout headers hdr,
     hdr.packet_in.src_device = standard_metadata.ingress_port;
   }
 
-  {{ingress_globals}}
+  /*@{ingress_globals}@*/
 
   apply {
     tag_control.apply();
@@ -121,7 +121,7 @@ control SyNAPSE_Ingress(inout headers hdr,
       return;
     }
 
-    {{ingress_apply_content}}
+    /*@{ingress_apply_content}@*/
   }
 }
 
@@ -161,7 +161,7 @@ control SyNAPSE_Deparser(packet_out packet,
                          in headers hdr) {
   apply {
     packet.emit(hdr.packet_in);
-    {{deparser_apply}}
+    /*@{deparser_apply}@*/
   }
 }
 

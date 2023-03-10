@@ -26,6 +26,7 @@ file(GLOB_RECURSE klee-util-sources
   "../klee-util/*.cpp"
 )
 
+list(FILTER synapse-sources EXCLUDE REGEX ".*boilerplate.*$")
 list(FILTER load-call-paths-sources EXCLUDE REGEX ".*main\\.cpp$")
 list(FILTER call-paths-to-bdd-sources EXCLUDE REGEX ".*main\\.cpp$")
 list(FILTER bdd-reorderer-sources EXCLUDE REGEX ".*main\\.cpp$")

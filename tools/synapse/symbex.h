@@ -5,6 +5,7 @@ namespace symbex {
 
 constexpr char CHUNK[] = "packet_chunks";
 constexpr char PORT[] = "VIGOR_DEVICE";
+constexpr char PORT2[] = "device";
 
 constexpr char FN_CURRENT_TIME[] = "current_time";
 constexpr char FN_ETHER_HASH[] = "rte_ether_addr_hash";

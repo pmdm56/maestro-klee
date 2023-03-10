@@ -51,7 +51,7 @@ public:
         {
             INGRESS_INTRINSIC_META_INGRESS_PORT,
             INGRESS_INTRINSIC_META_INGRESS_PORT_SIZE_BITS,
-            {symbex::PORT},
+            {symbex::PORT, symbex::PORT2},
         },
 
         {INGRESS_INTRINSIC_META_TIMESTAMP,

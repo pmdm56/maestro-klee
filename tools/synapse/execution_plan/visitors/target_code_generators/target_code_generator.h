@@ -1,11 +1,15 @@
 #pragma once
 
+#include <assert.h>
 #include <fstream>
 #include <stdio.h>
 #include <streambuf>
 #include <string>
 
 #include "../visitor.h"
+
+#define CODE_BUILDER_MARKER_BEGIN "/*@{"
+#define CODE_BUILDER_MARKER_END "}@*/"
 
 #define GET_BOILERPLATE_PATH(fname)                                            \
   (std::string(__FILE__).substr(0, std::string(__FILE__).rfind("/")) + "/" +   \
@@ -31,7 +35,8 @@ protected:
     }
 
     void fill_mark(std::string marker_label, const std::string &content) {
-      auto marker = "{{" + marker_label + "}}";
+      auto marker =
+          CODE_BUILDER_MARKER_BEGIN + marker_label + CODE_BUILDER_MARKER_END;
 
       auto delim = code.find(marker);
       assert(delim != std::string::npos);
@@ -53,7 +58,8 @@ protected:
     }
 
     int get_indentation_level(std::string marker_label) {
-      auto marker = "{{" + marker_label + "}}";
+      auto marker =
+          CODE_BUILDER_MARKER_BEGIN + marker_label + CODE_BUILDER_MARKER_END;
 
       auto delim = code.find(marker);
       assert(delim != std::string::npos);
