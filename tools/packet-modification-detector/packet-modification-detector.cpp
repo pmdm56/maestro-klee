@@ -162,10 +162,7 @@ int main(int argc, char **argv) {
   for (auto file : InputCallPathFiles) {
     std::cerr << "Loading: " << file << std::endl;
 
-    std::vector<std::string> expressions_str;
-    std::deque<klee::ref<klee::Expr>> expressions;
-
-    auto call_path = load_call_path(file, expressions_str, expressions);
+    auto call_path = load_call_path(file);
     call_paths.push_back(call_path);
   }
 

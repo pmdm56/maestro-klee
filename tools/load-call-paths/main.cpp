@@ -31,10 +31,7 @@ int main(int argc, char **argv, char **envp) {
 
   for (auto file : InputCallPathFiles) {
     std::cerr << "Loading: " << file << std::endl;
-
-    std::vector<std::string> expressions_str;
-    std::deque<klee::ref<klee::Expr>> expressions;
-    call_paths.push_back(load_call_path(file, expressions_str, expressions));
+    call_paths.push_back(load_call_path(file));
   }
 
   for (unsigned i = 0; i < call_paths.size(); i++) {
@@ -63,6 +60,16 @@ int main(int argc, char **argv, char **envp) {
           if (!arg.second.out.isNull()) {
             std::cerr << "            After: ";
             arg.second.out->dump();
+          }
+
+          if (arg.second.meta.size()) {
+            std::cerr << "            Meta: \n";
+            for (auto meta : arg.second.meta) {
+              std::cerr << "                  " << meta.symbol;
+              std::cerr << " (" << meta.size << " bits)\n";
+            }
+
+            { char c; std::cin >> c; }
           }
 
           if (arg.second.fn_ptr_name.first) {

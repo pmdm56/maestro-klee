@@ -2283,10 +2283,7 @@ int main(int argc, char **argv) {
   for (auto file : InputCallPathFiles) {
     std::cerr << "Loading: " << file << std::endl;
 
-    std::vector<std::string> expressions_str;
-    std::deque<klee::ref<klee::Expr>> expressions;
-
-    call_path_t *call_path = load_call_path(file, expressions_str, expressions);
+    call_path_t *call_path = load_call_path(file);
 
     libvig_manager.analyse_call_path(file, call_path);
     constraints_analyser.store_libvig_packet_constraints(file, call_path);

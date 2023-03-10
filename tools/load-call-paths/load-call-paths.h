@@ -3,11 +3,21 @@
 #include "klee/Constraints.h"
 #include "klee/ExprBuilder.h"
 
+typedef uint32_t bits_t;
+
+// At expression offset, t
+typedef struct {
+  std::string symbol;
+  bits_t offset;
+  bits_t size;
+} meta_t;
+
 typedef struct {
   klee::ref<klee::Expr> expr;
   std::pair<bool, std::string> fn_ptr_name;
   klee::ref<klee::Expr> in;
   klee::ref<klee::Expr> out;
+  std::vector<meta_t> meta;
 } arg_t;
 
 typedef struct call {
@@ -66,6 +76,4 @@ struct call_paths_t {
   static bool is_skip_function(const std::string &fname);
 };
 
-call_path_t *load_call_path(std::string file_name,
-                            std::vector<std::string> expressions_str,
-                            std::deque<klee::ref<klee::Expr>> &expressions);
+call_path_t *load_call_path(std::string file_name);

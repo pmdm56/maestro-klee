@@ -4,8 +4,8 @@
 
 #include "llvm/Support/MemoryBuffer.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 namespace BDD {
 
@@ -186,6 +186,24 @@ std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
       call_stream << expr_str;
     }
 
+    call_stream << "]";
+
+    call_stream << "[";
+    for (auto i = 0u; i < arg.meta.size(); i++) {
+      auto meta = arg.meta[i];
+
+      if (i != 0) {
+        call_stream << ",";
+      }
+
+      call_stream << "{";
+      call_stream << meta.symbol;
+      call_stream << ",";
+      call_stream << meta.offset;
+      call_stream << ",";
+      call_stream << meta.size;
+      call_stream << "}";
+    }
     call_stream << "]";
   }
 
@@ -421,6 +439,52 @@ klee::ref<klee::Expr> pop_expr(std::vector<klee::ref<klee::Expr>> &exprs) {
   return expr;
 }
 
+std::vector<meta_t> parse_meta(const std::string &meta_str) {
+  std::vector<meta_t> meta;
+  std::vector<std::string> elems(3);
+
+  auto lvl = 0;
+  auto curr_el = 0;
+
+  for (auto c : meta_str) {
+    if (c == '{') {
+      lvl++;
+      continue;
+    }
+
+    if (c == '}') {
+      lvl--;
+
+      auto symbol = elems[0];
+      auto offset = static_cast<bits_t>(std::stoi(elems[1]));
+      auto size = static_cast<bits_t>(std::stoi(elems[2]));
+
+      auto m = meta_t{symbol, offset, size};
+      meta.push_back(m);
+
+      continue;
+    }
+
+    if (c == ',' && lvl == 0) {
+      for (auto &el : elems) {
+        el.clear();
+      }
+
+      curr_el = 0;
+      continue;
+    }
+
+    else if (c == ',') {
+      curr_el++;
+      continue;
+    }
+
+    elems[curr_el] += c;
+  }
+
+  return meta;
+}
+
 std::pair<std::string, arg_t>
 parse_arg(std::string serialized_arg,
           std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -437,6 +501,7 @@ parse_arg(std::string serialized_arg,
   std::string in_str;
   std::string out_str;
   std::string fn_ptr_name;
+  std::string meta_str;
 
   delim = serialized_arg.find("&");
 
@@ -457,12 +522,23 @@ parse_arg(std::string serialized_arg,
       assert(delim != std::string::npos);
 
       in_str = serialized_arg.substr(0, delim);
-      out_str = serialized_arg.substr(delim + 2);
 
-      delim = out_str.find("]");
+      serialized_arg = serialized_arg.substr(delim + 2);
+
+      delim = serialized_arg.find("]");
       assert(delim != std::string::npos);
 
-      out_str = out_str.substr(0, delim);
+      out_str = serialized_arg.substr(0, delim);
+      meta_str = serialized_arg.substr(delim + 1);
+
+      auto meta_start = meta_str.find("[");
+      auto meta_end = meta_str.find("]");
+
+      assert(meta_start != std::string::npos);
+      assert(meta_end != std::string::npos);
+
+      meta_str = meta_str.substr(meta_start + 1, meta_end - 1);
+      arg.meta = parse_meta(meta_str);
     }
   }
 
@@ -551,9 +627,9 @@ call_t parse_call(std::string serialized_call,
   std::string arg_str;
   for (auto c : serialized_call) {
     delim++;
-    if (c == '(') {
+    if (c == '(' || c == '[') {
       parenthesis_lvl++;
-    } else if (c == ')') {
+    } else if (c == ')' || c == ']') {
       parenthesis_lvl--;
 
       if (parenthesis_lvl == 0) {
@@ -563,7 +639,7 @@ call_t parse_call(std::string serialized_call,
         }
         break;
       }
-    } else if (c == ',') {
+    } else if (c == ',' && parenthesis_lvl == 1) {
       args_str.push_back(arg_str);
       arg_str.clear();
 

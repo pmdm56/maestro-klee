@@ -218,7 +218,7 @@ void TofinoGenerator::visit(const targets::tofino::EthernetModify *node) {
 
     auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
         ethernet_chunk, byte * 8, klee::Expr::Int8);
-    
+
     auto transpiled_byte = transpile(modified_byte);
     auto transpiled_expr = transpile(expr);
 
@@ -253,7 +253,7 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   std::vector<std::string> key_labels;
 
   for (auto key : keys) {
-    auto key_vars = get_key_vars(ingress, key.expr);
+    auto key_vars = get_key_vars(ingress, key.expr, key.meta);
 
     for (auto kv : key_vars) {
       key_labels.push_back(kv.variable.get_label());
@@ -263,7 +263,7 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   std::vector<std::vector<std::string>> assignments;
 
   for (auto key : keys) {
-    auto key_assignments = transpiler.assign_key_bytes(key.expr);
+    auto key_assignments = transpiler.assign_key_bytes(key.expr, key.meta);
     assignments.push_back(key_assignments);
   }
 
@@ -316,7 +316,8 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   }
 
   if (contains_symbol.size()) {
-    auto hit_var = Variable(table_label + "_hit", 1, contains_symbol);
+    // FIXME: this shouldn't be a literal here
+    auto hit_var = Variable(table_label + "_hit", 1, {contains_symbol}, 32);
 
     ingress.local_vars.append(hit_var);
 

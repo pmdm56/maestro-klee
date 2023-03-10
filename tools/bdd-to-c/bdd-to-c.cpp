@@ -390,10 +390,7 @@ BDD::BDD build_bdd() {
   for (auto file : InputCallPathFiles) {
     std::cerr << "Loading: " << file << std::endl;
 
-    std::vector<std::string> expressions_str;
-    std::deque<klee::ref<klee::Expr>> expressions;
-
-    call_path_t *call_path = load_call_path(file, expressions_str, expressions);
+    call_path_t *call_path = load_call_path(file);
     call_paths.push_back(call_path);
   }
 

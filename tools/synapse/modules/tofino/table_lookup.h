@@ -12,9 +12,7 @@ public:
   struct key_t {
     klee::ref<klee::Expr> expr;
     klee::ref<klee::Expr> condition;
-
-    key_t(klee::ref<klee::Expr> _expr, klee::ref<klee::Expr> _condition)
-        : expr(_expr), condition(_condition) {}
+    std::vector<meta_t> meta;
 
     key_t(klee::ref<klee::Expr> _expr) : expr(_expr) {}
   };
@@ -99,6 +97,7 @@ private:
     klee::ref<klee::Expr> obj;
     klee::ref<klee::Expr> key;
     klee::ref<klee::Expr> value;
+    std::vector<meta_t> key_meta;
     std::string contains_symbol;
 
     extracted_data_t(const std::string &_fname) : valid(false), fname(_fname) {}
@@ -121,6 +120,7 @@ private:
 
     auto _map = call.args[symbex::FN_MAP_ARG_MAP].expr;
     auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
+    auto _key_meta = call.args[symbex::FN_MAP_ARG_KEY].meta;
     auto _value = call.args[symbex::FN_MAP_ARG_OUT].out;
 
     auto symbols = casted->get_generated_symbols();
@@ -133,6 +133,7 @@ private:
     data.valid = true;
     data.obj = _map;
     data.key = _key;
+    data.key_meta = _key_meta;
     data.value = _value;
     data.contains_symbol = _map_has_this_key_label;
 
@@ -189,12 +190,18 @@ private:
 
     std::vector<key_t> _keys;
 
+    auto _key = key_t(data.key);
+
     if (ep.can_recall<klee::ref<klee::Expr>>(node->get_id())) {
       auto _key_condition = ep.recall<klee::ref<klee::Expr>>(node->get_id());
-      _keys.emplace_back(data.key, _key_condition);
-    } else {
-      _keys.emplace_back(data.key);
+      _key.condition = _key_condition;
     }
+    
+    if (data.key_meta.size()) {
+      _key.meta = data.key_meta;
+    }
+
+    _keys.push_back(_key);
 
     std::vector<param_t> _params{data.value};
     std::string _contains_symbol = data.contains_symbol;

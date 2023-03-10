@@ -54,9 +54,10 @@ private:
 };
 
 std::vector<std::string>
-Transpiler::assign_key_bytes(klee::ref<klee::Expr> key) {
+Transpiler::assign_key_bytes(klee::ref<klee::Expr> key,
+                             const std::vector<meta_t> &meta) {
   std::vector<std::string> assignments;
-  auto key_vars = get_key_vars(tg.ingress, key);
+  auto key_vars = get_key_vars(tg.ingress, key, meta);
 
   for (const auto &kv : key_vars) {
     if (!kv.is_free) {

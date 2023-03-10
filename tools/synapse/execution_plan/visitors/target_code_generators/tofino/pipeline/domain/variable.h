@@ -14,29 +14,31 @@ namespace tofino {
 class Variable {
 protected:
   std::string label;
-  unsigned size_bits;
+  bits_t size_bits;
 
   std::string prefix;
-  std::pair<bool, std::string> vigor_symbol;
+
+  std::vector<std::string> vigor_symbols;
+
   std::vector<klee::ref<klee::Expr>> exprs;
 
 public:
   Variable(const Variable &variable)
       : label(variable.label), size_bits(variable.size_bits),
-        prefix(variable.prefix), vigor_symbol(variable.vigor_symbol),
+        prefix(variable.prefix), vigor_symbols(variable.vigor_symbols),
         exprs(variable.exprs) {}
 
-  Variable(std::string _label, unsigned _size_bits, std::string _vigor_symbol)
-      : label(_label), size_bits(_size_bits),
-        vigor_symbol(true, _vigor_symbol) {}
+  Variable(std::string _label, bits_t _size_bits,
+           std::vector<std::string> _vigor_symbols, bits_t _vigor_symbols_size)
+      : label(_label), size_bits(_size_bits), vigor_symbols(_vigor_symbols) {}
 
-  Variable(std::string _label, unsigned _size_bits, klee::ref<klee::Expr> expr)
-      : label(_label), size_bits(_size_bits), vigor_symbol(false, "") {
+  Variable(std::string _label, bits_t _size_bits, klee::ref<klee::Expr> expr)
+      : label(_label), size_bits(_size_bits) {
     exprs.push_back(expr);
   }
 
-  Variable(std::string _label, unsigned _size_bits)
-      : label(_label), size_bits(_size_bits), vigor_symbol(false, "") {}
+  Variable(std::string _label, bits_t _size_bits)
+      : label(_label), size_bits(_size_bits) {}
 
   void set_prefix(const std::string &_prefix) { prefix = _prefix; }
 
@@ -48,7 +50,7 @@ public:
     return label;
   }
 
-  unsigned get_size_bits() const { return size_bits; }
+  bits_t get_size_bits() const { return size_bits; }
 
   void add_expr(klee::ref<klee::Expr> expr) { exprs.push_back(expr); }
 
@@ -73,11 +75,13 @@ public:
   }
 
   bool match(std::string s) const {
-    if (!vigor_symbol.first) {
-      return false;
+    for (const auto &symbol : vigor_symbols) {
+      if (symbol == s) {
+        return true;
+      }
     }
 
-    return vigor_symbol.second.compare(s) == 0;
+    return false;
   }
 
   bool match(klee::ref<klee::Expr> e) const {
