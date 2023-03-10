@@ -24,41 +24,42 @@ namespace Clone {
 	/* Protected methods */
 
 	void Visitor::visitInitRoot(const BDD::Node *root) {
-		debug("Visiting init root");
+		info("Visiting init root");
+
 		
 		root->visit(*this);
 	}
 
 	void Visitor::visitProcessRoot(const BDD::Node *root) {
-		debug("Visiting process root");
+		info("Visiting process root");
 
 		root->visit(*this);
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitBranch(const BDD::Branch *node) {
-		debug("Visiting branch");
+		info("Visiting branch");
 
 		return Action::VISIT_CHILDREN;
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitCall(const BDD::Call *node) {
-		debug("Visiting call");
+		info("Visiting call");
 
 		return Action::VISIT_CHILDREN;
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitReturnInit(const BDD::ReturnInit *node) {
-		debug("Visiting return init");
+		info("Visiting return init");
 		return Action::STOP;
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitReturnProcess(const BDD::ReturnProcess *node) {
-		debug("Visiting return process");
+		info("Visiting return process");
 		return Action::STOP;
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitReturnRaw(const BDD::ReturnRaw *node) {
-		debug("Visiting return raw");
+		info("Visiting return raw");
 		return Action::STOP;
 	}
 
@@ -66,10 +67,10 @@ namespace Clone {
 	/* Public methods */
 
 	void Visitor::visit(const BDD::BDD &bdd)  {
-		debug("Visiting BDD init");
+		info("Visiting BDD init");
 		
 		if(builder->is_empty()) {
-			builder->init();
+			builder->init(&bdd);
 		}
 
 		assert(bdd.get_init() != nullptr);

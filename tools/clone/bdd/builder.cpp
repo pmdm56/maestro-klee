@@ -8,7 +8,7 @@ namespace Clone {
 
 	/* Constructors and destructors */
 
-	Builder::Builder(): bdd(nullptr) {
+	Builder::Builder() : bdd(nullptr) {
 		debug("Builder created");
 	}
 
@@ -19,12 +19,17 @@ namespace Clone {
 		return bdd == nullptr;
 	}
 
-	void Builder::init() {
-		bdd = unique_ptr<const BDD::BDD>(new BDD::BDD(0));
-
+	void Builder::init(const BDD::BDD *bdd) {
+		debug("Initializing BDD");
+		this->bdd = unique_ptr<BDD::BDD>(new BDD::BDD(*bdd));
 	}
 
-	void Builder::append(const BDD::Node *node) {
+	void Builder::append(BDD::Node *node) {
 		debug("Appending node");
+	}
+
+	void Builder::dump(std::string path) {
+		debug("Dumping BDD to file");
+		this->bdd->serialize(path);
 	}
 }
