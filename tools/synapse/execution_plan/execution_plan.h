@@ -46,6 +46,7 @@ private:
 
   unsigned depth;
   unsigned nodes;
+  std::unordered_set<TargetType> targets;
   std::map<TargetType, unsigned> nodes_per_target;
   unsigned reordered_nodes;
   unsigned id;
@@ -78,7 +79,8 @@ public:
   void inc_reordered_nodes();
   const ExecutionPlanNode_ptr &get_root() const;
 
-  void add_memory_bank(TargetType type, MemoryBank_ptr mb);
+  void add_target(TargetType type, MemoryBank_ptr mb);
+  bool has_target(TargetType type) const;
 
   MemoryBank_ptr get_memory_bank() const;
   MemoryBank_ptr get_memory_bank(TargetType type) const;

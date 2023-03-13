@@ -83,9 +83,16 @@ unsigned ExecutionPlan::get_reordered_nodes() const { return reordered_nodes; }
 void ExecutionPlan::inc_reordered_nodes() { reordered_nodes++; }
 const ExecutionPlanNode_ptr &ExecutionPlan::get_root() const { return root; }
 
-void ExecutionPlan::add_memory_bank(TargetType type, MemoryBank_ptr mb) {
+void ExecutionPlan::add_target(TargetType type, MemoryBank_ptr mb) {
+  assert(targets.find(type) == targets.end());
   assert(memory_banks.find(type) == memory_banks.end());
+
+  targets.insert(type);
   memory_banks[type] = mb;
+}
+
+bool ExecutionPlan::has_target(TargetType type) const {
+  return targets.find(type) != targets.end();
 }
 
 MemoryBank_ptr ExecutionPlan::get_memory_bank() const {

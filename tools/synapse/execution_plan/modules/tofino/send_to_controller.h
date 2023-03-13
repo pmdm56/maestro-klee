@@ -90,6 +90,10 @@ private:
   processing_result_t process(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
     processing_result_t result;
 
+    if (!ep.has_target(TargetType::x86_Tofino)) {
+      return result;
+    }
+
     auto ep_cloned = ep.clone(true);
     auto &bdd = ep_cloned.get_bdd();
     auto node_cloned = bdd.get_node_by_id(node->get_id());

@@ -54,7 +54,7 @@ public:
     auto first_execution_plan = ExecutionPlan(bdd);
 
     for (auto target : targets) {
-      first_execution_plan.add_memory_bank(target->type, target->memory_bank);
+      first_execution_plan.add_target(target->type, target->memory_bank);
     }
 
     SearchSpace search_space(h.get_cfg(), first_execution_plan);
