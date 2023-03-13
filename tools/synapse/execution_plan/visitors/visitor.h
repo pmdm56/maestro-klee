@@ -33,8 +33,6 @@ class SetIpv4UdpTcpChecksum;
 class DchainIsIndexAllocated;
 } // namespace x86_bmv2
 
-namespace x86_tofino {}
-
 namespace bmv2 {
 class SendToController;
 class ParserConsume;
@@ -70,6 +68,11 @@ class Drop;
 class SendToController;
 } // namespace tofino
 
+namespace x86_tofino {
+class CurrentTime;
+class GetPacketHeader;
+} // namespace x86_tofino
+
 } // namespace targets
 
 class ExecutionPlanVisitor {
@@ -79,7 +82,7 @@ public:
 
   /*************************************
    *
-   *              x86
+   *              x86 BMv2
    *
    * **********************************/
 
@@ -107,7 +110,7 @@ public:
 
   /*************************************
    *
-   *        BMv2SimpleSwitchgRPC
+   *                 BMv2
    *
    * **********************************/
 
@@ -146,6 +149,15 @@ public:
   virtual void visit(const targets::tofino::TableLookup *node) {}
   virtual void visit(const targets::tofino::Drop *node) {}
   virtual void visit(const targets::tofino::SendToController *node) {}
+
+  /*************************************
+   *
+   *              x86 Tofino
+   *
+   * **********************************/
+
+  virtual void visit(const targets::x86_tofino::CurrentTime *node) {}
+  virtual void visit(const targets::x86_tofino::GetPacketHeader *node) {}
 
 protected:
   void log(const ExecutionPlanNode *ep_node) const;

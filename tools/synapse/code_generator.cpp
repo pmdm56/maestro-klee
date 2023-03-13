@@ -1,6 +1,5 @@
 #include "code_generator.h"
-#include "execution_plan/visitors/graphviz.h"
-#include "modules/modules.h"
+#include "execution_plan/visitors/graphviz/graphviz.h"
 
 namespace synapse {
 
@@ -14,7 +13,7 @@ bool all_x86_no_controller(const ExecutionPlan &execution_plan) {
     assert(node);
     auto module = node->get_module();
 
-    if (module->get_target() != Target::x86_BMv2) {
+    if (module->get_target() != TargetType::x86_BMv2) {
       return false;
     }
 
@@ -227,7 +226,7 @@ CodeGenerator::bmv2_extractor(const ExecutionPlan &execution_plan) const {
 
     auto module = node->get_module();
     assert(module);
-    assert(module->get_target() == Target::BMv2);
+    assert(module->get_target() == TargetType::BMv2);
 
     if (module->get_type() == Module::ModuleType::BMv2_SendToController) {
       auto no_next = Branches();
@@ -268,7 +267,7 @@ CodeGenerator::tofino_extractor(const ExecutionPlan &execution_plan) const {
 
     auto module = node->get_module();
     assert(module);
-    assert(module->get_target() == Target::Tofino);
+    assert(module->get_target() == TargetType::Tofino);
 
     // if (module->get_type() == Module::ModuleType::Tofino_SendToController) {
     //   auto no_next = Branches();

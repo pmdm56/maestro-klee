@@ -1,5 +1,8 @@
 #include "visitor.h"
+#include "../../log.h"
 #include "../execution_plan.h"
+#include "../execution_plan_node.h"
+#include "../modules/module.h"
 
 #include <vector>
 

@@ -24,10 +24,9 @@
 
 #include "code_generator.h"
 #include "execution_plan/execution_plan.h"
-#include "execution_plan/visitors/graphviz.h"
+#include "execution_plan/visitors/graphviz/graphviz.h"
 #include "heuristics/heuristics.h"
 #include "log.h"
-#include "modules/modules.h"
 #include "search.h"
 
 namespace {
@@ -36,21 +35,22 @@ llvm::cl::list<std::string> InputCallPathFiles(llvm::cl::desc("<call paths>"),
 
 llvm::cl::OptionCategory SyNAPSE("SyNAPSE specific options");
 
-llvm::cl::list<synapse::Target>
-    TargetList(llvm::cl::desc("Available targets:"), llvm::cl::Required,
-               llvm::cl::OneOrMore,
-               llvm::cl::values(
-                   clEnumValN(synapse::Target::x86_BMv2, "x86-bmv2",
-                              "x86 controller for BMv2 (C)"),
-                   clEnumValN(synapse::Target::BMv2, "bmv2", "BMv2 Lab 5: Apoio ao projeto -- mE1(P4)"),
-                   clEnumValN(synapse::Target::FPGA, "fpga", "FPGA (veriLog)"),
-                   clEnumValN(synapse::Target::Netronome, "netronome",
-                              "Netronome (micro C)"),
-                   clEnumValN(synapse::Target::Tofino, "tofino", "Tofino (P4)"),
-                   clEnumValN(synapse::Target::x86_Tofino, "x86-tofino",
-                              "x86 controller for Tofino (C)"),
-                   clEnumValEnd),
-               llvm::cl::cat(SyNAPSE));
+llvm::cl::list<synapse::TargetType> TargetList(
+    llvm::cl::desc("Available targets:"), llvm::cl::Required,
+    llvm::cl::OneOrMore,
+    llvm::cl::values(
+        clEnumValN(synapse::TargetType::x86_BMv2, "x86-bmv2",
+                   "x86 controller for BMv2 (C)"),
+        clEnumValN(synapse::TargetType::BMv2, "bmv2",
+                   "BMv2 Lab 5: Apoio ao projeto -- mE1(P4)"),
+        clEnumValN(synapse::TargetType::FPGA, "fpga", "FPGA (veriLog)"),
+        clEnumValN(synapse::TargetType::Netronome, "netronome",
+                   "Netronome (micro C)"),
+        clEnumValN(synapse::TargetType::Tofino, "tofino", "Tofino (P4)"),
+        clEnumValN(synapse::TargetType::x86_Tofino, "x86-tofino",
+                   "x86 controller for Tofino (C)"),
+        clEnumValEnd),
+    llvm::cl::cat(SyNAPSE));
 
 llvm::cl::opt<std::string>
     InputBDDFile("in", llvm::cl::desc("Input file for BDD deserialization."),
@@ -113,12 +113,11 @@ int main(int argc, char **argv) {
   synapse::LeastReordered least_reordered;
   synapse::MaximizeSwitchNodes maximize_switch_nodes;
 
-  auto winner = search_engine.search(biggest);
-
+  // auto winner = search_engine.search(biggest);
   // auto winner = search_engine.search(least_reordered);
   // auto winner = search_engine.search(dfs);
   // auto winner = search_engine.search(most_compact);
-  // auto winner = search_engine.search(maximize_switch_nodes);
+  auto winner = search_engine.search(maximize_switch_nodes);
 
   code_generator.generate(winner);
 

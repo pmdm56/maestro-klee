@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../execution_plan/execution_plan.h"
+#include "../log.h"
 
 #include <iostream>
 #include <map>

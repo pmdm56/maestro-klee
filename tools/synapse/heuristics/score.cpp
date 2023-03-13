@@ -1,5 +1,6 @@
 #include "score.h"
-#include "../modules/modules.h"
+#include "../execution_plan/execution_plan.h"
+#include "../execution_plan/modules/modules.h"
 
 namespace synapse {
 
@@ -11,18 +12,16 @@ int Score::get_nr_merged_tables() const {
   }
 
   auto num_merged_tables = 0;
-  auto nodes = std::vector<ExecutionPlanNode_ptr>{ execution_plan.get_root() };
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
 
   while (nodes.size()) {
     auto node = nodes[0];
     nodes.erase(nodes.begin());
 
     auto module = node->get_module();
-    if (module->get_type() ==
-        Module::ModuleType::BMv2_TableLookup) {
+    if (module->get_type() == Module::ModuleType::BMv2_TableLookup) {
       auto tableLookup =
-          static_cast<targets::bmv2::TableLookup *>(
-              module.get());
+          static_cast<targets::bmv2::TableLookup *>(module.get());
 
       auto merged = tableLookup->get_keys().size();
 
@@ -45,10 +44,16 @@ int Score::get_nr_switch_nodes() const {
   auto switch_nodes = 0;
 
   const auto &nodes_per_target = execution_plan.get_nodes_per_target();
-  auto switch_nodes_it = nodes_per_target.find(Target::BMv2);
 
-  if (switch_nodes_it != nodes_per_target.end()) {
-    switch_nodes = switch_nodes_it->second;
+  auto bmv2_nodes_it = nodes_per_target.find(TargetType::BMv2);
+  auto tofino_nodes_it = nodes_per_target.find(TargetType::BMv2);
+
+  if (bmv2_nodes_it != nodes_per_target.end()) {
+    switch_nodes += bmv2_nodes_it->second;
+  }
+
+  if (tofino_nodes_it != nodes_per_target.end()) {
+    switch_nodes += tofino_nodes_it->second;
   }
 
   return switch_nodes;
@@ -58,7 +63,7 @@ int Score::get_nr_controller_nodes() const {
   auto controller_nodes = 0;
 
   const auto &nodes_per_target = execution_plan.get_nodes_per_target();
-  auto controller_nodes_it = nodes_per_target.find(Target::x86_BMv2);
+  auto controller_nodes_it = nodes_per_target.find(TargetType::x86_BMv2);
 
   if (controller_nodes_it != nodes_per_target.end()) {
     controller_nodes = controller_nodes_it->second;

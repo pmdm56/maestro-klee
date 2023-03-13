@@ -1,9 +1,7 @@
 #pragma once
 
 #include "execution_plan/execution_plan.h"
-#include "modules/modules.h"
-
-#include "execution_plan/visitors/target_code_generators/target_code_generators.h"
+#include "execution_plan/visitors/synthesizers/synthesizers.h"
 
 #include <sys/stat.h>
 #include <vector>
@@ -14,22 +12,22 @@ class CodeGenerator {
 private:
   typedef ExecutionPlan (CodeGenerator::*ExecutionPlanTargetExtractor)(
       const ExecutionPlan &) const;
-  typedef std::shared_ptr<synapse::synthesizer::Target> TargetCodeGenerator_ptr;
+  typedef std::shared_ptr<synapse::synthesizer::Synthesizer> Synthesizer_ptr;
 
   struct target_helper_t {
     ExecutionPlanTargetExtractor extractor;
-    TargetCodeGenerator_ptr generator;
+    Synthesizer_ptr generator;
 
     target_helper_t(ExecutionPlanTargetExtractor _extractor)
         : extractor(_extractor) {}
 
     target_helper_t(ExecutionPlanTargetExtractor _extractor,
-                    TargetCodeGenerator_ptr _generator)
+                    Synthesizer_ptr _generator)
         : extractor(_extractor), generator(_generator) {}
   };
 
   std::vector<target_helper_t> target_helpers_loaded;
-  std::map<Target, target_helper_t> target_helpers_bank;
+  std::map<TargetType, target_helper_t> target_helpers_bank;
 
 private:
   ExecutionPlan x86_bmv2_extractor(const ExecutionPlan &execution_plan) const;
@@ -44,38 +42,38 @@ private:
 public:
   CodeGenerator(const std::string &_directory) : directory(_directory) {
     target_helpers_bank = {
-        {Target::x86_BMv2,
+        {TargetType::x86_BMv2,
          target_helper_t(
              &CodeGenerator::x86_bmv2_extractor,
              std::make_shared<synapse::synthesizer::x86BMv2Generator>())},
 
-        {Target::BMv2,
+        {TargetType::BMv2,
          target_helper_t(
              &CodeGenerator::bmv2_extractor,
              std::make_shared<synapse::synthesizer::bmv2::BMv2Generator>())},
 
-        {Target::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
+        {TargetType::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
 
-        {Target::x86_Tofino,
+        {TargetType::x86_Tofino,
          target_helper_t(
              &CodeGenerator::x86_tofino_extractor,
              std::make_shared<
                  synapse::synthesizer::x86_tofino::x86TofinoGenerator>())},
 
-        {Target::Tofino,
+        {TargetType::Tofino,
          target_helper_t(&CodeGenerator::tofino_extractor,
                          std::make_shared<
                              synapse::synthesizer::tofino::TofinoGenerator>())},
 
-        {Target::Netronome,
+        {TargetType::Netronome,
          target_helper_t(&CodeGenerator::netronome_extractor)},
     };
   }
 
-  void add_target(Target target) {
+  void add_target(TargetType target) {
     auto found_it = target_helpers_bank.find(target);
     assert(found_it != target_helpers_bank.end() &&
-           "Target not found in target_extractors_bank of CodeGenerator");
+           "TargetType not found in target_extractors_bank of CodeGenerator");
     assert(found_it->second.generator);
 
     if (!directory.size()) {
@@ -86,22 +84,22 @@ public:
     auto output_file = directory + "/";
 
     switch (target) {
-    case Target::x86_BMv2:
+    case TargetType::x86_BMv2:
       output_file += "bmv2-x86.c";
       break;
-    case Target::BMv2:
+    case TargetType::BMv2:
       output_file += "bmv2.p4";
       break;
-    case Target::FPGA:
+    case TargetType::FPGA:
       output_file += "fpga.v";
       break;
-    case Target::x86_Tofino:
+    case TargetType::x86_Tofino:
       output_file += "tofino-x86.c";
       break;
-    case Target::Tofino:
+    case TargetType::Tofino:
       output_file += "tofino.p4";
       break;
-    case Target::Netronome:
+    case TargetType::Netronome:
       output_file += "netronome.c";
       break;
     }
