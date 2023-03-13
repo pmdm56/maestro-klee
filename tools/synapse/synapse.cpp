@@ -112,12 +112,13 @@ int main(int argc, char **argv) {
   synapse::MostCompact most_compact;
   synapse::LeastReordered least_reordered;
   synapse::MaximizeSwitchNodes maximize_switch_nodes;
+  synapse::ExactMatch exact_match;
 
-  // auto winner = search_engine.search(biggest);
+  auto winner = search_engine.search(biggest);
   // auto winner = search_engine.search(least_reordered);
   // auto winner = search_engine.search(dfs);
   // auto winner = search_engine.search(most_compact);
-  auto winner = search_engine.search(maximize_switch_nodes);
+  // auto winner = search_engine.search(maximize_switch_nodes);
 
   code_generator.generate(winner);
 

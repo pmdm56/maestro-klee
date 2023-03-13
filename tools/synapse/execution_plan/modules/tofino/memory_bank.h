@@ -1,5 +1,7 @@
 #pragma once
 
+#include <klee/Expr.h>
+
 #include "../../memory_bank.h"
 
 namespace synapse {

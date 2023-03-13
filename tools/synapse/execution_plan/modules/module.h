@@ -79,7 +79,13 @@ public:
     Tofino_Drop,
     Tofino_SendToController,
     x86_Tofino_CurrentTime,
-    x86_Tofino_GetPacketHeader,
+    x86_Tofino_Ignore,
+    x86_Tofino_PacketParseCPU,
+    x86_Tofino_PacketParseEthernet,
+    x86_Tofino_If,
+    x86_Tofino_Then,
+    x86_Tofino_Else,
+    x86_Tofino_Drop,
   };
 
 protected:

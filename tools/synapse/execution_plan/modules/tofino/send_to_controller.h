@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../module.h"
+#include "../x86_tofino/packet_parse_cpu.h"
 
 namespace synapse {
 namespace targets {
@@ -87,6 +88,23 @@ private:
     return root;
   }
 
+  ExecutionPlan build_new_execution_plan(const ExecutionPlan &ep,
+                                         BDD::BDDNode_ptr current_node,
+                                         BDD::BDDNode_ptr next_node,
+                                         Module_ptr module,
+                                         uint64_t code_path) {
+    auto new_packet_parse_cpu_module =
+        std::make_shared<x86_tofino::PacketParseCPU>(current_node);
+
+    auto sent_to_controller = ep.add_leaves(module, nullptr, false, false);
+    auto new_ep = sent_to_controller.add_leaves(new_packet_parse_cpu_module,
+                                                next_node, false, false);
+
+    new_ep.replace_active_leaf_node(next_node, false);
+
+    return new_ep;
+  }
+
   processing_result_t process(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
     processing_result_t result;
 
@@ -98,16 +116,20 @@ private:
     auto &bdd = ep_cloned.get_bdd();
     auto node_cloned = bdd.get_node_by_id(node->get_id());
 
-    auto next = clone_calls(ep_cloned, node_cloned);
-    auto _metadata_code_path = node->get_id();
+    auto next_node = clone_calls(ep_cloned, node_cloned);
+    auto _code_path = node->get_id();
 
     auto new_module =
-        std::make_shared<SendToController>(node_cloned, _metadata_code_path);
-    auto next_ep = ep_cloned.add_leaves(new_module, next, false, false);
-    next_ep.replace_active_leaf_node(next, false);
+        std::make_shared<SendToController>(node_cloned, _code_path);
+
+    auto new_ep = build_new_execution_plan(ep_cloned, node_cloned, next_node,
+                                           new_module, _code_path);
+
+    // TODO: check metadata code path here and add if canditions
+    // remove that logic from the code_generator
 
     result.module = new_module;
-    result.next_eps.push_back(next_ep);
+    result.next_eps.push_back(new_ep);
 
     return result;
   }

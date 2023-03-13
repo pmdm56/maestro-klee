@@ -4,8 +4,14 @@
 #include "../module.h"
 
 #include "current_time.h"
-#include "get_packet_hdr.h"
+#include "drop.h"
+#include "else.h"
+#include "if.h"
+#include "ignore.h"
 #include "memory_bank.h"
+#include "packet_parse_cpu.h"
+#include "packet_parse_ethernet.h"
+#include "then.h"
 
 namespace synapse {
 namespace targets {
@@ -16,8 +22,14 @@ public:
   x86TofinoTarget()
       : Target(TargetType::x86_Tofino,
                {
+                   MODULE(Ignore),
                    MODULE(CurrentTime),
-                   MODULE(GetPacketHeader),
+                   MODULE(PacketParseCPU),
+                   MODULE(PacketParseEthernet),
+                   MODULE(If),
+                   MODULE(Then),
+                   MODULE(Else),
+                   MODULE(Drop),
                },
                MemoryBank_ptr(new x86TofinoMemoryBank())) {}
 

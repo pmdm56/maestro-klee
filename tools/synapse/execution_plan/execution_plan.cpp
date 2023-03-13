@@ -2,6 +2,7 @@
 #include "../log.h"
 #include "execution_plan_node.h"
 #include "memory_bank.h"
+#include "modules/modules.h"
 #include "visitors/graphviz/graphviz.h"
 #include "visitors/visitor.h"
 
@@ -39,7 +40,8 @@ ExecutionPlan::ExecutionPlan(const ExecutionPlan &ep)
     : root(ep.root), leaves(ep.leaves), bdd(ep.bdd),
       shared_memory_bank(ep.shared_memory_bank), memory_banks(ep.memory_banks),
       processed_bdd_nodes(ep.processed_bdd_nodes), depth(ep.depth),
-      nodes(ep.nodes), nodes_per_target(ep.nodes_per_target),
+      nodes(ep.nodes), targets(ep.targets),
+      nodes_per_target(ep.nodes_per_target),
       reordered_nodes(ep.reordered_nodes), id(ep.id) {}
 
 ExecutionPlan::ExecutionPlan(const ExecutionPlan &ep,
@@ -97,10 +99,6 @@ bool ExecutionPlan::has_target(TargetType type) const {
 
 MemoryBank_ptr ExecutionPlan::get_memory_bank() const {
   return shared_memory_bank;
-}
-
-MemoryBank_ptr ExecutionPlan::get_memory_bank(TargetType type) const {
-  return memory_banks.at(type);
 }
 
 const std::unordered_set<uint64_t> &

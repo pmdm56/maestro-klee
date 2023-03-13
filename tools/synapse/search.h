@@ -66,7 +66,7 @@ public:
       auto next_node = next_ep.get_next_node();
       assert(next_node);
 
-      // Graphviz::visualize(next_ep);
+      Graphviz::visualize(next_ep);
 
       struct report_t {
         std::vector<std::string> target_name;

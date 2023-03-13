@@ -21,7 +21,7 @@ public:
   void visit(const ExecutionPlanNode *ep_node) override;
 
   void visit(const targets::x86_tofino::CurrentTime *node) override;
-  void visit(const targets::x86_tofino::GetPacketHeader *node) override;
+  void visit(const targets::x86_tofino::PacketParseCPU *node) override;
 };
 
 } // namespace x86_tofino

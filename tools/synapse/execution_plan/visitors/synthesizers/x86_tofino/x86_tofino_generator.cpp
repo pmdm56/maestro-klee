@@ -15,7 +15,7 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::CurrentTime *node) {
 }
 
 void x86TofinoGenerator::visit(
-    const targets::x86_tofino::GetPacketHeader *node) {
+    const targets::x86_tofino::PacketParseCPU *node) {
   assert(false && "TODO");
 }
 

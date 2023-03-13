@@ -1,6 +1,10 @@
 #pragma once
 
+#include <assert.h>
 #include <memory>
+
+#define VISIT(MODULE)                                                          \
+  virtual void visit(const MODULE *m) { assert(false && "Unexpected module."); }
 
 namespace synapse {
 
@@ -69,8 +73,14 @@ class SendToController;
 } // namespace tofino
 
 namespace x86_tofino {
+class Ignore;
 class CurrentTime;
-class GetPacketHeader;
+class PacketParseCPU;
+class PacketParseEthernet;
+class If;
+class Then;
+class Else;
+class Drop;
 } // namespace x86_tofino
 
 } // namespace targets
@@ -86,27 +96,27 @@ public:
    *
    * **********************************/
 
-  virtual void visit(const targets::x86_bmv2::MapGet *node) {}
-  virtual void visit(const targets::x86_bmv2::CurrentTime *node) {}
-  virtual void visit(const targets::x86_bmv2::PacketBorrowNextChunk *node) {}
-  virtual void visit(const targets::x86_bmv2::PacketReturnChunk *node) {}
-  virtual void visit(const targets::x86_bmv2::PacketGetMetadata *node) {}
-  virtual void visit(const targets::x86_bmv2::If *node) {}
-  virtual void visit(const targets::x86_bmv2::Then *node) {}
-  virtual void visit(const targets::x86_bmv2::Else *node) {}
-  virtual void visit(const targets::x86_bmv2::Forward *node) {}
-  virtual void visit(const targets::x86_bmv2::Broadcast *node) {}
-  virtual void visit(const targets::x86_bmv2::Drop *node) {}
-  virtual void visit(const targets::x86_bmv2::ExpireItemsSingleMap *node) {}
-  virtual void visit(const targets::x86_bmv2::RteEtherAddrHash *node) {}
-  virtual void visit(const targets::x86_bmv2::DchainRejuvenateIndex *node) {}
-  virtual void visit(const targets::x86_bmv2::VectorBorrow *node) {}
-  virtual void visit(const targets::x86_bmv2::VectorReturn *node) {}
-  virtual void visit(const targets::x86_bmv2::DchainAllocateNewIndex *node) {}
-  virtual void visit(const targets::x86_bmv2::MapPut *node) {}
-  virtual void visit(const targets::x86_bmv2::PacketGetUnreadLength *node) {}
-  virtual void visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) {}
-  virtual void visit(const targets::x86_bmv2::DchainIsIndexAllocated *node) {}
+  VISIT(targets::x86_bmv2::MapGet)
+  VISIT(targets::x86_bmv2::CurrentTime)
+  VISIT(targets::x86_bmv2::PacketBorrowNextChunk)
+  VISIT(targets::x86_bmv2::PacketReturnChunk)
+  VISIT(targets::x86_bmv2::PacketGetMetadata)
+  VISIT(targets::x86_bmv2::If)
+  VISIT(targets::x86_bmv2::Then)
+  VISIT(targets::x86_bmv2::Else)
+  VISIT(targets::x86_bmv2::Forward)
+  VISIT(targets::x86_bmv2::Broadcast)
+  VISIT(targets::x86_bmv2::Drop)
+  VISIT(targets::x86_bmv2::ExpireItemsSingleMap)
+  VISIT(targets::x86_bmv2::RteEtherAddrHash)
+  VISIT(targets::x86_bmv2::DchainRejuvenateIndex)
+  VISIT(targets::x86_bmv2::VectorBorrow)
+  VISIT(targets::x86_bmv2::VectorReturn)
+  VISIT(targets::x86_bmv2::DchainAllocateNewIndex)
+  VISIT(targets::x86_bmv2::MapPut)
+  VISIT(targets::x86_bmv2::PacketGetUnreadLength)
+  VISIT(targets::x86_bmv2::SetIpv4UdpTcpChecksum)
+  VISIT(targets::x86_bmv2::DchainIsIndexAllocated)
 
   /*************************************
    *
@@ -114,24 +124,24 @@ public:
    *
    * **********************************/
 
-  virtual void visit(const targets::bmv2::SendToController *node) {}
-  virtual void visit(const targets::bmv2::Ignore *node) {}
-  virtual void visit(const targets::bmv2::SetupExpirationNotifications *node) {}
-  virtual void visit(const targets::bmv2::If *node) {}
-  virtual void visit(const targets::bmv2::Then *node) {}
-  virtual void visit(const targets::bmv2::Else *node) {}
-  virtual void visit(const targets::bmv2::EthernetConsume *node) {}
-  virtual void visit(const targets::bmv2::EthernetModify *node) {}
-  virtual void visit(const targets::bmv2::TableLookup *node) {}
-  virtual void visit(const targets::bmv2::IPv4Consume *node) {}
-  virtual void visit(const targets::bmv2::IPv4Modify *node) {}
-  virtual void visit(const targets::bmv2::TcpUdpConsume *node) {}
-  virtual void visit(const targets::bmv2::TcpUdpModify *node) {}
-  virtual void visit(const targets::bmv2::IPOptionsConsume *node) {}
-  virtual void visit(const targets::bmv2::IPOptionsModify *node) {}
-  virtual void visit(const targets::bmv2::Drop *node) {}
-  virtual void visit(const targets::bmv2::Forward *node) {}
-  virtual void visit(const targets::bmv2::VectorReturn *node) {}
+  VISIT(targets::bmv2::SendToController)
+  VISIT(targets::bmv2::Ignore)
+  VISIT(targets::bmv2::SetupExpirationNotifications)
+  VISIT(targets::bmv2::If)
+  VISIT(targets::bmv2::Then)
+  VISIT(targets::bmv2::Else)
+  VISIT(targets::bmv2::EthernetConsume)
+  VISIT(targets::bmv2::EthernetModify)
+  VISIT(targets::bmv2::TableLookup)
+  VISIT(targets::bmv2::IPv4Consume)
+  VISIT(targets::bmv2::IPv4Modify)
+  VISIT(targets::bmv2::TcpUdpConsume)
+  VISIT(targets::bmv2::TcpUdpModify)
+  VISIT(targets::bmv2::IPOptionsConsume)
+  VISIT(targets::bmv2::IPOptionsModify)
+  VISIT(targets::bmv2::Drop)
+  VISIT(targets::bmv2::Forward)
+  VISIT(targets::bmv2::VectorReturn)
 
   /*************************************
    *
@@ -139,16 +149,16 @@ public:
    *
    * **********************************/
 
-  virtual void visit(const targets::tofino::Ignore *node) {}
-  virtual void visit(const targets::tofino::If *node) {}
-  virtual void visit(const targets::tofino::Then *node) {}
-  virtual void visit(const targets::tofino::Else *node) {}
-  virtual void visit(const targets::tofino::Forward *node) {}
-  virtual void visit(const targets::tofino::EthernetConsume *node) {}
-  virtual void visit(const targets::tofino::EthernetModify *node) {}
-  virtual void visit(const targets::tofino::TableLookup *node) {}
-  virtual void visit(const targets::tofino::Drop *node) {}
-  virtual void visit(const targets::tofino::SendToController *node) {}
+  VISIT(targets::tofino::Ignore)
+  VISIT(targets::tofino::If)
+  VISIT(targets::tofino::Then)
+  VISIT(targets::tofino::Else)
+  VISIT(targets::tofino::Forward)
+  VISIT(targets::tofino::EthernetConsume)
+  VISIT(targets::tofino::EthernetModify)
+  VISIT(targets::tofino::TableLookup)
+  VISIT(targets::tofino::Drop)
+  VISIT(targets::tofino::SendToController)
 
   /*************************************
    *
@@ -156,11 +166,17 @@ public:
    *
    * **********************************/
 
-  virtual void visit(const targets::x86_tofino::CurrentTime *node) {}
-  virtual void visit(const targets::x86_tofino::GetPacketHeader *node) {}
+  VISIT(targets::x86_tofino::Ignore)
+  VISIT(targets::x86_tofino::CurrentTime)
+  VISIT(targets::x86_tofino::PacketParseCPU)
+  VISIT(targets::x86_tofino::PacketParseEthernet)
+  VISIT(targets::x86_tofino::If)
+  VISIT(targets::x86_tofino::Then)
+  VISIT(targets::x86_tofino::Else)
+  VISIT(targets::x86_tofino::Drop)
 
 protected:
-  void log(const ExecutionPlanNode *ep_node) const;
+  virtual void log(const ExecutionPlanNode *ep_node) const;
 };
 
 } // namespace synapse

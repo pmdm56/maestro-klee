@@ -76,4 +76,35 @@ int Score::get_nr_reordered_nodes() const {
   return execution_plan.get_reordered_nodes();
 }
 
+int Score::get_nr_exact_match_nodes() const {
+  auto targets = std::vector<DummyModule>{target_ep};
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
+  auto matches = 0;
+
+  while (nodes.size() && targets.size()) {
+    auto node = nodes[0];
+    auto target = targets[0];
+
+    nodes.erase(nodes.begin());
+    targets.erase(targets.begin());
+
+    assert(node);
+    auto module = node->get_module();
+
+    if (module->get_type() != target.type) {
+      break;
+    }
+
+    matches++;
+
+    auto next_node = node->get_next();
+    auto next_target = target.next;
+
+    nodes.insert(nodes.end(), next_node.begin(), next_node.end());
+    targets.insert(targets.end(), next_target.begin(), next_target.end());
+  }
+
+  return matches;
+}
+
 } // namespace synapse

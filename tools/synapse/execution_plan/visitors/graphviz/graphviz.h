@@ -66,12 +66,6 @@ private:
 
     for (auto bdd_fpath : bdd_fpaths) {
       cmd += " " + bdd_fpath;
-
-      // std::stringstream cp;
-      // cp << "cp " << bdd_fpath << " ~/MEGA/SyNAPSE/node\\ reordering/fw/";
-      // cp << counter / 2 << "_" << counter % 2 << ".gv";
-      // system(cp.str().c_str());
-
       counter++;
     }
 
@@ -86,11 +80,12 @@ public:
   Graphviz(const std::string &path, const SearchSpace *_search_space)
       : fpath(path), search_space(_search_space) {
     node_colors = std::map<TargetType, std::string>{
+        {TargetType::BMv2, "firebrick2"},
         {TargetType::x86_BMv2, "cornflowerblue"},
         {TargetType::Tofino, "darkolivegreen2"},
+        {TargetType::x86_Tofino, "cornflowerblue"},
         {TargetType::Netronome, "gold"},
         {TargetType::FPGA, "coral1"},
-        {TargetType::BMv2, "firebrick2"},
     };
 
     ofs.open(fpath);
@@ -392,6 +387,10 @@ public:
     }
   }
 
+  void log(const ExecutionPlanNode *ep_node) const override {
+    // do nothing
+  }
+
   /********************************************
    *
    *                x86 BMv2
@@ -468,7 +467,13 @@ public:
    *
    ********************************************/
 
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Ignore)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::CurrentTime)
-  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::GetPacketHeader)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseCPU)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseEthernet)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::If)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Then)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Else)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Drop)
 };
 } // namespace synapse

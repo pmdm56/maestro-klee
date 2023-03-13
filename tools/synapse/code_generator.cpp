@@ -24,56 +24,79 @@ bool all_x86_no_controller(const ExecutionPlan &execution_plan) {
   return true;
 }
 
+bool only_has_modules_from_target(const ExecutionPlan &execution_plan,
+                                  TargetType type) {
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    assert(node);
+    auto module = node->get_module();
+
+    if (module->get_target() != type) {
+      return false;
+    }
+
+    auto next = node->get_next();
+    nodes.insert(nodes.end(), next.begin(), next.end());
+  }
+
+  return true;
+}
+
+struct annotated_node_t {
+  ExecutionPlanNode_ptr node;
+  bool save;
+  uint64_t path_id;
+
+  annotated_node_t(ExecutionPlanNode_ptr _node)
+      : node(_node), save(false), path_id(0) {}
+
+  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, uint64_t _path_id)
+      : node(_node), save(_save), path_id(_path_id) {}
+
+  annotated_node_t clone() const {
+    auto cloned_node = ExecutionPlanNode::build(node.get());
+
+    // the constructor increments the ID, let's fix that
+    cloned_node->set_id(node->get_id());
+
+    return annotated_node_t(cloned_node, save, path_id);
+  }
+
+  std::vector<annotated_node_t> next() {
+    std::vector<annotated_node_t> nodes;
+
+    auto next = node->get_next();
+
+    if (next.size() == 0) {
+      node = nullptr;
+    }
+
+    bool first = true;
+    for (auto next_node : next) {
+      if (first) {
+        node = next_node;
+        first = false;
+        continue;
+      }
+
+      nodes.emplace_back(next_node, save, path_id);
+    }
+
+    return nodes;
+  }
+};
+
 ExecutionPlan
 CodeGenerator::x86_bmv2_extractor(const ExecutionPlan &execution_plan) const {
-  if (all_x86_no_controller(execution_plan)) {
+  if (only_has_modules_from_target(execution_plan, TargetType::x86_BMv2)) {
     return execution_plan;
   }
 
   assert(execution_plan.get_root());
-
-  struct annotated_node_t {
-    ExecutionPlanNode_ptr node;
-    bool save;
-    uint64_t path_id;
-
-    annotated_node_t(ExecutionPlanNode_ptr _node)
-        : node(_node), save(false), path_id(0) {}
-    annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, uint64_t _path_id)
-        : node(_node), save(_save), path_id(_path_id) {}
-
-    annotated_node_t clone() const {
-      auto cloned_node = ExecutionPlanNode::build(node.get());
-
-      // the constructor increments the ID, let's fix that
-      cloned_node->set_id(node->get_id());
-
-      return annotated_node_t(cloned_node, save, path_id);
-    }
-
-    std::vector<annotated_node_t> next() {
-      std::vector<annotated_node_t> nodes;
-
-      auto next = node->get_next();
-
-      if (next.size() == 0) {
-        node = nullptr;
-      }
-
-      bool first = true;
-      for (auto next_node : next) {
-        if (first) {
-          node = next_node;
-          first = false;
-          continue;
-        }
-
-        nodes.emplace_back(next_node, save, path_id);
-      }
-
-      return nodes;
-    }
-  };
 
   auto roots = std::vector<annotated_node_t>();
   auto leaves = std::vector<annotated_node_t>();
@@ -250,8 +273,11 @@ CodeGenerator::fpga_extractor(const ExecutionPlan &execution_plan) const {
 
 ExecutionPlan
 CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
+  if (only_has_modules_from_target(execution_plan, TargetType::x86_Tofino)) {
+    return execution_plan;
+  }
+
   assert(false && "TODO");
-  exit(1);
 }
 
 ExecutionPlan

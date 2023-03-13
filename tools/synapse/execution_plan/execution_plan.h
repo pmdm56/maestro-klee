@@ -3,8 +3,8 @@
 #include "call-paths-to-bdd.h"
 #include "target.h"
 
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace synapse {
 
@@ -58,14 +58,6 @@ public:
   ExecutionPlan(const ExecutionPlan &ep);
   ExecutionPlan(const ExecutionPlan &ep, ExecutionPlanNode_ptr _root);
 
-private:
-  void update_leaves(std::vector<leaf_t> _leaves, bool is_terminal);
-  void update_processed_nodes();
-
-  ExecutionPlanNode_ptr clone_nodes(ExecutionPlan &ep,
-                                    const ExecutionPlanNode *node) const;
-
-public:
   unsigned get_depth() const;
   unsigned get_nodes() const;
 
@@ -83,8 +75,13 @@ public:
   bool has_target(TargetType type) const;
 
   MemoryBank_ptr get_memory_bank() const;
-  MemoryBank_ptr get_memory_bank(TargetType type) const;
-  
+
+  template <class MB> MB *get_memory_bank(TargetType type) const {
+    static_assert(std::is_base_of<MemoryBank, MB>::value,
+                  "MB not derived from MemoryBank");
+    return static_cast<MB *>(memory_banks.at(type).get());
+  }
+
   const std::unordered_set<uint64_t> &get_processed_bdd_nodes() const;
 
   BDD::BDDNode_ptr get_next_node() const;
@@ -120,6 +117,13 @@ public:
 
   ExecutionPlan clone(BDD::BDD new_bdd) const;
   ExecutionPlan clone(bool deep = false) const;
+
+private:
+  void update_leaves(std::vector<leaf_t> _leaves, bool is_terminal);
+  void update_processed_nodes();
+
+  ExecutionPlanNode_ptr clone_nodes(ExecutionPlan &ep,
+                                    const ExecutionPlanNode *node) const;
 };
 
 bool operator==(const ExecutionPlan &lhs, const ExecutionPlan &rhs);

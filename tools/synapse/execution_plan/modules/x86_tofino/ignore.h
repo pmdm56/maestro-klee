@@ -4,23 +4,21 @@
 
 namespace synapse {
 namespace targets {
-namespace tofino {
+namespace x86_tofino {
 
 class Ignore : public Module {
 private:
   std::vector<std::string> functions_to_ignore;
 
 public:
-  Ignore() : Module(ModuleType::Tofino_Ignore, TargetType::Tofino, "Ignore") {
-    functions_to_ignore = std::vector<std::string>{
-        symbex::FN_CURRENT_TIME,
-        symbex::FN_ETHER_HASH,
-        symbex::FN_DCHAIN_REJUVENATE,
-    };
+  Ignore()
+      : Module(ModuleType::x86_Tofino_Ignore, TargetType::Tofino, "Ignore") {
+    functions_to_ignore = std::vector<std::string>{};
   }
 
   Ignore(BDD::BDDNode_ptr node)
-      : Module(ModuleType::Tofino_Ignore, TargetType::Tofino, "Ignore", node) {}
+      : Module(ModuleType::x86_Tofino_Ignore, TargetType::Tofino, "Ignore",
+               node) {}
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
@@ -57,6 +55,6 @@ public:
     return other->get_type() == type;
   }
 };
-} // namespace tofino
+} // namespace x86_tofino
 } // namespace targets
 } // namespace synapse

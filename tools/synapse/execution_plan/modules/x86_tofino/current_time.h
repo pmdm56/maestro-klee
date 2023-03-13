@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../module.h"
+#include "memory_bank.h"
 
 namespace synapse {
 namespace targets {
@@ -34,9 +35,15 @@ private:
       auto _time = call.ret;
       auto _generated_symbols = casted->get_generated_symbols();
 
+      assert(_generated_symbols.size() == 1);
+      auto time_symbol = *_generated_symbols.begin();
+
+      auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
+      mb->set_time(time_symbol);
+
       auto new_module =
           std::make_shared<CurrentTime>(node, _time, _generated_symbols);
-      auto new_ep = ep.add_leaves(new_module, node->get_next());
+      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);
