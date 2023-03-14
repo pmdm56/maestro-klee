@@ -3,8 +3,7 @@
 
 namespace BDD {
 BDDNode_ptr ReturnInit::clone(bool recursive) const {
-  auto clone = std::make_shared<ReturnInit>(id, prev, value,
-                                            call_paths_filenames, constraints);
+  auto clone = std::make_shared<ReturnInit>(id, prev, value, constraints);
   return clone;
 }
 

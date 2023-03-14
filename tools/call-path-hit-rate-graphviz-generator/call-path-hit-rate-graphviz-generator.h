@@ -1,24 +1,17 @@
 #pragma once
 
 #include <assert.h>
-#include <iostream>
-#include <vector>
 #include <iomanip>
+#include <iostream>
+#include <unordered_map>
+#include <vector>
 
 #include "call-paths-to-bdd.h"
 
 namespace BDD {
 
-struct callpath_hitrate_report_entry_t {
-  unsigned call_path_id;
-  uint64_t hits;
-
-  callpath_hitrate_report_entry_t(unsigned _call_path_id, uint64_t _hits)
-      : call_path_id(_call_path_id), hits(_hits) {}
-};
-
 struct callpath_hitrate_report_t {
-  std::vector<callpath_hitrate_report_entry_t> entries;
+  std::unordered_map<uint64_t, uint64_t> entries;
 
   callpath_hitrate_report_t(const std::string &filename) {
     std::string line;
@@ -33,13 +26,13 @@ struct callpath_hitrate_report_t {
       }
 
       auto delim = line.find('\t');
-      auto call_path_id_str = line.substr(0, delim);
+      auto id_str = line.substr(0, delim);
       auto hits_str = line.substr(delim + 1);
 
-      auto call_path_id = std::stoll(call_path_id_str);
+      auto id = std::stoull(id_str);
       auto hits = std::stoll(hits_str);
 
-      entries.emplace_back(call_path_id, hits);
+      entries[id] = hits;
     }
 
     normalize();
@@ -48,15 +41,15 @@ struct callpath_hitrate_report_t {
   void normalize() {
     uint64_t total_hits = 0;
 
-    for (const auto &entry : entries) {
-      total_hits += entry.hits;
+    for (auto kv = entries.begin(); kv != entries.end(); kv++) {
+      total_hits += kv->second;
       // printf("id %2u hits %lu\n", entry.call_path_id, entry.hits);
     }
 
     // printf("\n");
 
-    for (auto &entry : entries) {
-      entry.hits = (uint64_t)((double)100 * entry.hits / total_hits);
+    for (auto kv = entries.begin(); kv != entries.end(); kv++) {
+      kv->second = (uint64_t)((double)100 * kv->second / total_hits);
       // printf("id %2u hits %3lu %%\n", entry.call_path_id, entry.hits);
     }
   }
@@ -110,16 +103,10 @@ private:
 
     // Use call paths filenames to check their ID.
     // Don't forget that their ID starts with 1 instead of 0 though...
-    auto call_paths_filenames = node->get_call_paths_filenames();
-    for (auto call_path_filename : call_paths_filenames) {
-      // text{call path ID} => {call path ID}
-      auto delim = call_path_filename.find("test");
-      assert(delim != std::string::npos);
-      auto id_str = call_path_filename.substr(delim + 4);
-      auto id = std::stoi(id_str);
-
-      assert((unsigned)(id - 1) < report.entries.size());
-      cumulative_hit_rate += report.entries[id - 1].hits;
+    auto term_ids = node->get_terminating_node_ids();
+    for (auto id : term_ids) {
+      assert(report.entries.find(id) != report.entries.end());
+      cumulative_hit_rate += report.entries[id];
     }
 
     float hit_rate_fp = (float)cumulative_hit_rate / 100.0;
@@ -130,7 +117,7 @@ private:
     auto yellow = color_t(1, 1, 0);
     auto red = color_t(1, 0, 0);
 
-    auto palette = std::vector<color_t>{ blue, cyan, green, yellow, red };
+    auto palette = std::vector<color_t>{blue, cyan, green, yellow, red};
 
     auto value = hit_rate_fp * (palette.size() - 1);
     auto idx1 = (int)std::floor(value);
@@ -166,7 +153,9 @@ private:
         stream << "0";
         break;
       }
-      default: { assert(false); }
+      default: {
+        assert(false);
+      }
       }
       stream << "\"";
 
@@ -200,22 +189,6 @@ public:
 
     os << node->get_id() << ":";
     os << kutil::pretty_print_expr(condition);
-
-    auto i = 0u;
-    os << "\\ncps={";
-    for (auto cp : node->get_call_paths_filenames()) {
-      int call_path_id;
-      sscanf(cp.c_str(), "test%d", &call_path_id);
-      os << call_path_id;
-      if (i < node->get_call_paths_filenames().size() - 1) {
-        os << ",";
-      }
-      if (i > 0 && i % 10 == 0) {
-        os << "\\n";
-      }
-      i++;
-    }
-    os << "}";
 
     os << "\"";
     os << ", color=" << get_node_color(node);
@@ -280,8 +253,8 @@ public:
           }
 
           if (!arg.out.isNull() &&
-              (arg.in.isNull() ||
-               !kutil::solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
+              (arg.in.isNull() || !kutil::solver_toolbox.are_exprs_always_equal(
+                                      arg.in, arg.out))) {
             os << " -> ";
             os << kutil::pretty_print_expr(arg.out);
           }
@@ -300,22 +273,6 @@ public:
     }
 
     os << ")\\l";
-
-    i = 0;
-    os << " cps={";
-    for (auto cp : node->get_call_paths_filenames()) {
-      int call_path_id;
-      sscanf(cp.c_str(), "test%d", &call_path_id);
-      os << call_path_id;
-      if (i < node->get_call_paths_filenames().size() - 1) {
-        os << ",";
-      }
-      if (i > 0 && i % 10 == 0) {
-        os << "\\l          ";
-      }
-      i++;
-    }
-    os << "}\\l";
 
     os << "\", ";
     os << "color=" << get_node_color(node);
@@ -348,7 +305,9 @@ public:
 
       break;
     }
-    default: { assert(false); }
+    default: {
+      assert(false);
+    }
     }
     os << ";\n";
 
@@ -359,27 +318,12 @@ public:
     auto value = node->get_return_value();
     auto operation = node->get_return_operation();
 
-    auto i = 0u;
-    std::stringstream cps;
-    cps << "\\lcps={";
-    for (auto cp : node->get_call_paths_filenames()) {
-      int call_path_id;
-      sscanf(cp.c_str(), "test%d", &call_path_id);
-      cps << call_path_id;
-      if (i < node->get_call_paths_filenames().size() - 1) {
-        cps << ",";
-      }
-      i++;
-    }
-    cps << "}\\l";
-
     os << "\t\t" << get_gv_name(node);
     os << " [label=\"";
     os << node->get_id() << ":";
     switch (operation) {
     case ReturnProcess::Operation::FWD: {
       os << "fwd(" << value << ")";
-      os << cps.str();
       os << "\", ";
       os << "color=" << get_node_color(node) << "]";
 
@@ -387,7 +331,6 @@ public:
     }
     case ReturnProcess::Operation::DROP: {
       os << "drop()";
-      os << cps.str();
       os << "\", ";
       os << "color=" << get_node_color(node) << "]";
 
@@ -395,13 +338,14 @@ public:
     }
     case ReturnProcess::Operation::BCAST: {
       os << "bcast()";
-      os << cps.str();
       os << "\", ";
       os << "color=" << get_node_color(node) << "]";
 
       break;
     }
-    default: { assert(false); }
+    default: {
+      assert(false);
+    }
     }
     os << ";\n";
     return STOP;

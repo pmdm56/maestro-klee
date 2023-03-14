@@ -14,8 +14,7 @@ BDDNode_ptr Call::clone(bool recursive) const {
     clone_next = next;
   }
 
-  auto clone = std::make_shared<Call>(id, call, clone_next, prev,
-                                      call_paths_filenames, constraints);
+  auto clone = std::make_shared<Call>(id, call, clone_next, prev, constraints);
 
   if (recursive && clone_next) {
     clone_next->prev = clone;

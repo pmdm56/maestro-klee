@@ -3,8 +3,8 @@
 
 namespace BDD {
 BDDNode_ptr ReturnProcess::clone(bool recursive) const {
-  auto clone = std::make_shared<ReturnProcess>(
-      id, prev, value, operation, call_paths_filenames, constraints);
+  auto clone =
+      std::make_shared<ReturnProcess>(id, prev, value, operation, constraints);
   return clone;
 }
 
@@ -71,12 +71,12 @@ void ReturnProcess::fill_return_value(calls_t calls) {
   }
 
   if (counter_dst_device_pair.first > 1) {
-    value = ((uint16_t) - 1);
+    value = ((uint16_t)-1);
     operation = BCAST;
     return;
   }
 
-  auto packet_receive_finder = [](call_t call)->bool {
+  auto packet_receive_finder = [](call_t call) -> bool {
     return call.function_name == "packet_receive";
   };
 

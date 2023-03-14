@@ -94,63 +94,6 @@ public:
     }
   }
 
-  std::string callpaths_list_to_str(const Node *node) {
-    std::vector<int> call_path_ids;
-    std::stringstream ss;
-
-    if (node->get_call_paths_filenames().size() == 0) {
-      return ss.str();
-    }
-
-    for (auto cp : node->get_call_paths_filenames()) {
-      int call_path_id;
-      sscanf(cp.c_str(), "test%d", &call_path_id);
-      call_path_ids.push_back(call_path_id);
-    }
-
-    std::sort(call_path_ids.begin(), call_path_ids.end());
-
-    if (call_path_ids.size() == 1) {
-      ss << call_path_ids[0];
-      return ss.str();
-    }
-
-    int start = call_path_ids[0];
-    int end = start;
-    bool started = false;
-
-    auto dump = [](std::stringstream &ss, int start, int end, bool &started) {
-      if (started) {
-        ss << ",";
-      } else {
-        started = true;
-      }
-
-      if (start != end) {
-        ss << start << "-" << end;
-      } else {
-        ss << start;
-      }
-    };
-
-    for (auto i = 1u; i < call_path_ids.size(); i++) {
-      auto id = call_path_ids[i];
-
-      if (id == end + 1) {
-        end = id;
-      } else {
-        dump(ss, start, end, started);
-        start = end = id;
-      }
-
-      if (i == call_path_ids.size() - 1) {
-        dump(ss, start, end, started);
-      }
-    }
-
-    return ss.str();
-  }
-
   void visit(const BDD &bdd) override {
     os << "digraph mygraph {\n";
     os << "\tnode [shape=box style=rounded border=0];\n";
@@ -189,9 +132,6 @@ public:
     os << node->get_id() << ":";
     os << kutil::pretty_print_expr(condition);
 
-    os << "\\ncps={";
-    os << callpaths_list_to_str(node);
-    os << "}";
     os << "\"";
 
     if (processed.find(node->get_id()) != processed.end()) {
@@ -262,8 +202,8 @@ public:
           }
 
           if (!arg.out.isNull() &&
-              (arg.in.isNull() ||
-               !kutil::solver_toolbox.are_exprs_always_equal(arg.in, arg.out))) {
+              (arg.in.isNull() || !kutil::solver_toolbox.are_exprs_always_equal(
+                                      arg.in, arg.out))) {
             os << " -> ";
             os << kutil::pretty_print_expr(arg.out);
           }
@@ -281,13 +221,8 @@ public:
       i++;
     }
 
-    os << ")\\l";
-
-    i = 0;
-    os << " cps={";
-    os << callpaths_list_to_str(node);
-    os << "}\\l";
-
+    os << ")";
+    os << "\\l";
     os << "\", ";
 
     if (processed.find(node->get_id()) != processed.end()) {
@@ -311,30 +246,35 @@ public:
   Action visitReturnInit(const ReturnInit *node) override {
     auto value = node->get_return_value();
 
-    os << "\t\t\"return ";
+    os << "\t\t" << get_gv_name(node);
+    os << " [label=\"";
+    os << node->get_id() << ":";
+
     switch (value) {
     case ReturnInit::ReturnType::SUCCESS: {
-      os << "1\"";
+      os << "OK";
+      os << "\", ";
 
       if (processed.find(node->get_id()) != processed.end()) {
-        os << " [color=" << COLOR_PROCESSED << "]";
+        os << " color=" << COLOR_PROCESSED << "]";
       } else if (next && node->get_id() == next->get_id()) {
-        os << " [color=" << COLOR_NEXT << "]";
+        os << " color=" << COLOR_NEXT << "]";
       } else {
-        os << " [color=chartreuse2]";
+        os << " color=chartreuse2]";
       }
 
       break;
     }
     case ReturnInit::ReturnType::FAILURE: {
-      os << "0\"";
+      os << "ABORT";
+      os << "\", ";
 
       if (processed.find(node->get_id()) != processed.end()) {
-        os << " [color=" << COLOR_PROCESSED << "]";
+        os << " color=" << COLOR_PROCESSED << "]";
       } else if (next && node->get_id() == next->get_id()) {
-        os << " [color=" << COLOR_NEXT << "]";
+        os << " color=" << COLOR_NEXT << "]";
       } else {
-        os << " [color=brown1]";
+        os << " color=brown1]";
       }
 
       break;
@@ -352,18 +292,12 @@ public:
     auto value = node->get_return_value();
     auto operation = node->get_return_operation();
 
-    std::stringstream cps;
-    cps << "\\lcps={";
-    cps << callpaths_list_to_str(node);
-    cps << "}\\l";
-
     os << "\t\t" << get_gv_name(node);
     os << " [label=\"";
     os << node->get_id() << ":";
     switch (operation) {
     case ReturnProcess::Operation::FWD: {
       os << "fwd(" << value << ")";
-      os << cps.str();
       os << "\", ";
 
       if (processed.find(node->get_id()) != processed.end()) {
@@ -378,7 +312,6 @@ public:
     }
     case ReturnProcess::Operation::DROP: {
       os << "drop()";
-      os << cps.str();
       os << "\", ";
 
       if (processed.find(node->get_id()) != processed.end()) {
@@ -393,7 +326,6 @@ public:
     }
     case ReturnProcess::Operation::BCAST: {
       os << "bcast()";
-      os << cps.str();
       os << "\", ";
 
       if (processed.find(node->get_id()) != processed.end()) {

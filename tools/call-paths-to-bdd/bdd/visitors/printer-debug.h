@@ -45,19 +45,6 @@ public:
               << "\n";
     std::cerr << "type:      call"
               << "\n";
-    std::cerr << "callpaths: ";
-    int i = 0;
-    for (const auto &filename : node->get_call_paths_filenames()) {
-      if (i > 0 && i % 5 == 0) {
-        std::cerr << "\n"
-                  << "           ";
-      }
-      if (i > 0 && i % 5 != 0)
-        std::cerr << ", ";
-      std::cerr << filename;
-      i++;
-    }
-    std::cerr << "\n";
     std::cerr << "function:  " << call.function_name << "\n";
     std::cerr << "args:      ";
     bool indent = false;
@@ -101,26 +88,12 @@ public:
   }
 
   Action visitReturnInit(const ReturnInit *node) override {
-    auto call_paths_filenames = node->get_call_paths_filenames();
     auto value = node->get_return_value();
 
     std::cerr << "==========================================="
               << "\n";
     std::cerr << "type:      return init"
               << "\n";
-    std::cerr << "callpaths: ";
-    int i = 0;
-    for (const auto &filename : call_paths_filenames) {
-      if (i > 0 && i % 5 == 0) {
-        std::cerr << "\n"
-                  << "           ";
-      }
-      if (i > 0 && i % 5 != 0)
-        std::cerr << ", ";
-      std::cerr << filename;
-      i++;
-    }
-    std::cerr << "\n";
     std::cerr << "value:     ";
     switch (value) {
     case ReturnInit::ReturnType::SUCCESS: {
@@ -143,7 +116,6 @@ public:
   }
 
   Action visitReturnProcess(const ReturnProcess *node) override {
-    auto call_paths_filenames = node->get_call_paths_filenames();
     auto value = node->get_return_value();
     auto operation = node->get_return_operation();
 
@@ -151,19 +123,6 @@ public:
               << "\n";
     std::cerr << "type:      return process"
               << "\n";
-    std::cerr << "callpaths: ";
-    int i = 0;
-    for (const auto &filename : call_paths_filenames) {
-      if (i > 0 && i % 5 == 0) {
-        std::cerr << "\n"
-                  << "           ";
-      }
-      if (i > 0 && i % 5 != 0)
-        std::cerr << ", ";
-      std::cerr << filename;
-      i++;
-    }
-    std::cerr << "\n";
     std::cerr << "operation: ";
     switch (operation) {
     case ReturnProcess::Operation::FWD: {

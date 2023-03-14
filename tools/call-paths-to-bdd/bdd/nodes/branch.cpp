@@ -17,9 +17,8 @@ BDDNode_ptr Branch::clone(bool recursive) const {
     clone_on_false = on_false;
   }
 
-  auto clone =
-      std::make_shared<Branch>(id, condition, clone_on_true, clone_on_false,
-                               prev, call_paths_filenames, constraints);
+  auto clone = std::make_shared<Branch>(id, condition, clone_on_true,
+                                        clone_on_false, prev, constraints);
 
   if (recursive) {
     clone_on_true->prev = clone;
@@ -27,6 +26,24 @@ BDDNode_ptr Branch::clone(bool recursive) const {
   }
 
   return clone;
+}
+
+std::vector<uint64_t> Branch::get_terminating_node_ids() const {
+  std::vector<uint64_t> terminating_ids;
+
+  assert(next);
+  assert(on_false);
+
+  auto on_true_ids = next->get_terminating_node_ids();
+  auto on_false_ids = on_false->get_terminating_node_ids();
+
+  terminating_ids.insert(terminating_ids.end(), on_true_ids.begin(),
+                         on_true_ids.end());
+
+  terminating_ids.insert(terminating_ids.end(), on_false_ids.begin(),
+                         on_false_ids.end());
+
+  return terminating_ids;
 }
 
 void Branch::recursive_update_ids(uint64_t &new_id) {

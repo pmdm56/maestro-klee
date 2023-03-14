@@ -24,10 +24,8 @@ public:
   Branch(uint64_t _id, klee::ref<klee::Expr> _condition,
          const BDDNode_ptr &_on_true, const BDDNode_ptr &_on_false,
          const BDDNode_ptr &_prev,
-         const std::vector<std::string> &_call_paths_filenames,
          const std::vector<klee::ConstraintManager> &_constraints)
-      : Node(_id, Node::NodeType::BRANCH, _on_true, _prev,
-             _call_paths_filenames, _constraints),
+      : Node(_id, Node::NodeType::BRANCH, _on_true, _prev, _constraints),
         condition(_condition), on_false(_on_false) {}
 
   klee::ref<klee::Expr> get_condition() const { return condition; }
@@ -40,6 +38,8 @@ public:
 
   const BDDNode_ptr &get_on_false() const { return on_false; }
   BDDNode_ptr get_on_false() { return on_false; }
+
+  virtual std::vector<uint64_t> get_terminating_node_ids() const override;
 
   void replace_on_true(const BDDNode_ptr &_on_true) { replace_next(_on_true); }
   void replace_on_false(const BDDNode_ptr &_on_false) { on_false = _on_false; }

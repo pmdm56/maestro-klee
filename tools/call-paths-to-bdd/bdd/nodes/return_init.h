@@ -6,10 +6,7 @@
 namespace BDD {
 class ReturnInit : public Node {
 public:
-  enum ReturnType {
-    SUCCESS,
-    FAILURE
-  };
+  enum ReturnType { SUCCESS, FAILURE };
 
 private:
   ReturnType value;
@@ -17,7 +14,7 @@ private:
   void fill_return_value(calls_t calls) {
     assert(calls.size());
 
-    auto start_time_finder = [](call_t call)->bool {
+    auto start_time_finder = [](call_t call) -> bool {
       return call.function_name == "start_time";
     };
 
@@ -34,8 +31,7 @@ public:
 
   ReturnInit(uint64_t _id, const ReturnRaw *raw)
       : Node(_id, Node::NodeType::RETURN_INIT, nullptr, nullptr,
-             raw->call_paths_filenames, raw->constraints) {
-    assert(call_paths_filenames.size());
+             raw->constraints) {
     auto calls_list = raw->get_calls();
     assert(calls_list.size());
     fill_return_value(calls_list[0]);
@@ -43,19 +39,13 @@ public:
 
   ReturnInit(uint64_t _id, const BDDNode_ptr &_prev, ReturnType _value)
       : Node(_id, Node::NodeType::RETURN_INIT, nullptr, _prev,
-             _prev->call_paths_filenames, _prev->constraints),
-        value(_value) {
-    assert(call_paths_filenames.size());
-  }
+             _prev->constraints),
+        value(_value) {}
 
   ReturnInit(uint64_t _id, const BDDNode_ptr &_prev, ReturnType _value,
-             const std::vector<std::string> &_call_paths_filenames,
              std::vector<klee::ConstraintManager> _constraints)
-      : Node(_id, Node::NodeType::RETURN_INIT, nullptr, _prev,
-             _call_paths_filenames, _constraints),
-        value(_value) {
-    assert(call_paths_filenames.size());
-  }
+      : Node(_id, Node::NodeType::RETURN_INIT, nullptr, _prev, _constraints),
+        value(_value) {}
 
   ReturnType get_return_value() const { return value; }
 

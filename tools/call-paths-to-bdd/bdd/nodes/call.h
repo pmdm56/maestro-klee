@@ -20,10 +20,8 @@ public:
 
   Call(uint64_t _id, call_t _call, const BDDNode_ptr &_next,
        const BDDNode_ptr &_prev,
-       const std::vector<std::string> &_call_paths_filenames,
        const std::vector<klee::ConstraintManager> &_constraints)
-      : Node(_id, Node::NodeType::CALL, _next, _prev, _call_paths_filenames,
-             _constraints),
+      : Node(_id, Node::NodeType::CALL, _next, _prev, _constraints),
         call(_call) {}
 
   call_t get_call() const { return call; }
