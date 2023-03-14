@@ -1,28 +1,31 @@
 #include "builder.hpp"
 #include "../pch.hpp"
 #include "../util/logger.hpp"
+#include "klee/Constraints.h"
 
 #include "call-paths-to-bdd.h"
+
+using namespace BDD;
 
 namespace Clone {
 
 	/* Constructors and destructors */
 
-	Builder::Builder() : bdd(nullptr) {
+	Builder::Builder() : bdd(unique_ptr<BDD::BDD>(new BDD::BDD(0))) {
 		debug("Builder created");
 	}
 
 	Builder::~Builder() = default;
 
 	/* Public methods */
-	bool Builder::is_empty() const {
-		return bdd == nullptr;
+	bool Builder::is_init_empty() const {
+		return bdd->get_init() == nullptr;
 	}
 
-	void Builder::init(const BDD::BDD *bdd) {
-		debug("Initializing BDD");
-		this->bdd = unique_ptr<BDD::BDD>(new BDD::BDD(*bdd));
+	bool Builder::is_process_empty() const {
+		return bdd->get_process() == nullptr;
 	}
+
 
 	void Builder::append(BDD::Node *node) {
 		debug("Appending node");

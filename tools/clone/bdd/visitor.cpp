@@ -25,7 +25,10 @@ namespace Clone {
 
 	void Visitor::visitInitRoot(const BDD::Node *root) {
 		info("Visiting init root");
-
+		
+		if(builder->is_init_empty()) {
+			info("Init is empty");
+		}
 		
 		root->visit(*this);
 	}
@@ -33,12 +36,17 @@ namespace Clone {
 	void Visitor::visitProcessRoot(const BDD::Node *root) {
 		info("Visiting process root");
 
+		if(builder->is_process_empty()) {
+			info("Process is empty");
+		}
 		root->visit(*this);
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitBranch(const BDD::Branch *node) {
 		info("Visiting branch");
 
+		const auto condition { node->get_condition() };
+		
 		return Action::VISIT_CHILDREN;
 	}
 
@@ -69,12 +77,8 @@ namespace Clone {
 	void Visitor::visit(const BDD::BDD &bdd)  {
 		info("Visiting BDD init");
 		
-		if(builder->is_empty()) {
-			builder->init(&bdd);
-		}
-
 		assert(bdd.get_init() != nullptr);
-		const auto &initRoot = bdd.get_init().get(); 
+		const auto &initRoot { bdd.get_init().get() }; 
 
 		visitInitRoot(initRoot);
 	}

@@ -16,10 +16,9 @@ namespace Clone {
 		Builder();
 		~Builder();
 
-		bool is_empty() const;
-		void init(const BDD::BDD *bdd);
+		bool is_init_empty() const;
+		bool is_process_empty() const;
 		void append(BDD::Node *node);
-
 		void dump(std::string path);
 	};
 }
