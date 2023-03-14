@@ -1,5 +1,4 @@
 #include "ast.h"
-#include "expr-printer.h"
 
 constexpr char AST::CHUNK_LAYER_2[];
 constexpr char AST::CHUNK_LAYER_3[];
@@ -82,17 +81,17 @@ klee::ref<klee::Expr> fix_key_klee_expr(klee::ref<klee::Expr> key) {
     return key;
   }
 
-  auto current_index = BDD::solver_toolbox.value_from_expr(read->index);
+  auto current_index = kutil::solver_toolbox.value_from_expr(read->index);
 
   klee::ref<klee::Expr> concat;
 
   for (auto i = 0; i < 6; i++) {
-    auto index = BDD::solver_toolbox.exprBuilder->Constant(current_index + i,
+    auto index = kutil::solver_toolbox.exprBuilder->Constant(current_index + i,
                                                            klee::Expr::Int32);
-    auto offset = BDD::solver_toolbox.exprBuilder->Read(ul, index);
+    auto offset = kutil::solver_toolbox.exprBuilder->Read(ul, index);
 
     if (!concat.isNull()) {
-      concat = BDD::solver_toolbox.exprBuilder->Concat(offset, concat);
+      concat = kutil::solver_toolbox.exprBuilder->Concat(offset, concat);
     } else {
       concat = offset;
     }
@@ -104,7 +103,7 @@ klee::ref<klee::Expr> fix_key_klee_expr(klee::ref<klee::Expr> key) {
 Variable_ptr AST::generate_new_symbol(klee::ref<klee::Expr> expr) {
   Type_ptr type = type_from_size(expr->getWidth());
 
-  RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(expr);
 
   auto symbols = retriever.get_retrieved_strings();
@@ -142,43 +141,13 @@ Variable_ptr AST::generate_new_symbol(std::string symbol, Type_ptr type,
 
   symbol = from_cp_symbol(symbol);
 
-  auto state_partial_name_finder = [&](Variable_ptr v) -> bool {
-    std::string local_symbol = v->get_symbol();
-    return local_symbol.find(symbol) != std::string::npos;
-  };
-
   auto local_partial_name_finder = [&](local_variable_t v) -> bool {
     std::string local_symbol = v.first->get_symbol();
     return local_symbol.find(symbol) != std::string::npos;
   };
 
-  auto state_it =
-      std::find_if(state.begin(), state.end(), state_partial_name_finder);
-
   unsigned int counter = 0;
   unsigned int last_id = 0;
-
-  //   while (state_it != state.end()) {
-  //     Variable_ptr var = *state_it;
-  //     std::string saved_symbol = var->get_symbol();
-
-  //     auto delim = saved_symbol.find(symbol);
-  //     assert(delim != std::string::npos);
-
-  //     std::string suffix = saved_symbol.substr(delim + symbol.size());
-  //     if (suffix.size() > 1 && isdigit(suffix[1])) {
-  //       assert(suffix[0] == '_');
-  //       suffix = suffix.substr(1);
-  //       unsigned int id = std::stoi(suffix, nullptr);
-  //       if (last_id < id) {
-  //         last_id = id;
-  //       }
-  //     }
-
-  //     counter++;
-  //     state_it = std::find_if(++state_it, state.end(),
-  //     state_partial_name_finder);
-  //   }
 
   for (auto i = local_variables.rbegin(); i != local_variables.rend(); i++) {
     auto stack = *i;
@@ -419,7 +388,7 @@ Expr_ptr AST::get_from_local(klee::ref<klee::Expr> expr) {
     auto saved_sz = saved->getWidth();
     auto wanted_sz = wanted->getWidth();
 
-    RetrieveSymbols retriever;
+    kutil::RetrieveSymbols retriever;
     retriever.visit(saved);
     if (retriever.get_retrieved_strings().size() == 0) {
       return -1;
@@ -431,9 +400,9 @@ Expr_ptr AST::get_from_local(klee::ref<klee::Expr> expr) {
 
     for (unsigned int offset = 0; offset <= saved_sz - wanted_sz; offset += 8) {
       auto saved_chunk =
-          BDD::solver_toolbox.exprBuilder->Extract(saved, offset, wanted_sz);
+          kutil::solver_toolbox.exprBuilder->Extract(saved, offset, wanted_sz);
 
-      if (BDD::solver_toolbox.are_exprs_always_equal(saved_chunk, wanted)) {
+      if (kutil::solver_toolbox.are_exprs_always_equal(saved_chunk, wanted)) {
         return offset;
       }
     }
@@ -783,23 +752,23 @@ Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
     std::cerr << call.function_name << "\n";
 
     for (const auto &arg : call.args) {
-      std::cerr << arg.first << " : " << expr_to_string(arg.second.expr)
+      std::cerr << arg.first << " : " << kutil::expr_to_string(arg.second.expr)
                 << "\n";
       if (!arg.second.in.isNull()) {
-        std::cerr << "  in:  " << expr_to_string(arg.second.in) << "\n";
+        std::cerr << "  in:  " << kutil::expr_to_string(arg.second.in) << "\n";
       }
       if (!arg.second.out.isNull()) {
-        std::cerr << "  out: " << expr_to_string(arg.second.out) << "\n";
+        std::cerr << "  out: " << kutil::expr_to_string(arg.second.out) << "\n";
       }
     }
 
     for (const auto &ev : call.extra_vars) {
-      std::cerr << ev.first << " : " << expr_to_string(ev.second.first) << " | "
-                << expr_to_string(ev.second.second) << "\n";
+      std::cerr << ev.first << " : " << kutil::expr_to_string(ev.second.first) << " | "
+                << kutil::expr_to_string(ev.second.second) << "\n";
     }
 
     std::cerr << "Not implemented:\n";
-    std::cerr << expr_to_string(call.ret) << "\n";
+    std::cerr << kutil::expr_to_string(call.ret) << "\n";
 
     assert(false && "Not implemented");
     exit(1);
@@ -865,8 +834,8 @@ const BDD::Call *find_vector_return_with_obj(const BDD::Node *root,
 
     auto this_obj = call.args["vector"].expr;
     auto extracted =
-        BDD::solver_toolbox.exprBuilder->Extract(this_obj, 0, obj->getWidth());
-    auto eq = BDD::solver_toolbox.are_exprs_always_equal(obj, extracted);
+        kutil::solver_toolbox.exprBuilder->Extract(this_obj, 0, obj->getWidth());
+    auto eq = kutil::solver_toolbox.are_exprs_always_equal(obj, extracted);
 
     if (eq) {
       return node_call;
@@ -913,9 +882,9 @@ const BDD::Call *find_vector_return_with_value(const BDD::Node *root,
       continue;
     }
 
-    auto extracted = BDD::solver_toolbox.exprBuilder->Extract(
+    auto extracted = kutil::solver_toolbox.exprBuilder->Extract(
         this_vector_value, 0, value->getWidth());
-    auto eq = BDD::solver_toolbox.are_exprs_always_equal(value, extracted);
+    auto eq = kutil::solver_toolbox.are_exprs_always_equal(value, extracted);
 
     if (eq) {
       return node_call;
@@ -1501,7 +1470,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     klee::ref<klee::Expr> prev_chunk = get_expr_from_local_by_addr(chunk_addr);
     assert(!prev_chunk.isNull());
 
-    auto eq = BDD::solver_toolbox.are_exprs_always_equal(
+    auto eq = kutil::solver_toolbox.are_exprs_always_equal(
         prev_chunk, call.args["the_chunk"].in);
 
     // changes to the chunk
@@ -1511,7 +1480,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       exprs.insert(exprs.end(), changes.begin(), changes.end());
     }
   } else if (fname == "rte_ether_addr_hash") {
-    assert(BDD::solver_toolbox.are_exprs_always_equal(call.args["obj"].in,
+    assert(kutil::solver_toolbox.are_exprs_always_equal(call.args["obj"].in,
                                                       call.args["obj"].out));
     Expr_ptr obj = transpile(this, call.args["obj"].in);
     assert(obj);
@@ -1697,22 +1666,22 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     std::cerr << call.function_name << "\n";
 
     for (const auto &arg : call.args) {
-      std::cerr << arg.first << " : " << expr_to_string(arg.second.expr)
+      std::cerr << arg.first << " : " << kutil::expr_to_string(arg.second.expr)
                 << "\n";
       if (!arg.second.in.isNull()) {
-        std::cerr << "  in:  " << expr_to_string(arg.second.in) << "\n";
+        std::cerr << "  in:  " << kutil::expr_to_string(arg.second.in) << "\n";
       }
       if (!arg.second.out.isNull()) {
-        std::cerr << "  out: " << expr_to_string(arg.second.out) << "\n";
+        std::cerr << "  out: " << kutil::expr_to_string(arg.second.out) << "\n";
       }
     }
 
     for (const auto &ev : call.extra_vars) {
-      std::cerr << ev.first << " : " << expr_to_string(ev.second.first) << " | "
-                << expr_to_string(ev.second.second) << "\n";
+      std::cerr << ev.first << " : " << kutil::expr_to_string(ev.second.first) << " | "
+                << kutil::expr_to_string(ev.second.second) << "\n";
     }
 
-    std::cerr << expr_to_string(call.ret) << "\n";
+    std::cerr << kutil::expr_to_string(call.ret) << "\n";
 
     assert(false && "Not implemented");
   }

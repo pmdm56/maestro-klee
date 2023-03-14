@@ -42,7 +42,7 @@ void Node::update_id(uint64_t new_id) {
     return;
   }
 
-  RenameSymbols renamer;
+  kutil::RenameSymbols renamer;
   for (auto symbol : symbols) {
     auto new_label = factory.translate_label(symbol.label_base, this);
 
@@ -84,8 +84,6 @@ void Node::process_call_paths(std::vector<call_path_t *> call_paths) {
 
   for (const auto &cp : call_paths) {
     constraints.push_back(cp->constraints);
-    auto filename = process_call_path_filename(cp->file_name);
-    call_paths_filenames.push_back(filename);
   }
 }
 

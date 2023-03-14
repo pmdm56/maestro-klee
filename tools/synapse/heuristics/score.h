@@ -1,12 +1,20 @@
 #pragma once
 
 #include "../execution_plan/execution_plan.h"
+#include "../execution_plan/execution_plan_node.h"
+#include "../execution_plan/modules/modules.h"
+#include "../log.h"
 
 #include <iostream>
 #include <map>
 #include <vector>
 
 namespace synapse {
+
+struct DummyModule {
+  Module::ModuleType type;
+  std::vector<DummyModule> next;
+};
 
 class Score {
 public:
@@ -17,12 +25,10 @@ public:
     NumberOfControllerNodes,
     NumberOfMergedTables,
     Depth,
+    ExactMatchNodes,
   };
 
-  enum Objective {
-    MINIMIZE,
-    MAXIMIZE
-  };
+  enum Objective { MINIMIZE, MAXIMIZE };
 
 private:
   typedef int (Score::*ComputerPtr)() const;
@@ -40,27 +46,38 @@ private:
   int get_nr_switch_nodes() const;
   int get_nr_controller_nodes() const;
   int get_nr_reordered_nodes() const;
+  int get_nr_exact_match_nodes() const;
+
+  DummyModule target_ep;
 
 public:
   Score(const ExecutionPlan &_execution_plan)
       : execution_plan(_execution_plan) {
-    computers = { { NumberOfReorderedNodes, &Score::get_nr_reordered_nodes },
-                  { NumberOfNodes, &Score::get_nr_nodes },
-                  { NumberOfMergedTables, &Score::get_nr_merged_tables },
-                  { NumberOfSwitchNodes, &Score::get_nr_switch_nodes },
-                  { NumberOfControllerNodes, &Score::get_nr_controller_nodes },
-                  { Depth, &Score::get_depth }, };
+    computers = {
+        {NumberOfReorderedNodes, &Score::get_nr_reordered_nodes},
+        {NumberOfNodes, &Score::get_nr_nodes},
+        {NumberOfMergedTables, &Score::get_nr_merged_tables},
+        {NumberOfSwitchNodes, &Score::get_nr_switch_nodes},
+        {NumberOfControllerNodes, &Score::get_nr_controller_nodes},
+        {Depth, &Score::get_depth},
+        {ExactMatchNodes, &Score::get_nr_exact_match_nodes},
+    };
   }
+
   Score(const Score &score)
       : execution_plan(score.execution_plan), computers(score.computers),
         categories(score.categories) {}
+  
+  void add_target_execution_plan(const DummyModule& _target_ep) {
+    target_ep = _target_ep;
+  }
 
   void add(Category category, Objective objective = Objective::MAXIMIZE) {
     auto found_it =
         std::find_if(categories.begin(), categories.end(),
                      [&](const std::pair<Category, Objective> &saved) {
-          return saved.first == category;
-        });
+                       return saved.first == category;
+                     });
 
     assert(found_it == categories.end() && "Category already inserted");
 

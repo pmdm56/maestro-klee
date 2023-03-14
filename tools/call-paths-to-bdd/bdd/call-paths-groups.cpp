@@ -86,18 +86,18 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
     auto c2_arg = c2.args[arg_name];
 
     if (!c1_arg.out.isNull() &&
-        !solver_toolbox.are_exprs_always_equal(c1_arg.in, c1_arg.out)) {
+        !kutil::solver_toolbox.are_exprs_always_equal(c1_arg.in, c1_arg.out)) {
       continue;
     }
 
     // comparison between modifications to the received packet
     if (!c1_arg.in.isNull() &&
-        !solver_toolbox.are_exprs_always_equal(c1_arg.in, c2_arg.in)) {
+        !kutil::solver_toolbox.are_exprs_always_equal(c1_arg.in, c2_arg.in)) {
       return false;
     }
 
-    if (c1_arg.in.isNull() &&
-        !solver_toolbox.are_exprs_always_equal(c1_arg.expr, c2_arg.expr)) {
+    if (c1_arg.in.isNull() && !kutil::solver_toolbox.are_exprs_always_equal(
+                                  c1_arg.expr, c2_arg.expr)) {
       return false;
     }
   }
@@ -136,9 +136,9 @@ CallPathsGroup::get_possible_discriminating_constraints() const {
   return possible_discriminating_constraints;
 }
 
-bool
-CallPathsGroup::satisfies_constraint(std::vector<call_path_t *> call_paths,
-                                     klee::ref<klee::Expr> constraint) const {
+bool CallPathsGroup::satisfies_constraint(
+    std::vector<call_path_t *> call_paths,
+    klee::ref<klee::Expr> constraint) const {
   for (const auto &call_path : call_paths) {
     if (!satisfies_constraint(call_path, constraint)) {
       return false;
@@ -147,19 +147,18 @@ CallPathsGroup::satisfies_constraint(std::vector<call_path_t *> call_paths,
   return true;
 }
 
-bool
-CallPathsGroup::satisfies_constraint(call_path_t *call_path,
-                                     klee::ref<klee::Expr> constraint) const {
-  RetrieveSymbols symbol_retriever;
+bool CallPathsGroup::satisfies_constraint(
+    call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
+  kutil::RetrieveSymbols symbol_retriever;
   symbol_retriever.visit(constraint);
   std::vector<klee::ref<klee::ReadExpr>> symbols =
       symbol_retriever.get_retrieved();
 
-  ReplaceSymbols symbol_replacer(symbols);
-  auto not_constraint = solver_toolbox.exprBuilder->Not(constraint);
+  kutil::ReplaceSymbols symbol_replacer(symbols);
+  auto not_constraint = kutil::solver_toolbox.exprBuilder->Not(constraint);
 
-  return solver_toolbox.is_expr_always_false(call_path->constraints,
-                                             not_constraint, symbol_replacer);
+  return kutil::solver_toolbox.is_expr_always_false(
+      call_path->constraints, not_constraint, symbol_replacer);
 }
 
 bool CallPathsGroup::satisfies_not_constraint(
@@ -175,16 +174,16 @@ bool CallPathsGroup::satisfies_not_constraint(
 
 bool CallPathsGroup::satisfies_not_constraint(
     call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
-  RetrieveSymbols symbol_retriever;
+  kutil::RetrieveSymbols symbol_retriever;
   symbol_retriever.visit(constraint);
   std::vector<klee::ref<klee::ReadExpr>> symbols =
       symbol_retriever.get_retrieved();
 
-  ReplaceSymbols symbol_replacer(symbols);
-  auto not_constraint = solver_toolbox.exprBuilder->Not(constraint);
+  kutil::ReplaceSymbols symbol_replacer(symbols);
+  auto not_constraint = kutil::solver_toolbox.exprBuilder->Not(constraint);
 
-  return solver_toolbox.is_expr_always_true(call_path->constraints,
-                                            not_constraint, symbol_replacer);
+  return kutil::solver_toolbox.is_expr_always_true(
+      call_path->constraints, not_constraint, symbol_replacer);
 }
 
 bool CallPathsGroup::check_discriminating_constraint(

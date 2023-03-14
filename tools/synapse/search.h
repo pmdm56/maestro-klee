@@ -1,7 +1,7 @@
 #pragma once
 
 #include "execution_plan/execution_plan.h"
-#include "execution_plan/visitors/graphviz.h"
+#include "execution_plan/visitors/graphviz/graphviz.h"
 #include "heuristics/heuristic.h"
 #include "log.h"
 #include "search_space.h"
@@ -10,55 +10,61 @@ namespace synapse {
 
 class SearchEngine {
 private:
-  std::vector<synapse::Module_ptr> modules;
+  std::vector<Target_ptr> targets;
   BDD::BDD bdd;
 
+  // Maximum number of reordered nodes on the BDD
+  // -1 => unlimited
+  int max_reordered;
+
 public:
-  SearchEngine(BDD::BDD _bdd) : bdd(_bdd) {}
-  SearchEngine(const SearchEngine &se) : SearchEngine(se.bdd) {
-    modules = se.modules;
+  SearchEngine(BDD::BDD _bdd, int _max_reordered)
+      : bdd(_bdd), max_reordered(_max_reordered) {}
+
+  SearchEngine(const SearchEngine &se)
+      : SearchEngine(se.bdd, se.max_reordered) {
+    targets = se.targets;
   }
 
 public:
-  void add_target(Target target) {
-    std::vector<Module_ptr> _modules;
-
+  void add_target(TargetType target) {
     switch (target) {
-    case Target::x86:
-      _modules = targets::x86::get_modules();
+    case TargetType::x86_BMv2:
+      targets.push_back(targets::x86_bmv2::x86BMv2Target::build());
       break;
-    case Target::Tofino:
-      _modules = targets::tofino::get_modules();
+    case TargetType::x86_Tofino:
+      targets.push_back(targets::x86_tofino::x86TofinoTarget::build());
       break;
-    case Target::Netronome:
-      _modules = targets::netronome::get_modules();
+    case TargetType::Tofino:
+      targets.push_back(targets::tofino::TofinoTarget::build());
       break;
-    case Target::FPGA:
-      _modules = targets::fpga::get_modules();
+    case TargetType::Netronome:
+      targets.push_back(targets::netronome::NetronomeTarget::build());
       break;
-    case Target::BMv2SimpleSwitchgRPC:
-      _modules = targets::BMv2SimpleSwitchgRPC::get_modules();
+    case TargetType::FPGA:
+      targets.push_back(targets::fpga::FPGATarget::build());
+      break;
+    case TargetType::BMv2:
+      targets.push_back(targets::bmv2::BMv2Target::build());
       break;
     }
-
-    modules.insert(modules.begin(), _modules.begin(), _modules.end());
   }
 
   template <class T> ExecutionPlan search(Heuristic<T> h) {
     auto first_execution_plan = ExecutionPlan(bdd);
-    SearchSpace search_space(h.get_cfg(), first_execution_plan);
 
+    for (auto target : targets) {
+      first_execution_plan.add_target(target->type, target->memory_bank);
+    }
+
+    SearchSpace search_space(h.get_cfg(), first_execution_plan);
     h.add(std::vector<ExecutionPlan>{first_execution_plan});
 
-    puts("");
     while (!h.finished()) {
       auto available = h.size();
       auto next_ep = h.pop();
       auto next_node = next_ep.get_next_node();
       assert(next_node);
-
-      printf("Search space %lu\r", available);
-      fflush(stdout);
 
       // Graphviz::visualize(next_ep);
 
@@ -70,16 +76,18 @@ public:
 
       report_t report;
 
-      for (auto module : modules) {
-        auto result = module->process_node(next_ep, next_node);
+      for (auto target : targets) {
+        for (auto module : target->modules) {
+          auto result = module->process_node(next_ep, next_node, max_reordered);
 
-        if (result.next_eps.size()) {
-          report.target_name.push_back(module->get_target_name());
-          report.name.push_back(module->get_name());
-          report.generated_contexts.push_back(result.next_eps.size());
+          if (result.next_eps.size()) {
+            report.target_name.push_back(module->get_target_name());
+            report.name.push_back(module->get_name());
+            report.generated_contexts.push_back(result.next_eps.size());
 
-          h.add(result.next_eps);
-          search_space.add_leaves(next_ep, result.module, result.next_eps);
+            h.add(result.next_eps);
+            search_space.add_leaves(next_ep, result.module, result.next_eps);
+          }
         }
       }
 
@@ -133,10 +141,10 @@ public:
       }
     }
 
-    std::cerr << "solutions: " << h.get_all().size() << "\n";
-    std::cerr << "winner:    " << h.get_score(h.get()) << "\n";
+    Log::log() << "solutions: " << h.get_all().size() << "\n";
+    Log::log() << "winner:    " << h.get_score(h.get()) << "\n";
 
-    // Graphviz::visualize(h.get());
+    Graphviz::visualize(h.get());
     // Graphviz::visualize(h.get_all().back());
 
     // for (auto &ep : h.get_all()) {
@@ -148,4 +156,5 @@ public:
     return h.get();
   }
 };
+
 } // namespace synapse

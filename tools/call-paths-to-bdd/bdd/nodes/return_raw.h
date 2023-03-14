@@ -15,10 +15,8 @@ public:
 
   ReturnRaw(uint64_t _id, const BDDNode_ptr &_prev,
             std::vector<calls_t> _calls_list,
-            const std::vector<std::string> &_call_paths_filenames,
             const std::vector<klee::ConstraintManager> &_constraints)
-      : Node(_id, Node::NodeType::RETURN_RAW, nullptr, _prev,
-             _call_paths_filenames, _constraints),
+      : Node(_id, Node::NodeType::RETURN_RAW, nullptr, _prev, _constraints),
         calls_list(_calls_list) {}
 
   std::vector<calls_t> get_calls() const { return calls_list; }

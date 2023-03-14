@@ -24,10 +24,9 @@
 
 #include "code_generator.h"
 #include "execution_plan/execution_plan.h"
-#include "execution_plan/visitors/graphviz.h"
+#include "execution_plan/visitors/graphviz/graphviz.h"
 #include "heuristics/heuristics.h"
 #include "log.h"
-#include "modules/modules.h"
 #include "search.h"
 
 namespace {
@@ -36,19 +35,22 @@ llvm::cl::list<std::string> InputCallPathFiles(llvm::cl::desc("<call paths>"),
 
 llvm::cl::OptionCategory SyNAPSE("SyNAPSE specific options");
 
-llvm::cl::list<synapse::Target>
-    TargetList(llvm::cl::desc("Available targets:"), llvm::cl::Required,
-               llvm::cl::OneOrMore,
-               llvm::cl::values(
-                   clEnumValN(synapse::Target::x86, "x86", "x86"),
-                   clEnumValN(synapse::Target::BMv2SimpleSwitchgRPC, "bmv2",
-                              "P4 (BMv2 Simple Switch with gRPC)"),
-                   clEnumValN(synapse::Target::FPGA, "fpga", "VeriLog (FPGA)"),
-                   clEnumValN(synapse::Target::Netronome, "netronome",
-                              "Micro C (Netronome)"),
-                   clEnumValN(synapse::Target::Tofino, "tofino", "P4 (Tofino)"),
-                   clEnumValEnd),
-               llvm::cl::cat(SyNAPSE));
+llvm::cl::list<synapse::TargetType> TargetList(
+    llvm::cl::desc("Available targets:"), llvm::cl::Required,
+    llvm::cl::OneOrMore,
+    llvm::cl::values(
+        clEnumValN(synapse::TargetType::x86_BMv2, "x86-bmv2",
+                   "x86 controller for BMv2 (C)"),
+        clEnumValN(synapse::TargetType::BMv2, "bmv2",
+                   "BMv2 Lab 5: Apoio ao projeto -- mE1(P4)"),
+        clEnumValN(synapse::TargetType::FPGA, "fpga", "FPGA (veriLog)"),
+        clEnumValN(synapse::TargetType::Netronome, "netronome",
+                   "Netronome (micro C)"),
+        clEnumValN(synapse::TargetType::Tofino, "tofino", "Tofino (P4)"),
+        clEnumValN(synapse::TargetType::x86_Tofino, "x86-tofino",
+                   "x86 controller for Tofino (C)"),
+        clEnumValEnd),
+    llvm::cl::cat(SyNAPSE));
 
 llvm::cl::opt<std::string>
     InputBDDFile("in", llvm::cl::desc("Input file for BDD deserialization."),
@@ -57,6 +59,12 @@ llvm::cl::opt<std::string>
 llvm::cl::opt<std::string>
     Out("out", llvm::cl::desc("Output directory for every generated file."),
         llvm::cl::cat(SyNAPSE));
+
+llvm::cl::opt<int> MaxReordered(
+    "max-reordered",
+    llvm::cl::desc(
+        "Maximum number of reordenations on the BDD (-1 for unlimited)."),
+    llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
 } // namespace
 
 BDD::BDD build_bdd() {
@@ -72,10 +80,7 @@ BDD::BDD build_bdd() {
   for (auto file : InputCallPathFiles) {
     std::cerr << "Loading: " << file << std::endl;
 
-    std::vector<std::string> expressions_str;
-    std::deque<klee::ref<klee::Expr>> expressions;
-
-    call_path_t *call_path = load_call_path(file, expressions_str, expressions);
+    call_path_t *call_path = load_call_path(file);
     call_paths.push_back(call_path);
   }
 
@@ -93,12 +98,13 @@ int main(int argc, char **argv) {
 
   BDD::BDD bdd = build_bdd();
 
-  synapse::SearchEngine search_engine(bdd);
+  synapse::SearchEngine search_engine(bdd, MaxReordered);
   synapse::CodeGenerator code_generator(Out);
 
   for (unsigned i = 0; i != TargetList.size(); ++i) {
-    search_engine.add_target(TargetList[i]);
-    // code_generator.add_target(TargetList[i]);
+    auto target = TargetList[i];
+    search_engine.add_target(target);
+    code_generator.add_target(target);
   }
 
   synapse::Biggest biggest;
@@ -106,15 +112,15 @@ int main(int argc, char **argv) {
   synapse::MostCompact most_compact;
   synapse::LeastReordered least_reordered;
   synapse::MaximizeSwitchNodes maximize_switch_nodes;
+  synapse::ExactMatch exact_match;
 
   auto winner = search_engine.search(biggest);
-
   // auto winner = search_engine.search(least_reordered);
   // auto winner = search_engine.search(dfs);
   // auto winner = search_engine.search(most_compact);
   // auto winner = search_engine.search(maximize_switch_nodes);
 
-  // code_generator.generate(winner);
+  code_generator.generate(winner);
 
   return 0;
 }

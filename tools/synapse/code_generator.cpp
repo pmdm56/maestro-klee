@@ -1,6 +1,5 @@
 #include "code_generator.h"
-#include "execution_plan/visitors/graphviz.h"
-#include "modules/modules.h"
+#include "execution_plan/visitors/graphviz/graphviz.h"
 
 namespace synapse {
 
@@ -14,7 +13,7 @@ bool all_x86_no_controller(const ExecutionPlan &execution_plan) {
     assert(node);
     auto module = node->get_module();
 
-    if (module->get_target() != Target::x86) {
+    if (module->get_target() != TargetType::x86_BMv2) {
       return false;
     }
 
@@ -25,56 +24,79 @@ bool all_x86_no_controller(const ExecutionPlan &execution_plan) {
   return true;
 }
 
+bool only_has_modules_from_target(const ExecutionPlan &execution_plan,
+                                  TargetType type) {
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    assert(node);
+    auto module = node->get_module();
+
+    if (module->get_target() != type) {
+      return false;
+    }
+
+    auto next = node->get_next();
+    nodes.insert(nodes.end(), next.begin(), next.end());
+  }
+
+  return true;
+}
+
+struct annotated_node_t {
+  ExecutionPlanNode_ptr node;
+  bool save;
+  uint64_t path_id;
+
+  annotated_node_t(ExecutionPlanNode_ptr _node)
+      : node(_node), save(false), path_id(0) {}
+
+  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, uint64_t _path_id)
+      : node(_node), save(_save), path_id(_path_id) {}
+
+  annotated_node_t clone() const {
+    auto cloned_node = ExecutionPlanNode::build(node.get());
+
+    // the constructor increments the ID, let's fix that
+    cloned_node->set_id(node->get_id());
+
+    return annotated_node_t(cloned_node, save, path_id);
+  }
+
+  std::vector<annotated_node_t> next() {
+    std::vector<annotated_node_t> nodes;
+
+    auto next = node->get_next();
+
+    if (next.size() == 0) {
+      node = nullptr;
+    }
+
+    bool first = true;
+    for (auto next_node : next) {
+      if (first) {
+        node = next_node;
+        first = false;
+        continue;
+      }
+
+      nodes.emplace_back(next_node, save, path_id);
+    }
+
+    return nodes;
+  }
+};
+
 ExecutionPlan
-CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
-  if (all_x86_no_controller(execution_plan)) {
+CodeGenerator::x86_bmv2_extractor(const ExecutionPlan &execution_plan) const {
+  if (only_has_modules_from_target(execution_plan, TargetType::x86_BMv2)) {
     return execution_plan;
   }
 
   assert(execution_plan.get_root());
-
-  struct annotated_node_t {
-    ExecutionPlanNode_ptr node;
-    bool save;
-    uint64_t path_id;
-
-    annotated_node_t(ExecutionPlanNode_ptr _node)
-        : node(_node), save(false), path_id(0) {}
-    annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, uint64_t _path_id)
-        : node(_node), save(_save), path_id(_path_id) {}
-
-    annotated_node_t clone() const {
-      auto cloned_node = ExecutionPlanNode::build(node.get());
-
-      // the constructor increments the ID, let's fix that
-      cloned_node->set_id(node->get_id());
-
-      return annotated_node_t(cloned_node, save, path_id);
-    }
-
-    std::vector<annotated_node_t> next() {
-      std::vector<annotated_node_t> nodes;
-
-      auto next = node->get_next();
-
-      if (next.size() == 0) {
-        node = nullptr;
-      }
-
-      bool first = true;
-      for (auto next_node : next) {
-        if (first) {
-          node = next_node;
-          first = false;
-          continue;
-        }
-
-        nodes.emplace_back(next_node, save, path_id);
-      }
-
-      return nodes;
-    }
-  };
 
   auto roots = std::vector<annotated_node_t>();
   auto leaves = std::vector<annotated_node_t>();
@@ -127,11 +149,9 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
       }
     }
 
-    if (module->get_type() ==
-        Module::ModuleType::BMv2SimpleSwitchgRPC_SendToController) {
+    if (module->get_type() == Module::ModuleType::BMv2_SendToController) {
       auto send_to_controller =
-          static_cast<targets::BMv2SimpleSwitchgRPC::SendToController *>(
-              module.get());
+          static_cast<targets::bmv2::SendToController *>(module.get());
 
       auto path_id = send_to_controller->get_metadata_code_path();
 
@@ -156,9 +176,9 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
     return extracted;
   }
 
-  auto metadata = BDD::solver_toolbox.create_new_symbol("metadata", 32);
+  auto metadata = kutil::solver_toolbox.create_new_symbol("metadata", 32);
   auto packet_get_metadata =
-      std::make_shared<targets::x86::PacketGetMetadata>(nullptr, metadata);
+      std::make_shared<targets::x86_bmv2::PacketGetMetadata>(nullptr, metadata);
 
   auto new_root = ExecutionPlanNode::build(packet_get_metadata);
   auto new_leaf = new_root;
@@ -169,19 +189,19 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
     assert(root.node);
     assert(new_leaf);
 
-    auto path_id = BDD::solver_toolbox.exprBuilder->Constant(
+    auto path_id = kutil::solver_toolbox.exprBuilder->Constant(
         root.path_id, metadata->getWidth());
     auto meta_eq_path_id =
-        BDD::solver_toolbox.exprBuilder->Eq(metadata, path_id);
+        kutil::solver_toolbox.exprBuilder->Eq(metadata, path_id);
 
     auto if_meta_eq_path_id =
-        std::make_shared<targets::x86::If>(nullptr, meta_eq_path_id);
+        std::make_shared<targets::x86_bmv2::If>(nullptr, meta_eq_path_id);
     auto if_ep_node = ExecutionPlanNode::build(if_meta_eq_path_id);
 
-    auto then_module = std::make_shared<targets::x86::Then>(nullptr);
+    auto then_module = std::make_shared<targets::x86_bmv2::Then>(nullptr);
     auto then_ep_node = ExecutionPlanNode::build(then_module);
 
-    auto else_module = std::make_shared<targets::x86::Else>(nullptr);
+    auto else_module = std::make_shared<targets::x86_bmv2::Else>(nullptr);
     auto else_ep_node = ExecutionPlanNode::build(else_module);
 
     Branches then_else_ep_nodes{then_ep_node, else_ep_node};
@@ -198,7 +218,7 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
     root.node->set_prev(then_ep_node);
 
     if (i == roots.size() - 1) {
-      auto drop_module = std::make_shared<targets::x86::Drop>(nullptr);
+      auto drop_module = std::make_shared<targets::x86_bmv2::Drop>(nullptr);
       auto drop_ep_node = ExecutionPlanNode::build(drop_module);
 
       else_ep_node->set_next(drop_ep_node);
@@ -216,8 +236,8 @@ CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
   return extracted;
 }
 
-ExecutionPlan CodeGenerator::bmv2SimpleSwitchgRPC_extractor(
-    const ExecutionPlan &execution_plan) const {
+ExecutionPlan
+CodeGenerator::bmv2_extractor(const ExecutionPlan &execution_plan) const {
   auto extracted = execution_plan.clone(true);
   auto nodes = std::vector<ExecutionPlanNode_ptr>{extracted.get_root()};
 
@@ -229,10 +249,9 @@ ExecutionPlan CodeGenerator::bmv2SimpleSwitchgRPC_extractor(
 
     auto module = node->get_module();
     assert(module);
-    assert(module->get_target() == Target::BMv2SimpleSwitchgRPC);
+    assert(module->get_target() == TargetType::BMv2);
 
-    if (module->get_type() ==
-        Module::ModuleType::BMv2SimpleSwitchgRPC_SendToController) {
+    if (module->get_type() == Module::ModuleType::BMv2_SendToController) {
       auto no_next = Branches();
       node->set_next(no_next);
     }
@@ -253,9 +272,41 @@ CodeGenerator::fpga_extractor(const ExecutionPlan &execution_plan) const {
 }
 
 ExecutionPlan
-CodeGenerator::tofino_extractor(const ExecutionPlan &execution_plan) const {
+CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
+  if (only_has_modules_from_target(execution_plan, TargetType::x86_Tofino)) {
+    return execution_plan;
+  }
+
   assert(false && "TODO");
-  exit(1);
+}
+
+ExecutionPlan
+CodeGenerator::tofino_extractor(const ExecutionPlan &execution_plan) const {
+  auto extracted = execution_plan.clone(true);
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{extracted.get_root()};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    assert(node);
+
+    nodes.erase(nodes.begin());
+
+    auto module = node->get_module();
+    assert(module);
+    assert(module->get_target() == TargetType::Tofino);
+
+    // if (module->get_type() == Module::ModuleType::Tofino_SendToController) {
+    //   auto no_next = Branches();
+    //   node->set_next(no_next);
+    // }
+
+    auto next = node->get_next();
+    nodes.insert(nodes.end(), next.begin(), next.end());
+  }
+
+  // Graphviz::visualize(extracted);
+
+  return extracted;
 }
 
 ExecutionPlan

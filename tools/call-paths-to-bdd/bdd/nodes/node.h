@@ -3,8 +3,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../../solver-toolbox.h"
-#include "expr-printer.h"
 #include "load-call-paths.h"
 #include "symbol.h"
 
@@ -17,14 +15,18 @@ typedef std::shared_ptr<Node> BDDNode_ptr;
 
 class Node {
 public:
-  enum NodeType {
-    BRANCH,
-    CALL,
-    RETURN_INIT,
-    RETURN_PROCESS,
-    RETURN_RAW
-  };
+  enum NodeType { BRANCH, CALL, RETURN_INIT, RETURN_PROCESS, RETURN_RAW };
 
+protected:
+  uint64_t id;
+  NodeType type;
+
+  BDDNode_ptr next;
+  BDDNode_ptr prev;
+
+  std::vector<klee::ConstraintManager> constraints;
+
+public:
   Node(uint64_t _id, NodeType _type)
       : id(_id), type(_type), next(nullptr), prev(nullptr) {}
 
@@ -42,11 +44,9 @@ public:
 
   Node(uint64_t _id, NodeType _type, const BDDNode_ptr &_next,
        const BDDNode_ptr &_prev,
-       const std::vector<std::string> &_call_paths_filenames,
        const std::vector<klee::ConstraintManager> &_constraints)
       : id(_id), type(_type), next(_next), prev(_prev),
-        call_paths_filenames(_call_paths_filenames), constraints(_constraints) {
-  }
+        constraints(_constraints) {}
 
   void replace_next(const BDDNode_ptr &_next) { next = _next; }
 
@@ -74,9 +74,6 @@ public:
   NodeType get_type() const { return type; }
   uint64_t get_id() const { return id; }
 
-  const std::vector<std::string> &get_call_paths_filenames() const {
-    return call_paths_filenames;
-  }
 
   const std::vector<klee::ConstraintManager> &get_constraints() const {
     return constraints;
@@ -94,6 +91,14 @@ public:
   static std::string process_call_path_filename(std::string call_path_filename);
   void process_call_paths(std::vector<call_path_t *> call_paths);
 
+  virtual std::vector<uint64_t> get_terminating_node_ids() const {
+    if (!next) {
+      return std::vector<uint64_t>{id};
+    }
+
+    return next->get_terminating_node_ids();
+  }
+
   virtual BDDNode_ptr clone(bool recursive = false) const = 0;
   virtual void recursive_update_ids(uint64_t &new_id) = 0;
   virtual void visit(BDDVisitor &visitor) const = 0;
@@ -106,15 +111,6 @@ protected:
   friend class ReturnRaw;
   friend class ReturnInit;
   friend class ReturnProcess;
-
-  uint64_t id;
-  NodeType type;
-
-  BDDNode_ptr next;
-  BDDNode_ptr prev;
-
-  std::vector<std::string> call_paths_filenames;
-  std::vector<klee::ConstraintManager> constraints;
 
   virtual std::string get_gv_name() const {
     std::stringstream ss;

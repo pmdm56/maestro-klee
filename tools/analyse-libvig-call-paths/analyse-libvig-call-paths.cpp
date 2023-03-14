@@ -29,8 +29,8 @@
 #include <stack>
 #include <vector>
 
-#include "../expr-printer/expr-printer.h"
-#include "../load-call-paths/load-call-paths.h"
+#include "load-call-paths.h"
+#include "klee-util.h"
 
 namespace {
 llvm::cl::list<std::string> InputCallPathFiles(llvm::cl::desc("<call paths>"),
@@ -165,7 +165,7 @@ public:
         break;
 
       else if (!success) {
-        std::cerr << RED << "expression: " << expr_to_string(expr) << "\n"
+        std::cerr << RED << "expression: " << kutil::expr_to_string(expr) << "\n"
                   << RESET;
         assert(false && "Solver unable to obtain value for given expression");
       }
@@ -704,7 +704,7 @@ struct packet_chunk_t {
       if (i > 0)
         std::cerr << "               ";
       std::cerr << "offset " << fragment.offset;
-      std::cerr << " expression " << expr_to_string(fragment.expr);
+      std::cerr << " expression " << kutil::expr_to_string(fragment.expr);
       std::cerr << "\n";
     }
 
@@ -1477,7 +1477,7 @@ public:
     std::cerr << "  object       " << obj.second << "\n";
 
     if (read_arg.is_name_set()) {
-      std::cerr << "  read         " << expr_to_string(read_arg.get_expr())
+      std::cerr << "  read         " << kutil::expr_to_string(read_arg.get_expr())
                 << "\n";
 
       if (read_arg.has_packet_dependencies()) {
@@ -1487,7 +1487,7 @@ public:
     }
 
     if (write_arg.is_name_set()) {
-      std::cerr << "  write        " << expr_to_string(write_arg.get_expr())
+      std::cerr << "  write        " << kutil::expr_to_string(write_arg.get_expr())
                 << "\n";
 
       if (write_arg.has_packet_dependencies()) {
@@ -1498,7 +1498,7 @@ public:
     }
 
     if (result_arg.is_name_set()) {
-      std::cerr << "  result       " << expr_to_string(result_arg.get_expr())
+      std::cerr << "  result       " << kutil::expr_to_string(result_arg.get_expr())
                 << "\n";
 
       if (result_arg.has_packet_dependencies()) {
@@ -1781,7 +1781,7 @@ struct CallPathConstraint {
   }
 
   bool expr_has_connector(klee::expr::ExprHandle expr) const {
-    auto expr_str = expr_to_string(expr);
+    auto expr_str = kutil::expr_to_string(expr);
     return expr_str.find(chunks_connector) != std::string::npos;
   }
 };
@@ -1835,7 +1835,7 @@ struct ConstraintBetweenCallPaths {
     std::cerr << "  source     " << source_call_path_filename << "\n";
     std::cerr << "  pair      " << pair_call_path_filename << "\n";
 
-    std::cerr << "  constraint " << expr_to_string(expression) << "\n";
+    std::cerr << "  constraint " << kutil::expr_to_string(expression) << "\n";
 
     std::cerr << "  source dependencies"
               << "\n";
@@ -2054,10 +2054,10 @@ public:
     }
 
     for (const klee::expr::ExprHandle &constraint : call_path->constraints) {
-      if (expr_to_string(constraint).find("packet_chunks") == std::string::npos)
+      if (kutil::expr_to_string(constraint).find("packet_chunks") == std::string::npos)
         continue;
 
-      if (expr_to_string(constraint).find("vector_data_reset") ==
+      if (kutil::expr_to_string(constraint).find("vector_data_reset") ==
           std::string::npos)
         continue;
 
@@ -2255,7 +2255,7 @@ private:
         for (auto inserted : replacements) {
           // hack
           auto replacement_expr = inserted.get_expr();
-          if (expr_to_string(replacement_expr) == expr_to_string(expr)) {
+          if (kutil::expr_to_string(replacement_expr) == kutil::expr_to_string(expr)) {
             return true;
           }
         }
@@ -2283,10 +2283,7 @@ int main(int argc, char **argv) {
   for (auto file : InputCallPathFiles) {
     std::cerr << "Loading: " << file << std::endl;
 
-    std::vector<std::string> expressions_str;
-    std::deque<klee::ref<klee::Expr>> expressions;
-
-    call_path_t *call_path = load_call_path(file, expressions_str, expressions);
+    call_path_t *call_path = load_call_path(file);
 
     libvig_manager.analyse_call_path(file, call_path);
     constraints_analyser.store_libvig_packet_constraints(file, call_path);

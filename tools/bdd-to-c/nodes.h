@@ -5,16 +5,10 @@
 #include <numeric>
 #include <vector>
 
-#include "expr-printer.h"
+#include "klee-util.h"
 #include "load-call-paths.h"
 
-enum TargetOption {
-  SEQUENTIAL,
-  SHARED_NOTHING,
-  LOCKS,
-  TM,
-  CALL_PATH_HITTER
-};
+enum TargetOption { SEQUENTIAL, SHARED_NOTHING, LOCKS, TM, CALL_PATH_HITTER };
 
 class AST;
 
@@ -85,10 +79,7 @@ typedef std::shared_ptr<Node> Node_ptr;
 
 class ExpressionType {
 public:
-  enum ExpressionTypeKind {
-    EXPRESSION_KIND,
-    TYPE_KIND
-  };
+  enum ExpressionTypeKind { EXPRESSION_KIND, TYPE_KIND };
 
 private:
   ExpressionTypeKind expression_type_kind;
@@ -106,12 +97,7 @@ typedef std::shared_ptr<ExpressionType> ExpressionType_ptr;
 
 class Type : public Node, public ExpressionType {
 public:
-  enum TypeKind {
-    PRIMITIVE,
-    STRUCT,
-    ARRAY,
-    POINTER
-  };
+  enum TypeKind { PRIMITIVE, STRUCT, ARRAY, POINTER };
 
 protected:
   TypeKind type_kind;
@@ -1124,16 +1110,16 @@ private:
   }
 
   Branch(Expr_ptr _condition, Node_ptr _on_true, Node_ptr _on_false,
-         const std::vector<std::string> &_on_true_cps_filenames,
-         const std::vector<std::string> &_on_false_cps_filenames)
+         const std::vector<uint64_t> &_on_true_term_ids,
+         const std::vector<uint64_t> &_on_false_term_ids)
       : Branch(_condition, _on_true, _on_false) {
 
-    for (auto filename : _on_true_cps_filenames) {
-      on_true_cps.push_back(Comment::build(filename));
+    for (auto term_id : _on_true_term_ids) {
+      on_true_cps.push_back(Comment::build(std::to_string(term_id)));
     }
 
-    for (auto filename : _on_false_cps_filenames) {
-      on_false_cps.push_back(Comment::build(filename));
+    for (auto term_id : _on_false_term_ids) {
+      on_false_cps.push_back(Comment::build(std::to_string(term_id)));
     }
   }
 
@@ -1237,11 +1223,10 @@ public:
 
   static std::shared_ptr<Branch>
   build(Expr_ptr _condition, Node_ptr _on_true, Node_ptr _on_false,
-        const std::vector<std::string> &_on_true_cps_filenames,
-        const std::vector<std::string> &_on_false_cps_filenames) {
-    Branch *branch =
-        new Branch(_condition, _on_true, _on_false, _on_true_cps_filenames,
-                   _on_false_cps_filenames);
+        const std::vector<uint64_t> &_on_true_term_ids,
+        const std::vector<uint64_t> &_on_false_term_ids) {
+    Branch *branch = new Branch(_condition, _on_true, _on_false,
+                                _on_true_term_ids, _on_false_term_ids);
     return std::shared_ptr<Branch>(branch);
   }
 };
@@ -2217,8 +2202,9 @@ private:
   Struct(const std::string &_name, const std::vector<Variable_ptr> &_fields)
       : Type(STRUCT, std::accumulate(_fields.begin(), _fields.end(), 0,
                                      [&](int sum, Variable_ptr curr) {
-                       return sum + curr->get_type()->get_size();
-                     })),
+                                       return sum +
+                                              curr->get_type()->get_size();
+                                     })),
         name(_name), fields(_fields) {}
 
   Struct(const std::string &_name) : Type(STRUCT, 0), name(_name) {}
@@ -2524,7 +2510,9 @@ public:
       symbol = var->get_symbol();
       break;
     }
-    default: { assert(false && "Not implemented"); }
+    default: {
+      assert(false && "Not implemented");
+    }
     }
 
     return symbol;
@@ -2905,10 +2893,8 @@ private:
         return_type(_return_type) {}
 
 public:
-  std::string get_name() const {
-	return name;
-  }
-  
+  std::string get_name() const { return name; }
+
   void synthesize_expr(std::ostream &ofs, unsigned int lvl = 0) const override {
     indent(ofs, lvl);
 

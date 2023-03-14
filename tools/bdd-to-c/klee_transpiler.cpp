@@ -1,6 +1,6 @@
 #include "klee_transpiler.h"
 #include "call-paths-to-bdd.h"
-#include "expr-printer.h"
+#include "klee-util.h"
 
 Type_ptr type_from_klee_expr(klee::ref<klee::Expr> expr,
                              bool force_byte_array) {
@@ -20,11 +20,11 @@ Constant_ptr const_to_ast_expr(const klee::ref<klee::Expr> &e) {
   klee::ref<klee::Expr> expr = e;
 
   if (expr->getKind() != klee::Expr::Kind::Constant && e->getWidth() <= 64) {
-    auto value = BDD::solver_toolbox.value_from_expr(expr);
+    auto value = kutil::solver_toolbox.value_from_expr(expr);
     auto value_expr =
-        BDD::solver_toolbox.exprBuilder->Constant(value, expr->getWidth());
+        kutil::solver_toolbox.exprBuilder->Constant(value, expr->getWidth());
     auto always_eq =
-        BDD::solver_toolbox.are_exprs_always_equal(expr, value_expr);
+        kutil::solver_toolbox.are_exprs_always_equal(expr, value_expr);
 
     if (always_eq) {
       expr = value_expr;
@@ -45,8 +45,8 @@ Constant_ptr const_to_ast_expr(const klee::ref<klee::Expr> &e) {
 
     for (unsigned int offset = 0; offset < array->get_n_elems(); offset++) {
       auto byte =
-          BDD::solver_toolbox.exprBuilder->Extract(constant, offset * 8, 8);
-      auto value = BDD::solver_toolbox.value_from_expr(byte);
+          kutil::solver_toolbox.exprBuilder->Extract(constant, offset * 8, 8);
+      auto value = kutil::solver_toolbox.value_from_expr(byte);
       constant_node->set_value(value, offset);
     }
   } else {
@@ -134,7 +134,7 @@ std::vector<Expr_ptr> apply_changes(AST *ast, Expr_ptr variable,
                                     klee::ref<klee::Expr> after) {
   std::vector<Expr_ptr> changes;
 
-  if (BDD::solver_toolbox.are_exprs_always_equal(before, after)) {
+  if (kutil::solver_toolbox.are_exprs_always_equal(before, after)) {
     return changes;
   }
 
@@ -150,7 +150,7 @@ std::vector<Expr_ptr> apply_changes(AST *ast, Expr_ptr variable,
           Constant::build(PrimitiveType::PrimitiveKind::UINT32_T, byte);
       Expr_ptr var_read = Read::build(variable, byte_type, byte_const);
 
-      auto extracted = BDD::solver_toolbox.exprBuilder->Extract(
+      auto extracted = kutil::solver_toolbox.exprBuilder->Extract(
           after, byte * 8, klee::Expr::Int8);
       Expr_ptr val_read = transpile(ast, extracted);
 
@@ -183,7 +183,7 @@ std::vector<Expr_ptr> build_and_fill_byte_array(AST *ast, Expr_ptr var,
         Constant::build(PrimitiveType::PrimitiveKind::UINT32_T, byte);
     Expr_ptr var_read = Read::build(var, byte_type, byte_const);
 
-    auto extracted = BDD::solver_toolbox.exprBuilder->Extract(expr, byte * 8,
+    auto extracted = kutil::solver_toolbox.exprBuilder->Extract(expr, byte * 8,
                                                               klee::Expr::Int8);
     Expr_ptr val_read = transpile(ast, extracted);
 
@@ -218,11 +218,11 @@ apply_changes_to_match(AST *ast, const klee::ref<klee::Expr> &before,
       auto field_size = field->get_type()->get_size();
 
       auto e1_chunk =
-          BDD::solver_toolbox.exprBuilder->Extract(before, offset, field_size);
+          kutil::solver_toolbox.exprBuilder->Extract(before, offset, field_size);
       auto e2_chunk =
-          BDD::solver_toolbox.exprBuilder->Extract(after, offset, field_size);
+          kutil::solver_toolbox.exprBuilder->Extract(after, offset, field_size);
 
-      bool eq = BDD::solver_toolbox.are_exprs_always_equal(e1_chunk, e2_chunk);
+      bool eq = kutil::solver_toolbox.are_exprs_always_equal(e1_chunk, e2_chunk);
 
       if (!eq) {
         auto field_changes = apply_changes_to_match(ast, e1_chunk, e2_chunk);
@@ -247,11 +247,11 @@ apply_changes_to_match(AST *ast, const klee::ref<klee::Expr> &before,
 
     for (unsigned int offset = 0; offset < a->get_size(); offset += elem_sz) {
       auto e1_chunk =
-          BDD::solver_toolbox.exprBuilder->Extract(before, offset, elem_sz);
+          kutil::solver_toolbox.exprBuilder->Extract(before, offset, elem_sz);
       auto e2_chunk =
-          BDD::solver_toolbox.exprBuilder->Extract(after, offset, elem_sz);
+          kutil::solver_toolbox.exprBuilder->Extract(after, offset, elem_sz);
 
-      bool eq = BDD::solver_toolbox.are_exprs_always_equal(e1_chunk, e2_chunk);
+      bool eq = kutil::solver_toolbox.are_exprs_always_equal(e1_chunk, e2_chunk);
 
       if (!eq) {
         Expr_ptr e1_chunk_ast = transpile(ast, e1_chunk);
@@ -325,7 +325,7 @@ KleeExprToASTNodeConverter::visitRead(const klee::ReadExpr &e) {
       std::cerr << "\n";
       std::cerr << "Variable with symbol '" << symbol << "' not found:"
                 << "\n";
-      std::cerr << expr_to_string(eref) << "\n";
+      std::cerr << kutil::expr_to_string(eref) << "\n";
       std::cerr << "\n";
 
       assert(var != nullptr);
@@ -378,7 +378,7 @@ KleeExprToASTNodeConverter::visitConcat(const klee::ConcatExpr &e) {
 
   Concat_ptr concat = Concat::build(left, right, type);
 
-  RetrieveSymbols retriever;
+  kutil::RetrieveSymbols retriever;
   retriever.visit(klee::ref<klee::Expr>(const_cast<klee::ConcatExpr *>(&e)));
   auto symbols = retriever.get_retrieved_strings();
 

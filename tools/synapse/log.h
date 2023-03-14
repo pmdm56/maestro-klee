@@ -53,7 +53,7 @@ private:
       break;
     case DEBUG:
       stream.rdbuf(std::cerr.rdbuf());
-      color = Colors::WHITE;
+      color = Colors::BLUE;
       break;
     case WARNING:
       stream.rdbuf(std::cerr.rdbuf());

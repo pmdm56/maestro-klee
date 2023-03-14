@@ -1,124 +1,57 @@
 #pragma once
 
-#include "../modules/module.h"
+#include "modules/module.h"
 
-#include <typeindex>
 #include <unordered_map>
 
 namespace synapse {
 
-class MemoryBankTypeBase {
-public:
-  template <typename T> inline bool contains(Target target, uint64_t key) const;
-  template <typename T> inline const T &read(Target target, uint64_t key) const;
-  template <typename T> inline void write(Target target, uint64_t key, T value);
+class MemoryBank;
+typedef std::shared_ptr<MemoryBank> MemoryBank_ptr;
 
-  template <typename T> inline bool contains(uint64_t key) const;
-  template <typename T> inline const T &read(uint64_t key) const;
-  template <typename T> inline void write(uint64_t key, T value);
-};
+struct reorder_data_t {
+  bool valid;
+  int candidate_node_id;
+  klee::ref<klee::Expr> condition;
 
-template <typename T> class MemoryBankType {
-private:
-  std::unordered_map<Target, std::map<int, T>> banks;
-  std::map<int, T> common_bank;
+  reorder_data_t() : valid(false) {}
 
-public:
-  bool contains(uint64_t key) const {
-    auto value_it = common_bank.find(key);
+  reorder_data_t(const reorder_data_t &other)
+      : valid(other.valid), candidate_node_id(other.candidate_node_id),
+        condition(other.condition) {}
 
-    if (value_it == common_bank.end()) {
-      return false;
-    }
-
-    return true;
-  }
-
-  T read(uint64_t key) const {
-    assert(contains(key));
-    return common_bank.at(key);
-  }
-
-  void write(uint64_t key, T value) { common_bank[key] = value; }
-
-  bool contains(Target target, uint64_t key) const {
-    auto bank_it = banks.find(target);
-
-    if (bank_it == banks.end()) {
-      return false;
-    }
-
-    auto value_it = bank_it->second.find(key);
-
-    if (value_it == bank_it->second.end()) {
-      return false;
-    }
-
-    return true;
-  }
-
-  T read(Target target, uint64_t key) const {
-    assert(contains(target, key));
-    return banks.at(target).at(key);
-  }
-
-  void write(Target target, uint64_t key, T value) {
-    banks[target][key] = value;
-  }
+  reorder_data_t(int _candidate_node_id, klee::ref<klee::Expr> _condition)
+      : valid(true), candidate_node_id(_candidate_node_id),
+        condition(_condition) {}
 };
 
 class MemoryBank {
 private:
-  MemoryBankType<int> int_mb;
-  MemoryBankType<unsigned> unsigned_mb;
-  MemoryBankType<klee::ref<klee::Expr>> expr_mb;
+  std::vector<reorder_data_t> reorder_data;
 
 public:
-  template <typename T> bool contains(Target target, uint64_t key) const {
-    assert(false && "MemoryBank: I dont know this type");
-    exit(1);
+  MemoryBank() {}
+  MemoryBank(const MemoryBank &mb) : reorder_data(mb.reorder_data) {}
+
+  reorder_data_t get_reorder_data(int node_id) const {
+    for (const auto &data : reorder_data) {
+      if (data.valid && data.candidate_node_id == node_id) {
+        return data;
+      }
+    }
+
+    return reorder_data_t();
   }
-  template <typename T> T read(Target target, uint64_t key) const {
-    assert(false && "MemoryBank: I dont know this type");
-    exit(1);
+
+  void add_reorder_data(int node_candidate_id, klee::ref<klee::Expr> cond) {
+    reorder_data.emplace_back(node_candidate_id, cond);
   }
-  template <typename T> void write(Target target, uint64_t key, T value) {
-    assert(false && "MemoryBank: I dont know this type");
-    exit(1);
+
+  virtual MemoryBank_ptr clone() const {
+    return MemoryBank_ptr(new MemoryBank(*this));
   }
-  template <typename T> bool contains(uint64_t key) const {
-    assert(false && "MemoryBank: I dont know this type");
-    exit(1);
-  }
-  template <typename T> T read(uint64_t key) const {
-    assert(false && "MemoryBank: I dont know this type");
-    exit(1);
-  }
-  template <typename T> void write(uint64_t key, T value) {
-    assert(false && "MemoryBank: I dont know this type");
-    exit(1);
-  }
+
+  static MemoryBank_ptr build() { return MemoryBank_ptr(new MemoryBank()); }
 };
-
-#define DECLARE_SPECIALIZATION(value_type, prefix)                             \
-  template <>                                                                  \
-  bool MemoryBank::contains<value_type>(Target target, uint64_t key) const;    \
-                                                                               \
-  template <>                                                                  \
-  value_type MemoryBank::read<value_type>(Target target, uint64_t key) const;  \
-                                                                               \
-  template <>                                                                  \
-  void MemoryBank::write<value_type>(Target target, uint64_t key,              \
-                                     value_type value);                        \
-  template <> bool MemoryBank::contains<value_type>(uint64_t key) const;       \
-                                                                               \
-  template <> value_type MemoryBank::read<value_type>(uint64_t key) const;     \
-                                                                               \
-  template <>                                                                  \
-  void MemoryBank::write<value_type>(uint64_t key, value_type value);
-
-DECLARE_SPECIALIZATION(int, int)
-DECLARE_SPECIALIZATION(unsigned, unsigned)
-DECLARE_SPECIALIZATION(klee::ref<klee::Expr>, expr)
 
 } // namespace synapse

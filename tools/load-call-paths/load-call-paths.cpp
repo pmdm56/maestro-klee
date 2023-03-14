@@ -26,10 +26,13 @@
 #define DEBUG
 
 std::vector<std::string> call_paths_t::skip_functions{
-  "loop_invariant_consume",    "loop_invariant_produce", "packet_receive",
-  "packet_state_total_length", "packet_free",            "packet_send",
-  "packet_get_unread_length"
-};
+    "loop_invariant_consume",
+    "loop_invariant_produce",
+    "packet_receive",
+    "packet_state_total_length",
+    "packet_free",
+    "packet_send",
+    "packet_get_unread_length"};
 
 bool call_paths_t::is_skip_function(const std::string &fname) {
   auto found_it = std::find(call_paths_t::skip_functions.begin(),
@@ -37,9 +40,40 @@ bool call_paths_t::is_skip_function(const std::string &fname) {
   return found_it != call_paths_t::skip_functions.end();
 }
 
-call_path_t *load_call_path(std::string file_name,
-                            std::vector<std::string> expressions_str,
-                            std::deque<klee::ref<klee::Expr>> &expressions) {
+klee::ref<klee::Expr> parse_expr(const std::set<std::string> &declared_arrays,
+                                 const std::string &expr_str) {
+  std::stringstream kQuery_builder;
+
+  for (auto arr : declared_arrays) {
+    kQuery_builder << arr;
+    kQuery_builder << "\n";
+  }
+
+  kQuery_builder << "(query [] false [";
+  kQuery_builder << "(" << expr_str << ")";
+  kQuery_builder << "])";
+
+  auto kQuery = kQuery_builder.str();
+
+  auto MB = llvm::MemoryBuffer::getMemBuffer(kQuery);
+  auto Builder = klee::createDefaultExprBuilder();
+  auto P = klee::expr::Parser::Create("", MB, Builder, true);
+
+  while (auto D = P->ParseTopLevelDecl()) {
+    assert(!P->GetNumErrors() && "Error parsing kquery in call path file.");
+
+    if (auto QC = dyn_cast<klee::expr::QueryCommand>(D)) {
+      assert(QC->Values.size() == 1);
+      return QC->Values[0];
+    }
+  }
+
+  assert(false && "Error parsing expr");
+  std::cerr << "Error parsing expr: " << expr_str << "\n";
+  exit(1);
+}
+
+call_path_t *load_call_path(std::string file_name) {
   std::ifstream call_path_file(file_name);
   assert(call_path_file.is_open() && "Unable to open call path file.");
 
@@ -82,17 +116,9 @@ call_path_t *load_call_path(std::string file_name,
       if (line == ";;-- Calls --") {
         if (kQuery.substr(kQuery.length() - 2) == "])") {
           kQuery = kQuery.substr(0, kQuery.length() - 2) + "\n";
-
-          for (auto eit : expressions_str) {
-            kQuery += "\n         " + eit;
-          }
           kQuery += "])";
         } else if (kQuery.substr(kQuery.length() - 6) == "false)") {
           kQuery = kQuery.substr(0, kQuery.length() - 1) + " [\n";
-
-          for (auto eit : expressions_str) {
-            kQuery += "\n         " + eit;
-          }
           kQuery += "])";
         }
 
@@ -118,25 +144,14 @@ call_path_t *load_call_path(std::string file_name,
         kQuery += "\n" + line;
 
         if (line.substr(0, sizeof("array ") - 1) == "array ") {
-          std::string array_name = line.substr(sizeof("array "));
-          size_t delim = array_name.find("[");
-          assert(delim != std::string::npos);
-          array_name = array_name.substr(0, delim);
-          declared_arrays.insert(array_name);
+          declared_arrays.insert(line);
         }
       }
       break;
 
     case STATE_CALLS:
       if (line == ";;-- Constraints --") {
-        for (size_t i = 0; i < expressions_str.size(); i++) {
-          assert(!exprs.empty() && "Too few expressions in kQuery.");
-          expressions.push_back(exprs.front());
-          exprs.erase(exprs.begin());
-        }
-
         assert(exprs.empty() && "Too many expressions in kQuery.");
-
         state = STATE_DONE;
       } else {
         size_t delim = line.find(":");
@@ -265,6 +280,7 @@ call_path_t *load_call_path(std::string file_name,
                 delim = current_arg.find("]");
                 assert(delim != std::string::npos);
 
+                auto current_arg_meta = current_arg.substr(delim + 1);
                 current_arg = current_arg.substr(0, delim);
 
                 delim = current_arg.find("->");
@@ -282,6 +298,57 @@ call_path_t *load_call_path(std::string file_name,
                          "Not enough expression in kQuery.");
                   call_path->calls.back().args[current_arg_name].out = exprs[0];
                   exprs.erase(exprs.begin(), exprs.begin() + 1);
+                }
+
+                if (current_arg_meta.size()) {
+                  std::vector<std::string> expr_parts;
+
+                  while (current_arg_meta.size()) {
+                    auto start_delim = current_arg_meta.find("[");
+                    auto end_delim = current_arg_meta.find("]");
+
+                    assert(start_delim != std::string::npos);
+                    assert(end_delim != std::string::npos);
+
+                    auto size = end_delim - start_delim - 1;
+                    assert(size > 0);
+
+                    auto part =
+                        current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                    current_arg_meta = current_arg_meta.substr(end_delim + 1);
+
+                    expr_parts.push_back(part);
+                  }
+
+                  bits_t offset = 0;
+
+                  for (auto part : expr_parts) {
+                    delim = part.find("->");
+                    assert(delim != std::string::npos);
+
+                    part = part.substr(0, delim);
+
+                    auto open_delim = part.find("(");
+                    auto close_delim = part.find(")");
+
+                    assert(open_delim != std::string::npos);
+                    assert(close_delim != std::string::npos);
+
+                    auto symbol = part.substr(0, open_delim);
+                    auto meta_expr_str = part.substr(open_delim + 1);
+                    meta_expr_str =
+                        meta_expr_str.substr(0, meta_expr_str.size() - 1);
+
+                    auto meta_expr = parse_expr(declared_arrays, meta_expr_str);
+                    auto meta_size = meta_expr->getWidth();
+                    auto meta = meta_t{symbol, offset, meta_size};
+
+                    offset += meta_size;
+
+                    call_path->calls.back()
+                        .args[current_arg_name]
+                        .meta.push_back(meta);
+                  }
                 }
               }
             }
@@ -395,6 +462,7 @@ call_path_t *load_call_path(std::string file_name,
               delim = current_arg.find("]");
               assert(delim != std::string::npos);
 
+              auto current_arg_meta = current_arg.substr(delim + 1);
               current_arg = current_arg.substr(0, delim);
 
               delim = current_arg.find("->");
@@ -410,6 +478,56 @@ call_path_t *load_call_path(std::string file_name,
                 assert(exprs.size() >= 1 && "Not enough expression in kQuery.");
                 call_path->calls.back().args[current_arg_name].out = exprs[0];
                 exprs.erase(exprs.begin(), exprs.begin() + 1);
+              }
+
+              if (current_arg_meta.size()) {
+                std::vector<std::string> expr_parts;
+
+                while (current_arg_meta.size()) {
+                  auto start_delim = current_arg_meta.find("[");
+                  auto end_delim = current_arg_meta.find("]");
+
+                  assert(start_delim != std::string::npos);
+                  assert(end_delim != std::string::npos);
+
+                  auto size = end_delim - start_delim - 1;
+                  assert(size > 0);
+
+                  auto part =
+                      current_arg_meta.substr(start_delim + 1, end_delim - 1);
+                  current_arg_meta = current_arg_meta.substr(end_delim + 1);
+
+                  expr_parts.push_back(part);
+                }
+
+                bits_t offset = 0;
+
+                for (auto part : expr_parts) {
+                  delim = part.find("->");
+                  assert(delim != std::string::npos);
+
+                  part = part.substr(0, delim);
+
+                  auto open_delim = part.find("(");
+                  auto close_delim = part.find(")");
+
+                  assert(open_delim != std::string::npos);
+                  assert(close_delim != std::string::npos);
+
+                  auto symbol = part.substr(0, open_delim);
+                  auto meta_expr_str = part.substr(open_delim + 1);
+                  meta_expr_str =
+                      meta_expr_str.substr(0, meta_expr_str.size() - 1);
+
+                  auto meta_expr = parse_expr(declared_arrays, meta_expr_str);
+                  auto meta_size = meta_expr->getWidth();
+                  auto meta = meta_t{symbol, offset, meta_size};
+
+                  offset += meta_size;
+
+                  call_path->calls.back().args[current_arg_name].meta.push_back(
+                      meta);
+                }
               }
             }
           }

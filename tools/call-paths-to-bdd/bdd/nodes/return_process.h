@@ -6,12 +6,7 @@
 namespace BDD {
 class ReturnProcess : public Node {
 public:
-  enum Operation {
-    FWD,
-    DROP,
-    BCAST,
-    ERR
-  };
+  enum Operation { FWD, DROP, BCAST, ERR };
 
 private:
   int value;
@@ -23,7 +18,7 @@ private:
 public:
   ReturnProcess(uint64_t _id, const ReturnRaw *raw)
       : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, nullptr,
-             raw->call_paths_filenames, raw->constraints) {
+             raw->constraints) {
     auto calls_list = raw->get_calls();
     assert(calls_list.size());
     fill_return_value(calls_list[0]);
@@ -32,15 +27,13 @@ public:
   ReturnProcess(uint64_t _id, const BDDNode_ptr &_prev, int _value,
                 Operation _operation)
       : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, _prev,
-             _prev->call_paths_filenames, _prev->constraints),
+             _prev->constraints),
         value(_value), operation(_operation) {}
 
   ReturnProcess(uint64_t _id, const BDDNode_ptr &_prev, int _value,
                 Operation _operation,
-                const std::vector<std::string> &_call_paths_filenames,
                 std::vector<klee::ConstraintManager> _constraints)
-      : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, _prev,
-             _call_paths_filenames, _constraints),
+      : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, _prev, _constraints),
         value(_value), operation(_operation) {}
 
   int get_return_value() const { return value; }

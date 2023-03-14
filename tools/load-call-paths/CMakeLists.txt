@@ -10,15 +10,10 @@ file(GLOB_RECURSE load-call-paths-sources
   "*.cpp"
 )
 
-file(GLOB_RECURSE expr-printer-sources
-  "../expr-printer/*.cpp"
-)
-
-list(FILTER expr-printer-sources EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER util-sources EXCLUDE REGEX ".*main\\.cpp$")
 
 add_executable(load-call-paths
   ${load-call-paths-sources}
-  ${expr-printer-sources}
 )
 
 set(KLEE_LIBS
@@ -26,7 +21,7 @@ set(KLEE_LIBS
   kleeCore
 )
 
-target_include_directories(load-call-paths PRIVATE ../expr-printer)
+target_include_directories(load-call-paths PRIVATE)
 target_link_libraries(load-call-paths ${KLEE_LIBS})
 
 install(TARGETS load-call-paths RUNTIME DESTINATION bin)
