@@ -11,11 +11,18 @@ namespace Clone {
 
 	/* Constructors and destructors */
 
-	Builder::Builder() : bdd(unique_ptr<BDD::BDD>(new BDD::BDD(0))) {
+	Builder::Builder(unique_ptr<BDD::BDD> bdd): bdd(move(bdd)) {
 		debug("Builder created");
 	}
 
 	Builder::~Builder() = default;
+
+	/* Static methods */
+
+	std::unique_ptr<Builder> Builder::create() {
+		debug("Creating builder");
+		return std::unique_ptr<Builder>(new Builder(unique_ptr<BDD::BDD>(new BDD::BDD())));
+	}
 
 	/* Public methods */
 	bool Builder::is_init_empty() const {

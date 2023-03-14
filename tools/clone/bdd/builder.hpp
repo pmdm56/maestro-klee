@@ -10,11 +10,13 @@ namespace BDD {
 
 namespace Clone {
 	class Builder { 
-	private:	
-		std::unique_ptr<BDD::BDD> bdd;	
+	private:
+		const std::unique_ptr<BDD::BDD> bdd;
+		Builder(std::unique_ptr<BDD::BDD> bdd);
 	public:
-		Builder();
 		~Builder();
+
+		static std::unique_ptr<Builder> create();
 
 		bool is_init_empty() const;
 		bool is_process_empty() const;

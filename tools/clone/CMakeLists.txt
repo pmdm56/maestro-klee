@@ -10,8 +10,12 @@ file(GLOB_RECURSE clone-sources
   "*.cpp"
 )
 
+file(GLOB_RECURSE klee-util-sources
+  "../klee-util/*.cpp"
+)
+
 file(GLOB_RECURSE load-call-paths-sources
-  "../load-call-paths*.cpp"
+  "../load-call-paths/*.cpp"
 )
 
 file(GLOB_RECURSE call-paths-to-bdd-sources
@@ -30,6 +34,7 @@ list(FILTER load-call-paths-sources EXCLUDE REGEX ".*main\\.cpp$")
 list(FILTER call-paths-to-bdd-sources EXCLUDE REGEX ".*main\\.cpp$")
 list(FILTER bdd-reorderer-sources EXCLUDE REGEX ".*main\\.cpp$")
 list(FILTER expr-printer-sources EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER klee-util-sources EXCLUDE REGEX ".*main\\.cpp$")
 
 add_executable(clone
   ${clone-sources}
@@ -37,6 +42,7 @@ add_executable(clone
   ${bdd-reorderer-sources}
   ${call-paths-to-bdd-sources}
   ${expr-printer-sources}
+  ${klee-util-sources}
 )
 
 set(KLEE_LIBS
@@ -44,7 +50,7 @@ set(KLEE_LIBS
   kleeCore
 )
 
-target_include_directories(clone PRIVATE ../load-call-paths ../call-paths-to-bdd ../expr-printer)
+target_include_directories(clone PRIVATE ../load-call-paths ../call-paths-to-bdd ../expr-printer ../klee-util)
 target_link_libraries(clone ${KLEE_LIBS})
 
 install(TARGETS clone RUNTIME DESTINATION bin)

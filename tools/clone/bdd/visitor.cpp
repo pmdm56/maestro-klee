@@ -2,15 +2,9 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
-#include "solver-toolbox.h"
-#include "klee/Constraints.h"
 #include "call-paths-to-bdd.h"
-#include "klee/Constraints.h"
-#include "klee/ExprBuilder.h"
 
 #include "builder.hpp"
-
-using BDD::solver_toolbox;
 
 namespace Clone {
 	/* Constructors and destructors */
