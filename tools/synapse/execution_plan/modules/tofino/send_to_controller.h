@@ -9,7 +9,7 @@ namespace tofino {
 
 class SendToController : public Module {
 private:
-  uint64_t metadata_code_path;
+  uint64_t cpu_code_path;
 
 public:
   SendToController()
@@ -18,10 +18,10 @@ public:
     next_target = TargetType::x86_Tofino;
   }
 
-  SendToController(BDD::BDDNode_ptr node, uint64_t _metadata_code_path)
+  SendToController(BDD::BDDNode_ptr node, uint64_t _cpu_code_path)
       : Module(ModuleType::Tofino_SendToController, TargetType::Tofino,
                "SendToController", node),
-        metadata_code_path(_metadata_code_path) {
+        cpu_code_path(_cpu_code_path) {
     next_target = TargetType::x86_Tofino;
   }
 
@@ -88,23 +88,6 @@ private:
     return root;
   }
 
-  ExecutionPlan build_new_execution_plan(const ExecutionPlan &ep,
-                                         BDD::BDDNode_ptr current_node,
-                                         BDD::BDDNode_ptr next_node,
-                                         Module_ptr module,
-                                         uint64_t code_path) {
-    auto new_packet_parse_cpu_module =
-        std::make_shared<x86_tofino::PacketParseCPU>(current_node);
-
-    auto sent_to_controller = ep.add_leaves(module, nullptr, false, false);
-    auto new_ep = sent_to_controller.add_leaves(new_packet_parse_cpu_module,
-                                                next_node, false, false);
-
-    new_ep.replace_active_leaf_node(next_node, false);
-
-    return new_ep;
-  }
-
   processing_result_t process(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
     processing_result_t result;
 
@@ -119,16 +102,14 @@ private:
     auto next_node = clone_calls(ep_cloned, node_cloned);
     auto _code_path = node->get_id();
 
-    auto new_module =
+    auto send_to_controller =
         std::make_shared<SendToController>(node_cloned, _code_path);
 
-    auto new_ep = build_new_execution_plan(ep_cloned, node_cloned, next_node,
-                                           new_module, _code_path);
+    auto new_ep =
+        ep_cloned.add_leaves(send_to_controller, next_node, false, false);
+    new_ep.replace_active_leaf_node(next_node, false);
 
-    // TODO: check metadata code path here and add if canditions
-    // remove that logic from the code_generator
-
-    result.module = new_module;
+    result.module = send_to_controller;
     result.next_eps.push_back(new_ep);
 
     return result;
@@ -152,7 +133,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new SendToController(node, metadata_code_path);
+    auto cloned = new SendToController(node, cpu_code_path);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -163,14 +144,14 @@ public:
 
     auto other_cast = static_cast<const SendToController *>(other);
 
-    if (metadata_code_path != other_cast->metadata_code_path) {
+    if (cpu_code_path != other_cast->cpu_code_path) {
       return false;
     }
 
     return true;
   }
 
-  uint64_t get_metadata_code_path() const { return metadata_code_path; }
+  uint64_t get_cpu_code_path() const { return cpu_code_path; }
 };
 } // namespace tofino
 } // namespace targets

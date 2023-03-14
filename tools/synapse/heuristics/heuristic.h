@@ -32,7 +32,10 @@ private:
   }
 
   typename std::set<ExecutionPlan, T>::iterator get_next_it() const {
-    assert(execution_plans.size());
+    if (execution_plans.size() == 0) {
+      Log::err() << "No more execution plans to pick!\n";
+      exit(1);
+    }
 
     auto conf = static_cast<const HeuristicConfiguration *>(&configuration);
     auto it = execution_plans.begin();

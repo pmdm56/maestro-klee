@@ -1,22 +1,21 @@
 #include "transpiler.h"
 #include "../../../../log.h"
 #include "klee-util.h"
-#include "tofino_generator.h"
-#include "util.h"
+#include "x86_tofino_generator.h"
 
 #include <assert.h>
 
 namespace synapse {
 namespace synthesizer {
-namespace tofino {
+namespace x86_tofino {
 
 class InternalTranspiler : public klee::ExprVisitor::ExprVisitor {
 private:
-  TofinoGenerator &tg;
+  x86TofinoGenerator &tg;
   std::stringstream code;
 
 public:
-  InternalTranspiler(TofinoGenerator &_tg) : tg(_tg) {}
+  InternalTranspiler(x86TofinoGenerator &_tg) : tg(_tg) {}
 
   std::string get() const { return code.str(); }
 
@@ -53,61 +52,22 @@ private:
   klee::ExprVisitor::Action visitSge(const klee::SgeExpr &);
 };
 
-std::vector<std::string>
-Transpiler::assign_key_bytes(klee::ref<klee::Expr> key,
-                             const std::vector<meta_t> &meta) {
-  std::vector<std::string> assignments;
-  auto key_vars = get_key_vars(tg.ingress, key, meta);
-
-  for (const auto &kv : key_vars) {
-    if (!kv.is_free) {
-      continue;
-    }
-
-    auto key_byte =
-        kutil::solver_toolbox.exprBuilder->Extract(key, kv.offset_bits, 8);
-
-    auto key_byte_code = tg.transpile(key_byte);
-
-    std::stringstream assignment;
-
-    assignment << kv.variable.get_label();
-    assignment << " = ";
-    assignment << key_byte_code;
-
-    assignments.push_back(assignment.str());
-  }
-
-  return assignments;
-}
-
 std::pair<bool, std::string>
-try_transpile_constant(TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
+try_transpile_constant(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
   auto result = std::pair<bool, std::string>();
   auto is_constant = kutil::is_constant(expr);
 
   if (is_constant) {
     auto value = kutil::solver_toolbox.value_from_expr(expr);
-    auto width = expr->getWidth();
-
-    auto ss = std::stringstream();
-
-    if (width == 1) {
-      ss << (value == 0 ? "false" : "true");
-    } else {
-      assert(width <= 64);
-      ss << width << "w" << value;
-    }
-
     result.first = true;
-    result.second = ss.str();
+    result.second = std::to_string(value);
   }
 
   return result;
 }
 
 std::pair<bool, std::string>
-try_transpile_variable(TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
+try_transpile_variable(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
   auto result = std::pair<bool, std::string>();
   auto variable = tg.search_variable(expr);
 
@@ -149,7 +109,7 @@ struct transpile_var_comparison_t {
 };
 
 transpile_var_comparison_t
-transpile_var_comparison(TofinoGenerator &tg, const klee::ref<klee::Expr> &lhs,
+transpile_var_comparison(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &lhs,
                          const klee::ref<klee::Expr> &rhs) {
   auto lhs_varq = tg.search_variable(lhs);
   auto rhs_varq = tg.search_variable(rhs);
@@ -413,6 +373,6 @@ klee::ExprVisitor::Action InternalTranspiler::visitSge(const klee::SgeExpr &) {
   assert(false && "TODO");
 }
 
-} // namespace tofino
+} // namespace x86_tofino
 } // namespace synthesizer
 } // namespace synapse

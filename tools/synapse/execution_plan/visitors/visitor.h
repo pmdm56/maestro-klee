@@ -81,6 +81,8 @@ class If;
 class Then;
 class Else;
 class Drop;
+class PacketModifyEthernet;
+class ForwardThroughTofino;
 } // namespace x86_tofino
 
 } // namespace targets
@@ -174,6 +176,8 @@ public:
   VISIT(targets::x86_tofino::Then)
   VISIT(targets::x86_tofino::Else)
   VISIT(targets::x86_tofino::Drop)
+  VISIT(targets::x86_tofino::PacketModifyEthernet)
+  VISIT(targets::x86_tofino::ForwardThroughTofino)
 
 protected:
   virtual void log(const ExecutionPlanNode *ep_node) const;

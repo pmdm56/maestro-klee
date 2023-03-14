@@ -3,6 +3,7 @@
 #include "../../../../log.h"
 #include "../../../execution_plan.h"
 #include "../synthesizer.h"
+#include "transpiler.h"
 
 #define X86_TOFINO_BOILERPLATE_FILE "boilerplate.cpp"
 
@@ -11,6 +12,8 @@ namespace synthesizer {
 namespace x86_tofino {
 
 class x86TofinoGenerator : public Synthesizer {
+  friend Transpiler;
+
 public:
   x86TofinoGenerator()
       : Synthesizer(GET_BOILERPLATE_PATH(X86_TOFINO_BOILERPLATE_FILE)) {}

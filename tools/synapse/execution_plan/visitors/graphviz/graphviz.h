@@ -80,17 +80,18 @@ public:
   Graphviz(const std::string &path, const SearchSpace *_search_space)
       : fpath(path), search_space(_search_space) {
     node_colors = std::map<TargetType, std::string>{
-        {TargetType::BMv2, "firebrick2"},
-        {TargetType::x86_BMv2, "cornflowerblue"},
-        {TargetType::Tofino, "darkolivegreen2"},
-        {TargetType::x86_Tofino, "cornflowerblue"},
+        {TargetType::BMv2, "darkolivegreen2"},
+        {TargetType::Tofino, "cornflowerblue"},
         {TargetType::Netronome, "gold"},
         {TargetType::FPGA, "coral1"},
+        {TargetType::x86_BMv2, "firebrick2"},
+        {TargetType::x86_Tofino, "firebrick2"},
     };
 
     ofs.open(fpath);
     assert(ofs);
   }
+
   Graphviz(const std::string &path) : Graphviz(path, nullptr) {}
 
 private:
@@ -475,5 +476,7 @@ public:
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Then)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Else)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Drop)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyEthernet)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::ForwardThroughTofino)
 };
 } // namespace synapse

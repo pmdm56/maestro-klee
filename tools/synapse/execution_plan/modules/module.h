@@ -81,11 +81,14 @@ public:
     x86_Tofino_CurrentTime,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
+    x86_Tofino_SendToTofino,
     x86_Tofino_PacketParseEthernet,
+    x86_Tofino_PacketModifyEthernet,
     x86_Tofino_If,
     x86_Tofino_Then,
     x86_Tofino_Else,
     x86_Tofino_Drop,
+    x86_Tofino_ForwardThroughTofino,
   };
 
 protected:
