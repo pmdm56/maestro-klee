@@ -15,9 +15,12 @@ namespace synthesizer {
 namespace x86_tofino {
 
 enum hdr_field_id_t {
-  DST_ADDR,
-  SRC_ADDR,
-  ETHER_TYPE,
+  CPU_CODE_PATH,
+  CPU_IN_PORT,
+  CPU_OUT_PORT,
+  ETH_DST_ADDR,
+  ETH_SRC_ADDR,
+  ETH_ETHER_TYPE,
 };
 
 struct hdr_field_t : public Variable {
@@ -46,6 +49,7 @@ struct hdr_field_t : public Variable {
 };
 
 enum hdr_id_t {
+  CPU,
   ETHERNET,
 };
 
@@ -82,6 +86,15 @@ public:
     assert(!size_check || total_size_bits == _chunk->getWidth());
   }
 
+  Header(hdr_id_t _hdr_id, const std::string &_label,
+         const std::vector<hdr_field_t> &_fields)
+      : Variable(_label, 0), hdr_id(_hdr_id), fields(_fields) {
+    for (auto &field : fields) {
+      auto field_size_bits = field.get_size_bits();
+      size_bits += field_size_bits;
+    }
+  }
+
 public:
   hdr_id_t get_id() const { return hdr_id; }
 
@@ -95,18 +108,21 @@ public:
 
       std::stringstream field_label;
 
-      field_label << PACKET_VAR_LABEL;
-      field_label << ".";
       field_label << label;
-      field_label << ".";
+      field_label << "->";
       field_label << field.get_label();
 
       auto label = field_label.str();
       auto size_bits = field.get_size_bits();
-      auto expr = field.get_expr();
 
-      auto var = Variable(label, size_bits, expr);
+      if (field.has_expr()) {
+        auto expr = field.get_expr();
+        auto var = Variable(label, size_bits, expr);
+        return variable_query_t(var, 0);
+      }
 
+      std::vector<std::string> no_symbols;
+      auto var = Variable(label, size_bits, no_symbols);
       return variable_query_t(var, 0);
     }
 
@@ -121,6 +137,10 @@ public:
     }
 
     for (const auto &field : fields) {
+      if (!field.has_expr()) {
+        continue;
+      }
+
       auto field_expr = field.get_expr();
       auto contains_result = kutil::solver_toolbox.contains(field_expr, expr);
 

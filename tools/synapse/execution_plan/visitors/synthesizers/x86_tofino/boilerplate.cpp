@@ -18,7 +18,7 @@ extern "C" {
 #endif
 #include <bf_rt/bf_rt_common.h>
 #include <bf_switchd/bf_switchd.h>
-#include <bfutils/bf_utils.h> // required for bfshell
+#include <bfutils/bf_utils.h>  // required for bfshell
 #include <pkt_mgr/pkt_mgr_intf.h>
 #ifdef __cplusplus
 }
@@ -32,133 +32,135 @@ extern "C" {
 #define SWITCH_PACKET_MAX_BUFFER_SIZE 10000
 #define MTU 1500
 
+#define SWAP_ENDIAN_16(v) { (v) = __bswap_16((v)); }
+#define SWAP_ENDIAN_32(v) { (v) = __bswap_32((v)); }
+
 bf_rt_target_t dev_tgt;
 const bfrt::BfRtInfo *info;
 std::shared_ptr<bfrt::BfRtSession> session;
 
 struct cpu_t {
-  uint16_t code_path;
-  uint16_t in_port;
-  uint16_t out_port;
+	uint16_t code_path;
+	uint16_t in_port;
+	uint16_t out_port;
 
-  uint16_t get_cpu_out_port() const { return ntohs(out_port) & 0b111111111; }
+	uint16_t get_cpu_out_port() const { return ntohs(out_port) & 0b111111111; }
+	void set_cpu_out_port(uint16_t port) {
+		out_port = htons(port & 0b111111111);
+	}
 
-  void set_cpu_out_port(uint16_t port) { out_port = htons(port & 0b111111111); }
-
-  void dump() const {
-    printf("###[ CPU ]###\n");
-    printf("code path  %u\n", ntohs(code_path));
-    printf("in port   %u\n", ntohs(in_port));
-    printf("out port   %u\n", ntohs(out_port));
-  }
+	void dump() const {
+		printf("###[ CPU ]###\n");
+		printf("code path  %u\n", code_path);
+		printf("in port   %u\n", in_port);
+		printf("out port   %u\n", out_port);
+	}
 } __attribute__((packed));
 
 struct eth_t {
-  uint8_t dst_mac[6];
-  uint8_t src_mac[6];
-  uint16_t eth_type;
+	uint8_t dst_mac[6];
+	uint8_t src_mac[6];
+	uint16_t eth_type;
 
-  void dump() const {
-    printf("###[ Ethernet ]###\n");
-    printf("dst  %02x:%02x:%02x:%02x:%02x:%02x\n", dst_mac[0], dst_mac[1],
-           dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5]);
-    printf("src  %02x:%02x:%02x:%02x:%02x:%02x\n", src_mac[0], src_mac[1],
-           src_mac[2], src_mac[3], src_mac[4], src_mac[5]);
-    printf("type 0x%x\n", ntohs(eth_type));
-  }
+	void dump() const {
+		printf("###[ Ethernet ]###\n");
+		printf("dst  %02x:%02x:%02x:%02x:%02x:%02x\n", dst_mac[0], dst_mac[1],
+			   dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5]);
+		printf("src  %02x:%02x:%02x:%02x:%02x:%02x\n", src_mac[0], src_mac[1],
+			   src_mac[2], src_mac[3], src_mac[4], src_mac[5]);
+		printf("type 0x%x\n", eth_type);
+	}
 } __attribute__((packed));
 
 struct ipv4_t {
-  uint8_t ihl : 4;
-  uint8_t version : 4;
-  uint8_t ecn : 2;
-  uint8_t dscp : 6;
-  uint16_t tot_len;
-  uint16_t id;
-  uint16_t frag_off;
-  uint8_t ttl;
-  uint8_t protocol;
-  uint16_t check;
-  uint32_t src_ip;
-  uint32_t dst_ip;
+	uint8_t ihl : 4;
+	uint8_t version : 4;
+	uint8_t ecn : 2;
+	uint8_t dscp : 6;
+	uint16_t tot_len;
+	uint16_t id;
+	uint16_t frag_off;
+	uint8_t ttl;
+	uint8_t protocol;
+	uint16_t check;
+	uint32_t src_ip;
+	uint32_t dst_ip;
 
-  void dump() const {
-    printf("###[ IP ]###\n");
-    printf("ihl     %u\n", (ihl & 0x0f));
-    printf("version %u\n", (ihl & 0xf0) >> 4);
-    printf("tos     %u\n", version);
-    printf("len     %u\n", ntohs(tot_len));
-    printf("id      %u\n", ntohs(id));
-    printf("off     %u\n", ntohs(frag_off));
-    printf("ttl     %u\n", ttl);
-    printf("proto   %u\n", protocol);
-    printf("chksum  0x%x\n", ntohs(check));
-    printf("src     %u.%u.%u.%u\n", (src_ip >> 0) & 0xff, (src_ip >> 8) & 0xff,
-           (src_ip >> 16) & 0xff, (src_ip >> 24) & 0xff);
-    printf("dst     %u.%u.%u.%u\n", (dst_ip >> 0) & 0xff, (dst_ip >> 8) & 0xff,
-           (dst_ip >> 16) & 0xff, (dst_ip >> 24) & 0xff);
-  }
+	void dump() const {
+		printf("###[ IP ]###\n");
+		printf("ihl     %u\n", (ihl & 0x0f));
+		printf("version %u\n", (ihl & 0xf0) >> 4);
+		printf("tos     %u\n", version);
+		printf("len     %u\n", ntohs(tot_len));
+		printf("id      %u\n", ntohs(id));
+		printf("off     %u\n", ntohs(frag_off));
+		printf("ttl     %u\n", ttl);
+		printf("proto   %u\n", protocol);
+		printf("chksum  0x%x\n", ntohs(check));
+		printf("src     %u.%u.%u.%u\n", (src_ip >> 0) & 0xff,
+			   (src_ip >> 8) & 0xff, (src_ip >> 16) & 0xff,
+			   (src_ip >> 24) & 0xff);
+		printf("dst     %u.%u.%u.%u\n", (dst_ip >> 0) & 0xff,
+			   (dst_ip >> 8) & 0xff, (dst_ip >> 16) & 0xff,
+			   (dst_ip >> 24) & 0xff);
+	}
 } __attribute__((packed));
 
 struct tcpudp_t {
-  uint16_t src_port;
-  uint16_t dst_port;
+	uint16_t src_port;
+	uint16_t dst_port;
 
-  void dump() const {
-    printf("###[ TCP/UDP ]###\n");
-    printf("sport   %u\n", ntohs(src_port));
-    printf("dport   %u\n", ntohs(dst_port));
-  }
+	void dump() const {
+		printf("###[ TCP/UDP ]###\n");
+		printf("sport   %u\n", ntohs(src_port));
+		printf("dport   %u\n", ntohs(dst_port));
+	}
 } __attribute__((packed));
 
-// struct pkt_t {
-// 	cpu_t cpu;
-// 	eth_t eth;
-// 	ipv4_t ip;
-// 	tcpudp_t tcpudp;
-
-// 	void dump() const {
-// 		cpu.dump();
-// 		eth.dump();
-// 		ip.dump();
-// 		tcpudp.dump();
-// 	}
-// } __attribute__((packed));
-
 struct pkt_t {
-  uint8_t *base;
-  uint8_t *curr;
-  uint32_t size;
+	uint8_t *base;
+	uint8_t *curr;
+	uint32_t size;
 
-  pkt_t(uint8_t *_data, uint32_t _size)
-      : base(_data), curr(_data), size(_size) {}
+	pkt_t(uint8_t *_data, uint32_t _size)
+		: base(_data), curr(_data), size(_size) {}
 
-  cpu_t *parse_cpu() {
-    auto ptr = curr;
-    curr += sizeof(cpu_t);
-    return (cpu_t *)ptr;
-  }
+	cpu_t *parse_cpu() {
+		auto ptr = (cpu_t *)curr;
+		curr += sizeof(cpu_t);
 
-  eth_t *parse_ethernet() {
-    auto ptr = curr;
-    curr += sizeof(eth_t);
-    return (eth_t *)ptr;
-  }
+		SWAP_ENDIAN_16(ptr->code_path);
+		SWAP_ENDIAN_16(ptr->in_port);
+		SWAP_ENDIAN_16(ptr->out_port);
 
-  ipv4_t *parse_ipv4() {
-    auto ptr = curr;
-    curr += sizeof(ipv4_t);
-    return (ipv4_t *)ptr;
-  }
+		return ptr;
+	}
 
-  tcpudp_t *parse_tcpudp() {
-    auto ptr = curr;
-    curr += sizeof(tcpudp_t);
-    return (tcpudp_t *)ptr;
+	eth_t *parse_ethernet() {
+		auto ptr = (eth_t *)curr;
+		curr += sizeof(eth_t);
+		return ptr;
+	}
+
+	ipv4_t *parse_ipv4() {
+		auto ptr = curr;
+		curr += sizeof(ipv4_t);
+		return (ipv4_t *)ptr;
+	}
+
+	tcpudp_t *parse_tcpudp() {
+		auto ptr = curr;
+		curr += sizeof(tcpudp_t);
+		return (tcpudp_t *)ptr;
+	}
+
+  void commit() {
+    auto cpu = (cpu_t *)base;
+		SWAP_ENDIAN_16(cpu->code_path);
+		SWAP_ENDIAN_16(cpu->in_port);
+		SWAP_ENDIAN_16(cpu->out_port);
   }
 };
-
-void pretty_print_pkt(struct pkt_hdr_t *pkt_hdr) {}
 
 char *get_env_var_value(const char *env_var) {
   auto env_var_value = getenv(env_var);
@@ -258,6 +260,7 @@ bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
 
   if (port != DROP) {
     cpu->set_cpu_out_port(port);
+    p.commit();
     pcie_tx(device, (uint8_t *)in_packet, packet_size);
   }
 

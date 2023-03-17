@@ -17,6 +17,14 @@ std::string x86TofinoGenerator::transpile(klee::ref<klee::Expr> expr) {
 }
 
 variable_query_t x86TofinoGenerator::search_variable(std::string symbol) const {
+  if (symbol == symbex::PORT || symbol == symbex::PORT2) {
+    auto in_port_var = headers.get_hdr_field(CPU, CPU_IN_PORT);
+
+    if (in_port_var.valid) {
+      return in_port_var;
+    }
+  }
+
   auto local_var = local_vars.get(symbol);
 
   if (local_var.valid) {
@@ -130,9 +138,10 @@ void x86TofinoGenerator::visit(
   assert(node);
   assert(node->get_node());
 
-  const hdr_field_t eth_dst_addr{DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
-  const hdr_field_t eth_src_addr{SRC_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
-  const hdr_field_t eth_ether_type{ETHER_TYPE, HDR_ETH_ETHER_TYPE_FIELD, 16};
+  const hdr_field_t eth_dst_addr{ETH_DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
+  const hdr_field_t eth_src_addr{ETH_SRC_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
+  const hdr_field_t eth_ether_type{ETH_ETHER_TYPE, HDR_ETH_ETHER_TYPE_FIELD,
+                                   16};
 
   std::vector<hdr_field_t> fields = {eth_dst_addr, eth_src_addr,
                                      eth_ether_type};

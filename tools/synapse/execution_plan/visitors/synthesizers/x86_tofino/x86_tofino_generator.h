@@ -41,15 +41,15 @@ public:
         nf_proces_builder(get_indentation_level(MARKER_NF_PROCESS)),
         transpiler(*this), pending_ifs(nf_proces_builder) {
 
-    std::stringstream in_port_label_builder;
-    in_port_label_builder << HDR_CPU_VARIABLE;
-    in_port_label_builder << "->";
-    in_port_label_builder << HDR_CPU_IN_PORT_FIELD;
+    const hdr_field_t cpu_code_path{CPU_CODE_PATH, HDR_CPU_CODE_PATH_FIELD, 16};
+    const hdr_field_t cpu_in_port{CPU_IN_PORT, HDR_CPU_IN_PORT_FIELD, 16};
+    const hdr_field_t cpu_out_port{CPU_OUT_PORT, HDR_CPU_OUT_PORT_FIELD, 16};
 
-    auto in_port_var = Variable(in_port_label_builder.str(), 16,
-                                {symbex::PORT, symbex::PORT2});
+    std::vector<hdr_field_t> fields = {cpu_code_path, cpu_in_port,
+                                       cpu_out_port};
 
-    local_vars.append(in_port_var);
+    auto header = Header(CPU, HDR_CPU_VARIABLE, fields);
+    headers.add(header);
   }
 
   std::string transpile(klee::ref<klee::Expr> expr);

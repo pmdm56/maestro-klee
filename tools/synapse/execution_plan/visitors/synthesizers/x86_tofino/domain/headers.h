@@ -20,6 +20,18 @@ private:
 public:
   void add(const Header &hdr) { headers.push_back(hdr); }
 
+  variable_query_t get_hdr_field(hdr_id_t hdr_id, hdr_field_id_t field_id) const {
+    for (auto hdr : headers) {
+      if (hdr.get_id() != hdr_id) {
+        continue;
+      }
+
+      return hdr.get_field_var(field_id);
+    }
+
+    return variable_query_t();
+  }
+
   variable_query_t get_hdr_field_from_chunk(klee::ref<klee::Expr> chunk) const {
     auto symbol = kutil::get_symbol(chunk);
 

@@ -47,6 +47,10 @@ public:
     return exprs.push_back(expr);
   }
 
+  bool has_expr() const {
+    return exprs.size() > 0;
+  }
+
   klee::ref<klee::Expr> get_expr() const {
     assert(exprs.size() == 1);
     return exprs[0];
