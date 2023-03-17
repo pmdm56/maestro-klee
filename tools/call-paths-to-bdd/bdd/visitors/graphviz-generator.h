@@ -230,7 +230,7 @@ public:
 
     os << ")";
 
-    auto symbols = node->get_node_generated_symbols();
+    auto symbols = node->get_local_generated_symbols();
     if (symbols.size()) {
       for (auto s : symbols) {
         os << "\\l=>{" << s.label;

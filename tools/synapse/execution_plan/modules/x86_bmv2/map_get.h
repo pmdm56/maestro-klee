@@ -44,7 +44,7 @@ private:
       auto _map_has_this_key = call.ret;
       auto _value_out = call.args[symbex::FN_MAP_ARG_OUT].out;
 
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module =
           std::make_shared<MapGet>(node, _map_addr, _key, _map_has_this_key,

@@ -39,7 +39,7 @@ private:
       auto _obj = call.args[symbex::FN_ETHER_HASH_ARG_OBJ].in;
       auto _hash = call.ret;
 
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module = std::make_shared<RteEtherAddrHash>(node, _obj, _hash,
                                                            _generated_symbols);

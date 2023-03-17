@@ -20,7 +20,7 @@ public:
   call_t get_call() const { return call; }
   void set_call(call_t _call) { call = _call; }
 
-  symbols_t get_node_generated_symbols() const override;
+  symbols_t get_local_generated_symbols() const override;
 
   virtual BDDNode_ptr clone(bool recursive = false) const override;
   virtual void recursive_update_ids(uint64_t &new_id) override;

@@ -44,7 +44,7 @@ private:
       auto _dchain_addr = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
       auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
       auto _is_allocated = call.ret;
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module = std::make_shared<DchainIsIndexAllocated>(
           node, _dchain_addr, _index, _is_allocated, _generated_symbols);

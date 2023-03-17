@@ -23,7 +23,7 @@ BDDNode_ptr Call::clone(bool recursive) const {
   return clone;
 }
 
-symbols_t Call::get_node_generated_symbols() const {
+symbols_t Call::get_local_generated_symbols() const {
   SymbolFactory symbol_factory;
   return symbol_factory.get_symbols(this);
 }

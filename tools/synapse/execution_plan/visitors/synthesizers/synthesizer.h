@@ -2,11 +2,12 @@
 
 #include <assert.h>
 #include <fstream>
+#include <iostream>
 #include <stdio.h>
 #include <streambuf>
 #include <string>
-#include <iostream>
 
+#include "../../../log.h"
 #include "../../execution_plan.h"
 #include "../visitor.h"
 
@@ -34,6 +35,12 @@ public:
     os = std::unique_ptr<std::ostream>(new std::ostream(std::cerr.rdbuf()));
 
     auto boilerplate_stream = std::ifstream(boilerplate_fpath);
+
+    if (boilerplate_stream.fail()) {
+      Log::err() << "Unable to open boilerplate file " << boilerplate_fpath
+                 << "\n";
+      exit(1);
+    }
 
     boilerplate_stream.seekg(0, std::ios::end);
     code.reserve(boilerplate_stream.tellg());

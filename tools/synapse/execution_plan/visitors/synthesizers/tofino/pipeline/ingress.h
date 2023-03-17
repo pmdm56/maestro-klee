@@ -3,6 +3,7 @@
 #include <stack>
 
 #include "../../code_builder.h"
+#include "../../util.h"
 #include "../constants.h"
 
 #include "domain/stack.h"
@@ -21,8 +22,6 @@ private:
   std::vector<Variable> intrinsic_metadata;
   std::vector<Variable> user_metadata;
   std::vector<Variable> key_bytes;
-
-  std::stack<bool> pending_ifs;
   std::vector<table_t> tables;
 
 public:
@@ -34,12 +33,14 @@ public:
   Parser parser;
 
   stack_t local_vars;
+  PendingIfs pending_ifs;
 
   Ingress(int state_ind, int apply_block_ind, int user_meta_ind,
           int headers_defs_ind, int headers_decl_ind, int parser_ind)
       : state_builder(state_ind), apply_block_builder(apply_block_ind),
         user_metadata_builder(user_meta_ind),
-        headers(headers_defs_ind, headers_decl_ind), parser(parser_ind) {
+        headers(headers_defs_ind, headers_decl_ind), parser(parser_ind),
+        pending_ifs(apply_block_builder) {
     intrinsic_metadata = std::vector<Variable>{
 
         {INGRESS_INTRINSIC_META_RESUBMIT_FLAG,
@@ -58,37 +59,6 @@ public:
          INGRESS_INTRINSIC_META_TIMESTAMP_SIZE_BITS},
 
     };
-  }
-
-  void push_pending_if() { pending_ifs.push(true); }
-  void pop_pending_if() { pending_ifs.pop(); }
-
-  // returns number of closed stacked blocks
-  int close_pending_ifs() {
-    int closed = 0;
-
-    if (!pending_ifs.size()) {
-      return closed;
-    }
-
-    while (pending_ifs.size()) {
-      apply_block_builder.dec_indentation();
-      apply_block_builder.indent();
-      apply_block_builder.append("}");
-      apply_block_builder.append_new_line();
-
-      closed++;
-
-      auto if_clause = pending_ifs.top();
-      pending_ifs.pop();
-
-      if (if_clause) {
-        pending_ifs.push(false);
-        break;
-      }
-    }
-
-    return closed;
   }
 
   variable_query_t search_variable(std::string symbol) const {

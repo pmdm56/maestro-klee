@@ -20,7 +20,7 @@ symbols_t Node::get_generated_symbols() const {
   while (node) {
     if (node->get_type() == Node::NodeType::CALL) {
       const Call *call = static_cast<const Call *>(node);
-      auto more_symbols = call->get_node_generated_symbols();
+      auto more_symbols = call->get_local_generated_symbols();
 
       for (auto symbol : more_symbols) {
         symbols.insert(symbol);
@@ -33,7 +33,7 @@ symbols_t Node::get_generated_symbols() const {
   return symbols;
 }
 
-symbols_t Node::get_node_generated_symbols() const { return symbols_t(); }
+symbols_t Node::get_local_generated_symbols() const { return symbols_t(); }
 
 void Node::update_id(uint64_t new_id) {
   SymbolFactory factory;

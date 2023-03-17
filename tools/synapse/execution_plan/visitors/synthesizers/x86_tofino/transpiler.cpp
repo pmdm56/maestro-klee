@@ -53,7 +53,8 @@ private:
 };
 
 std::pair<bool, std::string>
-try_transpile_constant(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
+try_transpile_constant(x86TofinoGenerator &tg,
+                       const klee::ref<klee::Expr> &expr) {
   auto result = std::pair<bool, std::string>();
   auto is_constant = kutil::is_constant(expr);
 
@@ -67,25 +68,48 @@ try_transpile_constant(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &expr
 }
 
 std::pair<bool, std::string>
-try_transpile_variable(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
-  assert(false && "TODO");
-}
+try_transpile_variable(x86TofinoGenerator &tg,
+                       const klee::ref<klee::Expr> &expr) {
+  auto result = std::pair<bool, std::string>();
+  auto variable = tg.search_variable(expr);
 
-struct transpile_var_comparison_t {
-  bool valid;
-  std::string lhs;
-  std::string rhs;
+  if (!variable.valid) {
+    return result;
+  }
 
-  transpile_var_comparison_t() : valid(false) {}
+  std::stringstream transpilation_builder;
+  auto label = variable.var->get_label();
 
-  transpile_var_comparison_t(const std::string &_lhs, const std::string &_rhs)
-      : valid(true), lhs(_lhs), rhs(_rhs) {}
-};
+  auto size_bits = expr->getWidth();
 
-transpile_var_comparison_t
-transpile_var_comparison(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &lhs,
-                         const klee::ref<klee::Expr> &rhs) {
-  assert(false && "TODO");
+  if (variable.offset_bits > 0 || size_bits < variable.var->get_size_bits()) {
+    auto mask = 0llu;
+    for (auto b = 0u; b < expr->getWidth(); b++) {
+      mask <<= 1;
+      mask |= 1;
+    }
+
+    assert(mask > 0);
+
+    transpilation_builder << "(";
+    transpilation_builder << "(";
+    transpilation_builder << label;
+    transpilation_builder << " >> ";
+    transpilation_builder << variable.offset_bits;
+    transpilation_builder << ")";
+    transpilation_builder << " & 0x";
+    transpilation_builder << std::hex;
+    transpilation_builder << mask;
+    transpilation_builder << std::dec;
+    transpilation_builder << ")";
+  } else {
+    transpilation_builder << label;
+  }
+
+  result.first = true;
+  result.second = transpilation_builder.str();
+
+  return result;
 }
 
 std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
@@ -128,6 +152,37 @@ InternalTranspiler::visitSelect(const klee::SelectExpr &) {
 
 klee::ExprVisitor::Action
 InternalTranspiler::visitConcat(const klee::ConcatExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
+
+  if (kutil::is_readLSB(eref)) {
+    auto symbol = kutil::get_symbol(eref);
+    auto variable = tg.search_variable(symbol.second);
+
+    if (!variable.valid) {
+      Log::err() << "Unknown variable with symbol " << symbol.second << "\n";
+      exit(1);
+    }
+
+    assert(variable.offset_bits == 0);
+
+    auto expr_width = eref->getWidth();
+    auto var_width = variable.var->get_size_bits();
+
+    if (expr_width != var_width) {
+      auto max_width = std::max(expr_width, var_width);
+      code << "(";
+      code << "(bit<";
+      code << max_width;
+      code << ">)";
+      code << variable.var->get_label();
+      code << ")";
+    } else {
+      code << variable.var->get_label();
+    }
+
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
   assert(false && "TODO");
 }
 
@@ -209,7 +264,19 @@ InternalTranspiler::visitAShr(const klee::AShrExpr &) {
 }
 
 klee::ExprVisitor::Action InternalTranspiler::visitEq(const klee::EqExpr &e) {
-  assert(false && "TODO");
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " == ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action InternalTranspiler::visitNe(const klee::NeExpr &) {

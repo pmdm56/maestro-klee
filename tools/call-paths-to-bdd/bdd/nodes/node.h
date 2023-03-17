@@ -84,7 +84,7 @@ public:
   }
 
   symbols_t get_generated_symbols() const;
-  virtual symbols_t get_node_generated_symbols() const;
+  virtual symbols_t get_local_generated_symbols() const;
 
   void update_id(uint64_t new_id);
 

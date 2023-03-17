@@ -56,7 +56,7 @@ struct candidate_t {
 
     if (node->get_type() == Node::NodeType::CALL) {
       auto call_node = static_cast<Call *>(node.get());
-      auto symbols = call_node->get_node_generated_symbols();
+      auto symbols = call_node->get_local_generated_symbols();
 
       if (symbols.size()) {
         stream << "  symbols   :";
