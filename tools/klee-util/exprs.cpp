@@ -99,6 +99,10 @@ bool is_bool(klee::ref<klee::Expr> expr) {
 }
 
 std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
+  if (expr.isNull()) {
+    return std::unordered_set<std::string>();
+  }
+
   RetrieveSymbols retriever;
   retriever.visit(expr);
   return retriever.get_retrieved_strings();
@@ -168,6 +172,30 @@ std::pair<bool, std::string> get_symbol(klee::ref<klee::Expr> expr) {
   }
 
   return result;
+}
+
+bool manager_contains(klee::ConstraintManager constraints,
+                      klee::ref<klee::Expr> expr) {
+  auto found_it = std::find_if(
+      constraints.begin(), constraints.end(), [&](klee::ref<klee::Expr> e) {
+        return solver_toolbox.are_exprs_always_equal(e, expr);
+      });
+  return found_it != constraints.end();
+}
+
+klee::ConstraintManager join_managers(klee::ConstraintManager m1,
+                                      klee::ConstraintManager m2) {
+  klee::ConstraintManager m;
+
+  for (auto c : m1) {
+    m.addConstraint(c);
+  }
+
+  for (auto c : m2) {
+    m.addConstraint(c);
+  }
+
+  return m;
 }
 
 } // namespace kutil

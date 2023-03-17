@@ -34,7 +34,6 @@ public:
     nf_process = populate_process(root);
 
     rename_symbols();
-    trim_constraints();
   }
 
   BDD(const BDD &bdd)
@@ -71,7 +70,10 @@ public:
   void serialize(std::string file_path) const;
 
   call_t get_successful_call(std::vector<call_path_t *> call_paths) const;
-  BDDNode_ptr populate(call_paths_t call_paths);
+
+  BDDNode_ptr
+  populate(call_paths_t call_paths,
+           klee::ConstraintManager accumulated = klee::ConstraintManager());
 
   static std::string get_fname(const Node *node);
   static bool is_skip_function(const Node *node);
@@ -90,14 +92,7 @@ public:
     rename_symbols(nf_process, factory);
   }
 
-  void trim_constraints() {
-    trim_constraints(nf_init);
-    trim_constraints(nf_process);
-  }
-
   void rename_symbols(BDDNode_ptr node, SymbolFactory &factory);
-  void trim_constraints(BDDNode_ptr node);
-
   void deserialize(const std::string &file_path);
 
 public:

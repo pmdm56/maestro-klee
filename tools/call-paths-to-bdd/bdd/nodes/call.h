@@ -9,25 +9,18 @@ private:
   call_t call;
 
 public:
-  Call(uint64_t _id, call_t _call,
-       const std::vector<call_path_t *> &_call_paths)
-      : Node(_id, Node::NodeType::CALL, _call_paths), call(_call) {}
+  Call(uint64_t _id, const klee::ConstraintManager &_constraints, call_t _call)
+      : Node(_id, Node::NodeType::CALL, _constraints), call(_call) {}
 
-  Call(uint64_t _id, call_t _call, const BDDNode_ptr &_next,
-       const BDDNode_ptr &_prev, const std::vector<call_path_t *> &_call_paths)
-      : Node(_id, Node::NodeType::CALL, _next, _prev, _call_paths),
-        call(_call) {}
-
-  Call(uint64_t _id, call_t _call, const BDDNode_ptr &_next,
-       const BDDNode_ptr &_prev,
-       const std::vector<klee::ConstraintManager> &_constraints)
+  Call(uint64_t _id, const BDDNode_ptr &_next, const BDDNode_ptr &_prev,
+       const klee::ConstraintManager &_constraints, call_t _call)
       : Node(_id, Node::NodeType::CALL, _next, _prev, _constraints),
         call(_call) {}
 
   call_t get_call() const { return call; }
   void set_call(call_t _call) { call = _call; }
 
-  symbols_t get_generated_symbols() const;
+  symbols_t get_node_generated_symbols() const override;
 
   virtual BDDNode_ptr clone(bool recursive = false) const override;
   virtual void recursive_update_ids(uint64_t &new_id) override;

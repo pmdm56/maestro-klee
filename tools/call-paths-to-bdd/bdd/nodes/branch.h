@@ -5,28 +5,20 @@
 namespace BDD {
 class Branch : public Node {
 private:
-  klee::ref<klee::Expr> condition;
   BDDNode_ptr on_false;
+  klee::ref<klee::Expr> condition;
 
 public:
-  Branch(uint64_t _id, klee::ref<klee::Expr> _condition,
-         const std::vector<call_path_t *> &_call_paths)
-      : Node(_id, Node::NodeType::BRANCH, _call_paths), condition(_condition),
-        on_false(nullptr) {}
+  Branch(uint64_t _id, const klee::ConstraintManager &_constraints,
+         klee::ref<klee::Expr> _condition)
+      : Node(_id, Node::NodeType::BRANCH, _constraints), on_false(nullptr),
+        condition(_condition) {}
 
-  Branch(uint64_t _id, klee::ref<klee::Expr> _condition,
-         const BDDNode_ptr &_on_true, const BDDNode_ptr &_on_false,
-         const BDDNode_ptr &_prev,
-         const std::vector<call_path_t *> &_call_paths)
-      : Node(_id, Node::NodeType::BRANCH, _on_true, _prev, _call_paths),
-        condition(_condition), on_false(_on_false) {}
-
-  Branch(uint64_t _id, klee::ref<klee::Expr> _condition,
-         const BDDNode_ptr &_on_true, const BDDNode_ptr &_on_false,
-         const BDDNode_ptr &_prev,
-         const std::vector<klee::ConstraintManager> &_constraints)
+  Branch(uint64_t _id, const BDDNode_ptr &_on_true, const BDDNode_ptr &_prev,
+         const klee::ConstraintManager &_constraints,
+         const BDDNode_ptr &_on_false, klee::ref<klee::Expr> _condition)
       : Node(_id, Node::NodeType::BRANCH, _on_true, _prev, _constraints),
-        condition(_condition), on_false(_on_false) {}
+        on_false(_on_false), condition(_condition) {}
 
   klee::ref<klee::Expr> get_condition() const { return condition; }
   void set_condition(const klee::ref<klee::Expr> &_condition) {

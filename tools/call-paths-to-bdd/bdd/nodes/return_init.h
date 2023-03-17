@@ -26,8 +26,8 @@ private:
   }
 
 public:
-  ReturnInit(uint64_t _id)
-      : Node(_id, Node::NodeType::RETURN_INIT), value(SUCCESS) {}
+  ReturnInit(uint64_t _id, const klee::ConstraintManager &_constraints)
+      : Node(_id, Node::NodeType::RETURN_INIT, _constraints), value(SUCCESS) {}
 
   ReturnInit(uint64_t _id, const ReturnRaw *raw)
       : Node(_id, Node::NodeType::RETURN_INIT, nullptr, nullptr,
@@ -37,13 +37,8 @@ public:
     fill_return_value(calls_list[0]);
   }
 
-  ReturnInit(uint64_t _id, const BDDNode_ptr &_prev, ReturnType _value)
-      : Node(_id, Node::NodeType::RETURN_INIT, nullptr, _prev,
-             _prev->constraints),
-        value(_value) {}
-
-  ReturnInit(uint64_t _id, const BDDNode_ptr &_prev, ReturnType _value,
-             std::vector<klee::ConstraintManager> _constraints)
+  ReturnInit(uint64_t _id, const BDDNode_ptr &_prev,
+             const klee::ConstraintManager &_constraints, ReturnType _value)
       : Node(_id, Node::NodeType::RETURN_INIT, nullptr, _prev, _constraints),
         value(_value) {}
 

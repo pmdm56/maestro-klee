@@ -277,6 +277,7 @@ void BDD::serialize(std::string out_file) const {
   std::stringstream edges_stream;
 
   std::vector<const Node *> nodes{nf_init.get(), nf_process.get()};
+
   while (nodes.size()) {
     auto node = nodes[0];
     nodes.erase(nodes.begin());
@@ -286,23 +287,14 @@ void BDD::serialize(std::string out_file) const {
     nodes_stream << node->get_id();
     nodes_stream << ":(";
 
-    nodes_stream << "[";
+    auto manager = node->get_node_constraints();
 
-    auto managers = node->get_constraints();
+    nodes_stream << manager.size();
+    nodes_stream << " ";
 
-    for (auto i = 0u; i < managers.size(); i++) {
-      if (i != 0) {
-        nodes_stream << ",";
-      }
-
-      nodes_stream << managers[i].size();
-
-      for (auto constraint : managers[i]) {
-        serialize_expr(constraint, kQuery);
-      }
+    for (auto constraint : manager) {
+      serialize_expr(constraint, kQuery);
     }
-
-    nodes_stream << "] ";
 
     switch (node->get_type()) {
     case Node::NodeType::CALL: {
@@ -692,31 +684,30 @@ call_t parse_call(std::string serialized_call,
   return call;
 }
 
-BDDNode_ptr parse_node_call(
-    uint64_t id, const std::vector<klee::ConstraintManager> &constraints,
-    std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs) {
+BDDNode_ptr parse_node_call(uint64_t id,
+                            const klee::ConstraintManager &constraints,
+                            std::string serialized,
+                            std::vector<klee::ref<klee::Expr>> &exprs) {
   auto call = parse_call(serialized, exprs);
-
   auto call_node =
-      std::make_shared<Call>(id, call, nullptr, nullptr, constraints);
-
+      std::make_shared<Call>(id, nullptr, nullptr, constraints, call);
   return call_node;
 }
 
-BDDNode_ptr parse_node_branch(
-    uint64_t id, const std::vector<klee::ConstraintManager> &constraints,
-    std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs) {
+BDDNode_ptr parse_node_branch(uint64_t id,
+                              const klee::ConstraintManager &constraints,
+                              std::string serialized,
+                              std::vector<klee::ref<klee::Expr>> &exprs) {
   auto condition = pop_expr(exprs);
-
-  auto branch_node = std::make_shared<Branch>(id, condition, nullptr, nullptr,
-                                              nullptr, constraints);
-
+  auto branch_node = std::make_shared<Branch>(id, nullptr, nullptr, constraints,
+                                              nullptr, condition);
   return branch_node;
 }
 
-BDDNode_ptr parse_node_return_init(
-    uint64_t id, const std::vector<klee::ConstraintManager> &constraints,
-    std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs) {
+BDDNode_ptr parse_node_return_init(uint64_t id,
+                                   const klee::ConstraintManager &constraints,
+                                   std::string serialized,
+                                   std::vector<klee::ref<klee::Expr>> &exprs) {
   auto return_init_str = serialized;
   ReturnInit::ReturnType return_value;
 
@@ -729,12 +720,12 @@ BDDNode_ptr parse_node_return_init(
   }
 
   auto return_init_node =
-      std::make_shared<ReturnInit>(id, nullptr, return_value, constraints);
+      std::make_shared<ReturnInit>(id, nullptr, constraints, return_value);
   return return_init_node;
 }
 
 BDDNode_ptr parse_node_return_process(
-    uint64_t id, const std::vector<klee::ConstraintManager> &constraints,
+    uint64_t id, const klee::ConstraintManager &constraints,
     std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs) {
   auto delim = serialized.find(" ");
   assert(delim != std::string::npos);
@@ -760,7 +751,7 @@ BDDNode_ptr parse_node_return_process(
   return_value = std::stoi(return_value_str);
 
   auto return_process_node = std::make_shared<ReturnProcess>(
-      id, nullptr, return_value, return_operation, constraints);
+      id, nullptr, constraints, return_value, return_operation);
 
   return return_process_node;
 }
@@ -778,41 +769,22 @@ BDDNode_ptr parse_node(std::string serialized_node,
   assert(serialized_node[0] == '(');
   serialized_node = serialized_node.substr(1);
 
-  assert(serialized_node[0] == '[');
-  serialized_node = serialized_node.substr(1);
-
-  delim = serialized_node.find("] ");
+  delim = serialized_node.find(" ");
   assert(delim != std::string::npos);
 
   auto serialized_constraints_num = serialized_node.substr(0, delim);
-  serialized_node = serialized_node.substr(delim + 2);
 
-  std::vector<klee::ConstraintManager> constraint_managers;
+  serialized_node =
+      serialized_node.substr(delim + serialized_constraints_num.size());
 
-  while (serialized_constraints_num.size()) {
-    delim = serialized_constraints_num.find(",");
+  auto constraints_num = std::atoi(serialized_constraints_num.c_str());
+  assert(constraints_num >= 0);
 
-    int constraints_num = -1;
+  klee::ConstraintManager manager;
 
-    if (delim == std::string::npos) {
-      constraints_num = std::atoi(serialized_constraints_num.c_str());
-      serialized_constraints_num.clear();
-    } else {
-      constraints_num =
-          std::atoi(serialized_constraints_num.substr(0, delim).c_str());
-      serialized_constraints_num = serialized_constraints_num.substr(delim + 1);
-    }
-
-    assert(constraints_num >= 0);
-
-    klee::ConstraintManager manager;
-
-    for (auto i = 0; i < constraints_num; i++) {
-      auto constraint = pop_expr(exprs);
-      manager.addConstraint(constraint);
-    }
-
-    constraint_managers.push_back(manager);
+  for (auto i = 0; i < constraints_num; i++) {
+    auto constraint = pop_expr(exprs);
+    manager.addConstraint(constraint);
   }
 
   delim = serialized_node.find(" ");
@@ -823,15 +795,13 @@ BDDNode_ptr parse_node(std::string serialized_node,
   serialized_node = serialized_node.substr(0, serialized_node.size() - 1);
 
   if (node_type_str == "CALL") {
-    node = parse_node_call(id, constraint_managers, serialized_node, exprs);
+    node = parse_node_call(id, manager, serialized_node, exprs);
   } else if (node_type_str == "BRANCH") {
-    node = parse_node_branch(id, constraint_managers, serialized_node, exprs);
+    node = parse_node_branch(id, manager, serialized_node, exprs);
   } else if (node_type_str == "RETURN_INIT") {
-    node =
-        parse_node_return_init(id, constraint_managers, serialized_node, exprs);
+    node = parse_node_return_init(id, manager, serialized_node, exprs);
   } else if (node_type_str == "RETURN_PROCESS") {
-    node = parse_node_return_process(id, constraint_managers, serialized_node,
-                                     exprs);
+    node = parse_node_return_process(id, manager, serialized_node, exprs);
   } else {
     assert(false);
   }
@@ -925,7 +895,6 @@ void BDD::deserialize(const std::string &file_path) {
 
   if (!bdd_file.is_open()) {
     std::cerr << "Unable to open BDD file.\n";
-    assert(false);
     exit(1);
   }
 

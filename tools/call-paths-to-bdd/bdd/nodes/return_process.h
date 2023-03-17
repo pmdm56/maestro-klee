@@ -19,20 +19,15 @@ public:
   ReturnProcess(uint64_t _id, const ReturnRaw *raw)
       : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, nullptr,
              raw->constraints) {
+    assert(raw);
     auto calls_list = raw->get_calls();
     assert(calls_list.size());
     fill_return_value(calls_list[0]);
   }
 
-  ReturnProcess(uint64_t _id, const BDDNode_ptr &_prev, int _value,
+  ReturnProcess(uint64_t _id, const BDDNode_ptr &_prev,
+                const klee::ConstraintManager &_constraints, int _value,
                 Operation _operation)
-      : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, _prev,
-             _prev->constraints),
-        value(_value), operation(_operation) {}
-
-  ReturnProcess(uint64_t _id, const BDDNode_ptr &_prev, int _value,
-                Operation _operation,
-                std::vector<klee::ConstraintManager> _constraints)
       : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, _prev, _constraints),
         value(_value), operation(_operation) {}
 

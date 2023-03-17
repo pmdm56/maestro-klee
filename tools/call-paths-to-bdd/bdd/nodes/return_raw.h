@@ -9,13 +9,14 @@ private:
   std::vector<calls_t> calls_list;
 
 public:
-  ReturnRaw(uint64_t _id, call_paths_t call_paths)
-      : Node(_id, Node::NodeType::RETURN_RAW, nullptr, nullptr, call_paths.cp),
-        calls_list(call_paths.backup) {}
+  ReturnRaw(uint64_t _id, const klee::ConstraintManager &_constraints,
+            std::vector<calls_t> _calls_list)
+      : Node(_id, Node::NodeType::RETURN_RAW, _constraints),
+        calls_list(_calls_list) {}
 
   ReturnRaw(uint64_t _id, const BDDNode_ptr &_prev,
-            std::vector<calls_t> _calls_list,
-            const std::vector<klee::ConstraintManager> &_constraints)
+            const klee::ConstraintManager &_constraints,
+            std::vector<calls_t> _calls_list)
       : Node(_id, Node::NodeType::RETURN_RAW, nullptr, _prev, _constraints),
         calls_list(_calls_list) {}
 

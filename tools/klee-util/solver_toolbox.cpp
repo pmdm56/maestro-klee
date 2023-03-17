@@ -42,7 +42,18 @@ bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
 
 bool solver_toolbox_t::is_expr_always_true(klee::ConstraintManager constraints,
                                            klee::ref<klee::Expr> expr) const {
-  klee::Query sat_query(constraints, expr);
+  RetrieveSymbols retriever;
+  retriever.visit(expr);
+  auto symbols = retriever.get_retrieved();
+
+  ReplaceSymbols replacer(symbols);
+
+  klee::ConstraintManager renamed_constraints;
+  for (auto c : constraints) {
+    renamed_constraints.addConstraint(replacer.visit(c));
+  }
+
+  klee::Query sat_query(renamed_constraints, expr);
 
   bool result;
   bool success = solver->mustBeTrue(sat_query, result);

@@ -67,12 +67,12 @@ int main(int argc, char **argv) {
   auto start = std::chrono::steady_clock::now();
 
   auto original_bdd = build_bdd();
-  auto total_bdds = BDD::calculate_total_number_of_reordered_bdds(
-      original_bdd, MaxReorderingOperations);
+  auto reordered_bdds =
+      BDD::get_all_reordered_bdds(original_bdd, MaxReorderingOperations);
 
-  std::cerr << "\nfinal: " << total_bdds << "\n";
+  std::cerr << "\nfinal: " << reordered_bdds.size() << "\n";
 
-  // for (auto bdd : completed_bdds) {
+  // for (auto bdd : reordered_bdds) {
   //   BDD::GraphvizGenerator::visualize(bdd, true);
   // }
 
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     report << "# time (s) \t total\n";
     report << std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
     report << "\t";
-    report << total_bdds;
+    report << reordered_bdds.size();
     report << "\n";
     report.close();
   } else {

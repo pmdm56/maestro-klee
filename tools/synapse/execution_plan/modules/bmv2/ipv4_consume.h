@@ -15,12 +15,13 @@ public:
       : Module(ModuleType::BMv2_IPv4Consume, TargetType::BMv2, "IPv4Consume") {}
 
   IPv4Consume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::BMv2_IPv4Consume, TargetType::BMv2, "IPv4Consume", node),
+      : Module(ModuleType::BMv2_IPv4Consume, TargetType::BMv2, "IPv4Consume",
+               node),
         chunk(_chunk) {}
 
 private:
   bool is_valid_ipv4(const BDD::Node *ethernet_node, klee::ref<klee::Expr> len,
-                     const std::vector<klee::ConstraintManager> &constraints) {
+                     const klee::ConstraintManager &constraints) {
     assert(ethernet_node);
     assert(ethernet_node->get_type() == BDD::Node::NodeType::CALL);
 
@@ -50,14 +51,8 @@ private:
     auto symbols = symbol_retriever.get_retrieved();
     kutil::ReplaceSymbols symbol_replacer(symbols);
 
-    for (auto constraint : constraints) {
-      if (!kutil::solver_toolbox.is_expr_always_true(constraint, eq,
-                                                     symbol_replacer)) {
-        return false;
-      }
-    }
-
-    return true;
+    return kutil::solver_toolbox.is_expr_always_true(constraints, eq,
+                                                     symbol_replacer);
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,

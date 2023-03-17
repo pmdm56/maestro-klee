@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -27,9 +28,9 @@ private:
 
   std::vector<std::vector<label_t>> stack;
 
-  typedef symbols_t (SymbolFactory::*CallProcessorPtr)(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
+  typedef symbols_t (SymbolFactory::*CallProcessorPtr)(call_t call,
+                                                       const Node *node,
+                                                       bool save);
   std::map<std::string, CallProcessorPtr> call_processor_lookup_table;
 
 private:
@@ -57,100 +58,33 @@ private:
     return counter;
   }
 
-  bool
-  has_symbol(const std::vector<klee::ConstraintManager> &constraint_managers,
-             const std::string &base);
-
-  std::string
-  build_label(std::string base, bool save,
-              const std::vector<klee::ConstraintManager> &constraint_managers);
-
+  std::string build_label(std::string base, const Node *node, bool save);
   std::string build_label(klee::ref<klee::Expr> expr, std::string base,
                           bool save);
-
-  symbols_t
-  no_process(call_t call, bool save,
-             const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t
-  sketch_fetch(call_t call, bool save,
-               const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t sketch_touch_buckets(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t
-  cht_fill_cht(call_t call, bool save,
-               const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t LoadBalancedFlow_hash(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t cht_find_preferred_available_backend(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t
-  map_get(call_t call, bool save,
-          const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t dchain_is_index_allocated(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t dchain_allocate_new_index(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t packet_borrow_next_chunk(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t expire_items_single_map(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t expire_items_single_map_iteratively(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t rte_ether_addr_hash(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t vector_borrow(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t sketch_allocate(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t
-  map_allocate(call_t call, bool save,
-               const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t vector_allocate(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t
-  current_time(call_t call, bool save,
-               const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t rte_lcore_count(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t nf_set_rte_ipv4_udptcp_checksum(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
-
-  symbols_t dchain_allocate(
-      call_t call, bool save,
-      const std::vector<klee::ConstraintManager> &constraint_managers);
+  symbols_t no_process(call_t call, const Node *node, bool save);
+  symbols_t sketch_fetch(call_t call, const Node *node, bool save);
+  symbols_t sketch_touch_buckets(call_t call, const Node *node, bool save);
+  symbols_t cht_fill_cht(call_t call, const Node *node, bool save);
+  symbols_t LoadBalancedFlow_hash(call_t call, const Node *node, bool save);
+  symbols_t cht_find_preferred_available_backend(call_t call, const Node *node,
+                                                 bool save);
+  symbols_t map_get(call_t call, const Node *node, bool save);
+  symbols_t dchain_is_index_allocated(call_t call, const Node *node, bool save);
+  symbols_t dchain_allocate_new_index(call_t call, const Node *node, bool save);
+  symbols_t packet_borrow_next_chunk(call_t call, const Node *node, bool save);
+  symbols_t expire_items_single_map(call_t call, const Node *node, bool save);
+  symbols_t expire_items_single_map_iteratively(call_t call, const Node *node,
+                                                bool save);
+  symbols_t rte_ether_addr_hash(call_t call, const Node *node, bool save);
+  symbols_t vector_borrow(call_t call, const Node *node, bool save);
+  symbols_t sketch_allocate(call_t call, const Node *node, bool save);
+  symbols_t map_allocate(call_t call, const Node *node, bool save);
+  symbols_t vector_allocate(call_t call, const Node *node, bool save);
+  symbols_t current_time(call_t call, const Node *node, bool save);
+  symbols_t rte_lcore_count(call_t call, const Node *node, bool save);
+  symbols_t nf_set_rte_ipv4_udptcp_checksum(call_t call, const Node *node,
+                                            bool save);
+  symbols_t dchain_allocate(call_t call, const Node *node, bool save);
 
 public:
   SymbolFactory() {

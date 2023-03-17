@@ -14,7 +14,7 @@ BDDNode_ptr Call::clone(bool recursive) const {
     clone_next = next;
   }
 
-  auto clone = std::make_shared<Call>(id, call, clone_next, prev, constraints);
+  auto clone = std::make_shared<Call>(id, clone_next, prev, constraints, call);
 
   if (recursive && clone_next) {
     clone_next->prev = clone;
@@ -23,7 +23,7 @@ BDDNode_ptr Call::clone(bool recursive) const {
   return clone;
 }
 
-symbols_t Call::get_generated_symbols() const {
+symbols_t Call::get_node_generated_symbols() const {
   SymbolFactory symbol_factory;
   return symbol_factory.get_symbols(this);
 }

@@ -17,8 +17,8 @@ BDDNode_ptr Branch::clone(bool recursive) const {
     clone_on_false = on_false;
   }
 
-  auto clone = std::make_shared<Branch>(id, condition, clone_on_true,
-                                        clone_on_false, prev, constraints);
+  auto clone = std::make_shared<Branch>(id, clone_on_true, prev, constraints,
+                                        clone_on_false, condition);
 
   if (recursive) {
     clone_on_true->prev = clone;

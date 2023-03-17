@@ -15,7 +15,6 @@ struct reordered_bdd {
 };
 
 std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root);
-int calculate_total_number_of_reordered_bdds(BDD original_bdd,
-                                             int max_reordering);
+std::vector<BDD> get_all_reordered_bdds(const BDD &bdd, int max_reordering);
 
 } // namespace BDD

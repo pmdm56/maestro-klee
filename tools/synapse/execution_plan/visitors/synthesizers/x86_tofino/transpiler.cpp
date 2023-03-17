@@ -68,33 +68,7 @@ try_transpile_constant(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &expr
 
 std::pair<bool, std::string>
 try_transpile_variable(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &expr) {
-  auto result = std::pair<bool, std::string>();
-  auto variable = tg.search_variable(expr);
-
-  if (!variable.valid) {
-    return result;
-  }
-
-  std::stringstream transpilation_builder;
-  transpilation_builder << variable.var->get_label();
-
-  auto size_bits = expr->getWidth();
-
-  if (variable.offset_bits > 0 || size_bits < variable.var->get_size_bits()) {
-    auto lo = variable.offset_bits;
-    auto hi = variable.offset_bits + expr->getWidth() - 1;
-
-    transpilation_builder << "[";
-    transpilation_builder << hi;
-    transpilation_builder << ":";
-    transpilation_builder << lo;
-    transpilation_builder << "]";
-  }
-
-  result.first = true;
-  result.second = transpilation_builder.str();
-
-  return result;
+  assert(false && "TODO");
 }
 
 struct transpile_var_comparison_t {
@@ -111,50 +85,7 @@ struct transpile_var_comparison_t {
 transpile_var_comparison_t
 transpile_var_comparison(x86TofinoGenerator &tg, const klee::ref<klee::Expr> &lhs,
                          const klee::ref<klee::Expr> &rhs) {
-  auto lhs_varq = tg.search_variable(lhs);
-  auto rhs_varq = tg.search_variable(rhs);
-
-  // Not interested if both are variables or both are not variables.
-  if (!(lhs_varq.valid ^ rhs_varq.valid)) {
-    return transpile_var_comparison_t();
-  }
-
-  const auto &varq = lhs_varq.valid ? lhs_varq : rhs_varq;
-  const auto &not_var_expr = rhs_varq.valid ? lhs : rhs;
-
-  assert(varq.var);
-
-  if (varq.offset_bits != 0) {
-    return transpile_var_comparison_t();
-  }
-
-  auto size_bits = varq.var->get_size_bits();
-
-  if (size_bits == 1) {
-    auto zero = kutil::solver_toolbox.exprBuilder->Constant(
-        0, not_var_expr->getWidth());
-    auto eq_zero =
-        kutil::solver_toolbox.are_exprs_always_equal(zero, not_var_expr);
-
-    if (eq_zero) {
-      return transpile_var_comparison_t(varq.var->get_label(), "false");
-    }
-
-    return transpile_var_comparison_t(varq.var->get_label(), "true");
-  }
-
-  auto is_constant = kutil::is_constant(not_var_expr);
-
-  if (!is_constant) {
-    assert(false && "TODO");
-  }
-
-  auto const_value = kutil::solver_toolbox.value_from_expr(not_var_expr);
-  auto new_const_value =
-      kutil::solver_toolbox.exprBuilder->Constant(const_value, size_bits);
-  auto not_var_transpiled = tg.transpile(new_const_value);
-
-  return transpile_var_comparison_t(varq.var->get_label(), not_var_transpiled);
+  assert(false && "TODO");
 }
 
 std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
@@ -197,40 +128,6 @@ InternalTranspiler::visitSelect(const klee::SelectExpr &) {
 
 klee::ExprVisitor::Action
 InternalTranspiler::visitConcat(const klee::ConcatExpr &e) {
-  klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
-
-  if (kutil::is_readLSB(eref)) {
-    auto symbol = kutil::get_symbol(eref);
-    auto variable = tg.search_variable(symbol.second);
-
-    if (!variable.valid) {
-      Log::err() << "Unknown variable with symbol " << symbol.second << "\n";
-      exit(1);
-    }
-
-    assert(variable.offset_bits == 0);
-
-    auto expr_width = eref->getWidth();
-    auto var_width = variable.var->get_size_bits();
-
-    if (expr_width != var_width) {
-      auto max_width = std::max(expr_width, var_width);
-      code << "(";
-      code << "(bit<";
-      code << max_width;
-      code << ">)";
-      code << variable.var->get_label();
-      code << ")";
-    } else {
-      code << variable.var->get_label();
-    }
-
-    return klee::ExprVisitor::Action::skipChildren();
-  }
-
-  auto lhs = e.getKid(0);
-  auto rhs = e.getKid(1);
-
   assert(false && "TODO");
 }
 
@@ -312,29 +209,7 @@ InternalTranspiler::visitAShr(const klee::AShrExpr &) {
 }
 
 klee::ExprVisitor::Action InternalTranspiler::visitEq(const klee::EqExpr &e) {
-  assert(e.getNumKids() == 2);
-
-  auto lhs = e.getKid(0);
-  auto rhs = e.getKid(1);
-
-  auto transpile_var_comparison_result = transpile_var_comparison(tg, lhs, rhs);
-
-  if (transpile_var_comparison_result.valid) {
-    code << transpile_var_comparison_result.lhs;
-    code << " == ";
-    code << transpile_var_comparison_result.rhs;
-
-    return klee::ExprVisitor::Action::skipChildren();
-  }
-
-  auto lhs_code = tg.transpile(lhs);
-  auto rhs_code = tg.transpile(rhs);
-
-  code << "(" << lhs_code << ")";
-  code << " == ";
-  code << "(" << rhs_code << ")";
-
-  return klee::ExprVisitor::Action::skipChildren();
+  assert(false && "TODO");
 }
 
 klee::ExprVisitor::Action InternalTranspiler::visitNe(const klee::NeExpr &) {
