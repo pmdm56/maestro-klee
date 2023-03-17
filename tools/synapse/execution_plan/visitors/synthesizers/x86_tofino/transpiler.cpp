@@ -79,11 +79,11 @@ try_transpile_variable(x86TofinoGenerator &tg,
 
   std::stringstream transpilation_builder;
   auto label = variable.var->get_label();
-
   auto size_bits = expr->getWidth();
 
   if (variable.offset_bits > 0 || size_bits < variable.var->get_size_bits()) {
     auto mask = 0llu;
+
     for (auto b = 0u; b < expr->getWidth(); b++) {
       mask <<= 1;
       mask |= 1;

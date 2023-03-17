@@ -37,7 +37,6 @@ public:
       : label(_label), size_bits(_size_bits) {}
 
   std::string get_label() const { return label; }
-
   bits_t get_size_bits() const { return size_bits; }
 
   void add_expr(klee::ref<klee::Expr> expr) { exprs.push_back(expr); }
@@ -47,9 +46,7 @@ public:
     return exprs.push_back(expr);
   }
 
-  bool has_expr() const {
-    return exprs.size() > 0;
-  }
+  bool has_expr() const { return exprs.size() > 0; }
 
   klee::ref<klee::Expr> get_expr() const {
     assert(exprs.size() == 1);

@@ -146,7 +146,25 @@ public:
 
       if (contains_result.contains) {
         auto field_var = get_field_var(field.hdr_field_id);
+
+        if (expr->getWidth() == 8 && (field.hdr_field_id == ETH_DST_ADDR ||
+                                      field.hdr_field_id == ETH_SRC_ADDR)) {
+          assert(field_var.var);
+
+          // HACK
+          // This should be handled by the transpiler
+          std::stringstream new_label;
+          new_label << field_var.var->get_label();
+          new_label << "[";
+          new_label << contains_result.offset_bits;
+          new_label << "]";
+
+          auto new_var = Variable(new_label.str(), 8, expr);
+          return variable_query_t(new_var, 0);
+        }
+        
         field_var.offset_bits = contains_result.offset_bits;
+
         return field_var;
       }
     }

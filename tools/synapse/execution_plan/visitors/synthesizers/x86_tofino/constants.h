@@ -25,8 +25,8 @@ constexpr char HDR_CPU_CODE_PATH_FIELD[] = "code_path";
 constexpr char HDR_CPU_IN_PORT_FIELD[] = "in_port";
 constexpr char HDR_CPU_OUT_PORT_FIELD[] = "out_port";
 
-constexpr char HDR_ETH_SRC_ADDR_FIELD[] = "src_addr";
-constexpr char HDR_ETH_DST_ADDR_FIELD[] = "dst_addr";
+constexpr char HDR_ETH_DST_ADDR_FIELD[] = "dst_mac";
+constexpr char HDR_ETH_SRC_ADDR_FIELD[] = "src_mac";
 constexpr char HDR_ETH_ETHER_TYPE_FIELD[] = "ether_type";
 
 constexpr char HDR_IPV4_VERSION_FIELD[] = "version";

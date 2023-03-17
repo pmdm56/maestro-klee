@@ -150,11 +150,41 @@ void x86TofinoGenerator::visit(
   auto header = Header(ETHERNET, HDR_ETH_VARIABLE, chunk, fields);
 
   headers.add(header);
+
+  nf_proces_builder.indent();
+  nf_proces_builder.append("auto ");
+  nf_proces_builder.append(HDR_ETH_VARIABLE);
+  nf_proces_builder.append(" = ");
+  nf_proces_builder.append(PACKET_VAR_LABEL);
+  nf_proces_builder.append(".parse_ethernet();");
+  nf_proces_builder.append_new_line();
 }
 
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::PacketModifyEthernet *node) {
-  assert(false && "TODO");
+  assert(node);
+  assert(node->get_node());
+
+  auto ethernet_chunk = node->get_ethernet_chunk();
+  auto modifications = node->get_modifications();
+
+  for (auto mod : modifications) {
+    auto byte = mod.byte;
+    auto expr = mod.expr;
+
+    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
+        ethernet_chunk, byte * 8, klee::Expr::Int8);
+
+    auto transpiled_byte = transpile(modified_byte);
+    auto transpiled_expr = transpile(expr);
+
+    nf_proces_builder.indent();
+    nf_proces_builder.append(transpiled_byte);
+    nf_proces_builder.append(" = ");
+    nf_proces_builder.append(transpiled_expr);
+    nf_proces_builder.append(";");
+    nf_proces_builder.append_new_line();
+  }
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
