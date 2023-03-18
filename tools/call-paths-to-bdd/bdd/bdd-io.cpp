@@ -519,11 +519,11 @@ parse_arg(std::string serialized_arg,
       auto meta_start = meta_str.find("[");
       auto meta_end = meta_str.find("]");
 
-//      assert(meta_start != std::string::npos);
-  ///    assert(meta_end != std::string::npos);
+      assert(meta_start != std::string::npos);
+      assert(meta_end != std::string::npos);
 
       meta_str = meta_str.substr(meta_start + 1, meta_end - 1);
-      //rg.meta = parse_meta(meta_str);
+      arg.meta = parse_meta(meta_str);
     }
   }
 
