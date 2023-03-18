@@ -28,6 +28,7 @@ namespace Clone {
 		void populate_process(BDD::BDDNode_ptr node);
 		void append_init(BDD::BDDNode_ptr node);
 		void append_process(BDD::BDDNode_ptr node);
+		const std::unique_ptr<BDD::BDD>& get_bdd() const;
 		void dump(std::string path);
 	};
 }

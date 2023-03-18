@@ -58,6 +58,7 @@ namespace Clone {
 		node->replace_next(empty);
 		node->replace_prev(empty);
 		this->bdd->set_init(node);
+		init_tails.insert(node);
 	}
 
 	void Builder::populate_process(BDD::BDDNode_ptr node) {
@@ -66,6 +67,7 @@ namespace Clone {
 		node->replace_next(empty);
 		node->replace_prev(empty);
 		this->bdd->set_process(node);
+		process_tails.insert(node);
 	}
 	
 
@@ -73,7 +75,6 @@ namespace Clone {
 		for(auto &tail : this->init_tails) {
 			BDDNode_ptr node_clone { node->clone() };
 			BDDNode_ptr empty;
-			node_clone->replace_next(empty);
 			node_clone->replace_prev(tail);
 			tail->replace_next(node_clone);
 
@@ -84,6 +85,7 @@ namespace Clone {
 				explore_branch(node_clone, this->init_tails);
 			}
 			else {
+				node_clone->replace_next(empty);
 				this->init_tails.insert(node_clone);
 			}
 		}
@@ -107,6 +109,10 @@ namespace Clone {
 				this->process_tails.insert(node_clone);
 			}
 		}
+	}
+
+	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {
+		return this->bdd;
 	}
 
 	void Builder::dump(std::string path) {

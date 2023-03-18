@@ -29,9 +29,11 @@ namespace Clone {
 		if(builder->is_init_empty()) {
 			info("Init is empty");
 			builder->populate_init(root->clone());
+			root->get_next()->visit(*this);
 		}
-
-		root->visit(*this);
+		else {
+			root->visit(*this);
+		}
 	}
 
 	void Visitor::visitProcessRoot(const BDD::Node *root) {
@@ -41,9 +43,11 @@ namespace Clone {
 		if(builder->is_process_empty()) {
 			info("Process is empty");
 			builder->populate_process(root->clone());
+			root->get_next()->visit(*this);
 		}
-		
-		root->visit(*this);
+		else {
+			root->visit(*this);
+		}
 	}
 
 	BDD::BDDVisitor::Action Visitor::visitBranch(const BDD::Branch *node) {

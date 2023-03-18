@@ -101,7 +101,14 @@ namespace Clone {
 			visited.clear();
 		}
 
-		builder->dump("output.bdd");
+		const auto bdd { builder->get_bdd().get() };
+
+		BDD::PrinterDebug printer;
+
+		const BDD::BDD clone = bdd->clone();
+
+		printer.visit(clone);
+		//builder->dump("output.bdd");
 	}
 
 
