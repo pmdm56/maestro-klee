@@ -16,7 +16,7 @@ namespace Clone {
 		
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
-		void explore_branch(BDD::BDDNode_ptr node, std::unordered_set<BDD::BDDNode_ptr> &tails);
+		void explore_node(BDD::BDDNode_ptr node, std::vector<unsigned> &constraints);
 	public:
 		~Builder();
 
@@ -24,10 +24,10 @@ namespace Clone {
 
 		bool is_init_empty() const;
 		bool is_process_empty() const;
-		void populate_init(BDD::BDDNode_ptr node);
-		void populate_process(BDD::BDDNode_ptr node);
-		void append_init(BDD::BDDNode_ptr node);
-		void append_process(BDD::BDDNode_ptr node);
+
+		void join_bdd(const std::shared_ptr<const BDD::BDD> &other, std::vector<unsigned> &constraints);
+
+		
 		const std::unique_ptr<BDD::BDD>& get_bdd() const;
 		void dump(std::string path);
 	};

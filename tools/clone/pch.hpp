@@ -8,6 +8,8 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <queue>
+#include <deque>
 
 using std::cout;
 using std::endl;
@@ -21,6 +23,8 @@ using std::getline;
 
 using std::vector;
 using std::unordered_map;
+using std::queue;
+using std::deque;
 
 using std::move;
 using std::unique_ptr;

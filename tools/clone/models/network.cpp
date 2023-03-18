@@ -8,7 +8,6 @@
 #include "nf.hpp"
 #include "link.hpp"
 #include "node.hpp"
-#include "../bdd/visitor.hpp"
 #include "../bdd/builder.hpp"
 
 namespace Clone {
@@ -71,8 +70,7 @@ namespace Clone {
  			assert(nf->get_bdd() != nullptr);
 			const auto &bdd { nf->get_bdd() };
 
-			const unique_ptr<Visitor> visitor {new Visitor(constraints, builder)};
-			visitor->visit(*bdd);
+			builder->join_bdd(bdd, constraints);
 		}
 
 		visited.insert(node);
@@ -101,11 +99,7 @@ namespace Clone {
 			visited.clear();
 		}
 
-		const auto bdd { builder->get_bdd().get() };
-
-		BDD::PrinterDebug printer;
-
-		const BDD::BDD clone = bdd->clone();
+		const auto &bdd { builder->get_bdd().get() };
 
 		//printer.visit(clone);
 		//builder->dump("output.bdd");

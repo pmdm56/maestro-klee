@@ -1,6 +1,7 @@
 #include "builder.hpp"
 #include "../pch.hpp"
 #include "../util/logger.hpp"
+
 #include "klee/Constraints.h"
 
 using namespace BDD;
@@ -17,21 +18,46 @@ namespace Clone {
 
 	/* Private methods */
 
-	void Builder::explore_branch(BDDNode_ptr node, std::unordered_set<BDD::BDDNode_ptr> &tails) {
-		if(node == nullptr) return;
+	void Builder::explore_node(BDD::BDDNode_ptr curr, vector<unsigned> &constraints) {
+		assert(curr);
+		
+		switch(curr->get_type()) {
+			case Node::NodeType::BRANCH: {
+				auto branch { static_cast<Branch*>(curr.get()) };
 
-		if(node->get_type() == Node::NodeType::BRANCH) {
-			auto branch { static_cast<Branch*>(node.get()) };
-			assert(branch->get_on_true() != nullptr);
-			assert(branch->get_on_false() != nullptr);
-			BDDNode_ptr true_branch { branch->get_on_true()->clone() };
-			BDDNode_ptr false_branch { branch->get_on_false()->clone() };
+				assert(branch->get_on_true());
+				assert(branch->get_on_false());
+				BDDNode_ptr next_true = branch->get_on_true()->clone();
+				BDDNode_ptr next_false = branch->get_on_false()->clone();
 
-			explore_branch(true_branch, tails);
-			explore_branch(false_branch, tails);
-		}
-		else {
-			tails.insert(node);
+				branch->replace_on_true(next_true);
+				next_true->replace_prev(curr);
+				explore_node(next_true, constraints);
+
+				branch->replace_on_false(next_false);
+				next_false->replace_prev(curr);
+				explore_node(next_false, constraints);
+				
+			}
+			case Node::NodeType::CALL: {
+				auto call { static_cast<Call*>(curr.get()) };
+
+				assert(call->get_next());
+				BDDNode_ptr next = call->get_next()->clone();
+
+				curr->replace_next(next);
+				next->replace_prev(curr);
+				explore_node(next, constraints);
+			}	
+			case Node::NodeType::RETURN_INIT: {
+
+			}
+			case Node::NodeType::RETURN_PROCESS: {
+				
+			}
+			case Node::NodeType::RETURN_RAW: {
+				
+			}
 		}
 	}
 
@@ -45,66 +71,25 @@ namespace Clone {
 
 	/* Public methods */
 	bool Builder::is_init_empty() const {
-		return bdd->get_init() == nullptr;
+		return this->init_tails.empty();
 	}
 
 	bool Builder::is_process_empty() const {
-		return bdd->get_process() == nullptr;
+		return this->process_tails.empty();
 	}
 
-	void Builder::populate_init(BDD::BDDNode_ptr node) {
-		debug("Initializing init");
-		node->disconnect();
-		this->bdd->set_init(node);
-		init_tails.insert(node);
-	}
+	void Builder::join_bdd(const std::shared_ptr<const BDD::BDD> &other, vector<unsigned> &constraints) {
+		debug("Joining BDDs");
 
-	void Builder::populate_process(BDD::BDDNode_ptr node) {
-		debug("Initializing process");
-		node->disconnect();
-		this->bdd->set_process(node);
-		process_tails.insert(node);
-	}
-	
+		auto init { other->get_init()->clone() };
+		auto process { other->get_process()->clone() };
+		
+		explore_node(init, constraints);
+		explore_node(process, constraints);
 
-	void Builder::append_init(BDD::BDDNode_ptr node) {
-		for(auto &tail : this->init_tails) {
-			BDDNode_ptr node_clone { node->clone() };
-			BDDNode_ptr empty;
-			node_clone->replace_prev(tail);
-			tail->replace_next(node_clone);
-
-			this->init_tails.erase(tail);
-
-			// For branches add both sides of the branch to the tails and make sure its not a branch
-			if(node_clone->get_type() == Node::NodeType::BRANCH) {
-				explore_branch(node_clone, this->init_tails);
-			}
-			else {
-				node_clone->replace_next(empty);
-				this->init_tails.insert(node_clone);
-			}
-		}
-	}
-
-	void Builder::append_process(BDD::BDDNode_ptr node) {
-		for(auto &tail : this->process_tails) {
-			BDDNode_ptr node_clone { node->clone() };
-			BDDNode_ptr empty;
-			node_clone->replace_next(empty);
-			node_clone->replace_prev(tail);
-			tail->replace_next(node_clone);
-
-			this->process_tails.erase(tail);
-
-			// For branches add both sides of the branch to the tails and make sure its not a branch
-			if(node_clone->get_type() == Node::NodeType::BRANCH) {
-				explore_branch(node_clone, this->process_tails);
-			}
-			else {
-				this->process_tails.insert(node_clone);
-			}
-		}
+		BDD::PrinterDebug printer;
+		printer.visitInitRoot(init.get());
+		printer.visitProcessRoot(process.get());
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {
