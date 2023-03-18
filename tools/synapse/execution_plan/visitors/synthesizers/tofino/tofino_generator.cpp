@@ -133,7 +133,7 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
   }
 
   ingress.local_vars.push();
-  ingress.push_pending_if();
+  ingress.pending_ifs.push();
 }
 
 void TofinoGenerator::visit(const targets::tofino::Then *node) {
@@ -170,7 +170,7 @@ void TofinoGenerator::visit(const targets::tofino::Forward *node) {
   ingress.apply_block_builder.append(");");
   ingress.apply_block_builder.append_new_line();
 
-  auto closed = ingress.close_pending_ifs();
+  auto closed = ingress.pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
     if (ingress.parser.is_active()) {
@@ -336,7 +336,7 @@ void TofinoGenerator::visit(const targets::tofino::Drop *node) {
   ingress.apply_block_builder.append("drop();");
   ingress.apply_block_builder.append_new_line();
 
-  auto closed = ingress.close_pending_ifs();
+  auto closed = ingress.pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
     if (ingress.parser.is_active()) {

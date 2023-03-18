@@ -129,7 +129,7 @@ private:
     auto _key_meta = call.args[symbex::FN_MAP_ARG_KEY].meta;
     auto _value = call.args[symbex::FN_MAP_ARG_OUT].out;
 
-    auto symbols = casted->get_generated_symbols();
+    auto symbols = casted->get_local_generated_symbols();
     assert(symbols.size() == 2);
 
     auto symbols_it = symbols.begin();

@@ -1131,21 +1131,19 @@ x86BMv2Generator::get_associated_p4_tables(
 }
 
 klee::ref<klee::Expr>
-get_readLSB_vigor_device(std::vector<klee::ConstraintManager> managers) {
-  for (auto manager : managers) {
-    for (auto constraint : manager) {
-      kutil::RetrieveSymbols retriever(true);
-      retriever.visit(constraint);
+get_readLSB_vigor_device(klee::ConstraintManager constraints) {
+  for (auto constraint : constraints) {
+    kutil::RetrieveSymbols retriever(true);
+    retriever.visit(constraint);
 
-      auto symbols = retriever.get_retrieved_strings();
+    auto symbols = retriever.get_retrieved_strings();
 
-      if (symbols.size() != 1 || *symbols.begin() != "VIGOR_DEVICE") {
-        continue;
-      }
+    if (symbols.size() != 1 || *symbols.begin() != "VIGOR_DEVICE") {
+      continue;
+    }
 
-      if (retriever.get_retrieved_readLSB().size() == symbols.size()) {
-        return retriever.get_retrieved_readLSB()[0];
-      }
+    if (retriever.get_retrieved_readLSB().size() == symbols.size()) {
+      return retriever.get_retrieved_readLSB()[0];
     }
   }
 
@@ -1204,22 +1202,21 @@ void x86BMv2Generator::build_runtime_configure() {
 
     if (module->get_type() == Module::ModuleType::x86_BMv2_CurrentTime) {
       auto bdd_node = module->get_node();
-      auto constraint_managers = bdd_node->get_constraints();
+      auto constraints = bdd_node->get_constraints();
 
-      auto vigor_device = get_readLSB_vigor_device(constraint_managers);
+      auto vigor_device = get_readLSB_vigor_device(constraints);
 
-      for (auto manager : constraint_managers) {
-        auto value =
-            kutil::solver_toolbox.value_from_expr(vigor_device, manager);
-        auto eq = kutil::solver_toolbox.exprBuilder->Eq(
-            vigor_device, kutil::solver_toolbox.exprBuilder->Constant(
-                              value, vigor_device->getWidth()));
+      auto value =
+          kutil::solver_toolbox.value_from_expr(vigor_device, constraints);
+      auto eq = kutil::solver_toolbox.exprBuilder->Eq(
+          vigor_device, kutil::solver_toolbox.exprBuilder->Constant(
+                            value, vigor_device->getWidth()));
 
-        auto always_eq = kutil::solver_toolbox.is_expr_always_true(manager, eq);
-        assert(always_eq);
+      auto always_eq =
+          kutil::solver_toolbox.is_expr_always_true(constraints, eq);
+      assert(always_eq);
 
-        devices.insert(value);
-      }
+      devices.insert(value);
     }
 
     if (module->get_type() == Module::ModuleType::BMv2_TableLookup) {

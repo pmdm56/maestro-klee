@@ -47,7 +47,7 @@ private:
       auto _value_out = call.args[symbex::FN_VECTOR_ARG_OUT].out;
       auto _borrowed_cell = call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
 
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module =
           std::make_shared<VectorBorrow>(node, _vector_addr, _index, _value_out,

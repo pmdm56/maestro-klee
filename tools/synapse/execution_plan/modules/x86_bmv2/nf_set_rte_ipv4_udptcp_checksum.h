@@ -44,7 +44,7 @@ private:
       auto _ip_header_addr = call.args[symbex::FN_SET_CHECKSUM_ARG_IP].expr;
       auto _l4_header_addr = call.args[symbex::FN_SET_CHECKSUM_ARG_L4].expr;
       auto _p_addr = call.args[symbex::FN_SET_CHECKSUM_ARG_PACKET].expr;
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module = std::make_shared<SetIpv4UdpTcpChecksum>(
           node, _ip_header_addr, _l4_header_addr, _p_addr, _generated_symbols);

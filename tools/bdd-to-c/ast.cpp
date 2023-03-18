@@ -504,7 +504,7 @@ FunctionCall_ptr spread_capacity_among_cores(Expr_ptr capacity) {
 Node_ptr AST::init_state_node_from_call(const BDD::Call *bdd_call,
                                         TargetOption target) {
   auto call = bdd_call->get_call();
-  auto symbols = bdd_call->get_generated_symbols();
+  auto symbols = bdd_call->get_local_generated_symbols();
 
   auto fname = call.function_name;
   std::vector<ExpressionType_ptr> args;
@@ -922,7 +922,7 @@ void AST::dec_pkt_offset() {
 Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
                                            TargetOption target) {
   auto call = bdd_call->get_call();
-  auto symbols = bdd_call->get_generated_symbols();
+  auto symbols = bdd_call->get_local_generated_symbols();
 
   auto fname = call.function_name;
 

@@ -13,33 +13,17 @@ private:
 
 public:
   TcpUdpConsume()
-      : Module(ModuleType::BMv2_TcpUdpConsume, TargetType::BMv2, "TcpUdpConsume") {}
+      : Module(ModuleType::BMv2_TcpUdpConsume, TargetType::BMv2,
+               "TcpUdpConsume") {}
 
   TcpUdpConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::BMv2_TcpUdpConsume, TargetType::BMv2, "TcpUdpConsume",
-               node),
+      : Module(ModuleType::BMv2_TcpUdpConsume, TargetType::BMv2,
+               "TcpUdpConsume", node),
         chunk(_chunk) {}
 
 private:
-  bool always_true(klee::ref<klee::Expr> expr,
-                   const std::vector<klee::ConstraintManager> &constraints) {
-    kutil::RetrieveSymbols symbol_retriever;
-    symbol_retriever.visit(expr);
-    auto symbols = symbol_retriever.get_retrieved();
-    kutil::ReplaceSymbols symbol_replacer(symbols);
-
-    for (auto constraint : constraints) {
-      if (!kutil::solver_toolbox.is_expr_always_true(constraint, expr,
-                                                     symbol_replacer)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   bool is_valid_ipv4(const BDD::Node *ethernet_node,
-                     const std::vector<klee::ConstraintManager> &constraints) {
+                     const klee::ConstraintManager &constraints) {
     assert(ethernet_node);
     assert(ethernet_node->get_type() == BDD::Node::NodeType::CALL);
 
@@ -57,12 +41,12 @@ private:
     auto eq =
         kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
-    return always_true(eq, constraints);
+    return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
   bool
   is_valid_tcpudp(const BDD::Node *ipv4_node, klee::ref<klee::Expr> len,
-                  const std::vector<klee::ConstraintManager> &constraints) {
+                  const klee::ConstraintManager &constraints) {
     assert(ipv4_node);
     assert(ipv4_node->get_type() == BDD::Node::NodeType::CALL);
 
@@ -98,7 +82,7 @@ private:
     auto _4 = kutil::solver_toolbox.exprBuilder->Constant(4, 4 * 8);
     auto len_eq_4 = kutil::solver_toolbox.exprBuilder->Eq(len, _4);
 
-    assert(always_true(len_eq_4, constraints));
+    assert(kutil::solver_toolbox.is_expr_always_true(constraints, len_eq_4));
 
     auto next_proto_id_expr =
         kutil::solver_toolbox.exprBuilder->Extract(ipv4_chunk, 9 * 8, 8);
@@ -114,7 +98,7 @@ private:
         kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
                                               next_proto_id_expr_udp));
 
-    return always_true(eq, constraints);
+    return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,

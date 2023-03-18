@@ -32,7 +32,7 @@ private:
     if (call.function_name == symbex::FN_CURRENT_TIME) {
       assert(!call.ret.isNull());
       auto _time = call.ret;
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module =
           std::make_shared<CurrentTime>(node, _time, _generated_symbols);

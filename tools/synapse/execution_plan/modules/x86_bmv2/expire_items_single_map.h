@@ -54,7 +54,7 @@ private:
       auto _map_addr = call.args[symbex::FN_EXPIRE_MAP_ARG_MAP].expr;
       auto _time = call.args[symbex::FN_EXPIRE_MAP_ARG_TIME].expr;
       auto _number_of_freed_flows = call.ret;
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module = std::make_shared<ExpireItemsSingleMap>(
           node, _dchain_addr, _vector_addr, _map_addr, _time,

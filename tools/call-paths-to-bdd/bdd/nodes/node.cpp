@@ -1,11 +1,12 @@
 #include "node.h"
+#include "branch.h"
 #include "call.h"
 
 #include "../symbol-factory.h"
 
 namespace BDD {
 
-symbols_t Node::get_all_generated_symbols() const {
+symbols_t Node::get_generated_symbols() const {
   symbols_t symbols;
   const Node *node = this;
 
@@ -19,7 +20,7 @@ symbols_t Node::get_all_generated_symbols() const {
   while (node) {
     if (node->get_type() == Node::NodeType::CALL) {
       const Call *call = static_cast<const Call *>(node);
-      auto more_symbols = call->get_generated_symbols();
+      auto more_symbols = call->get_local_generated_symbols();
 
       for (auto symbol : more_symbols) {
         symbols.insert(symbol);
@@ -31,6 +32,8 @@ symbols_t Node::get_all_generated_symbols() const {
 
   return symbols;
 }
+
+symbols_t Node::get_local_generated_symbols() const { return symbols_t(); }
 
 void Node::update_id(uint64_t new_id) {
   SymbolFactory factory;
@@ -78,15 +81,6 @@ std::string Node::process_call_path_filename(std::string call_path_filename) {
   return call_path_filename;
 }
 
-void Node::process_call_paths(std::vector<call_path_t *> call_paths) {
-  std::string dir_delim = "/";
-  std::string ext_delim = ".";
-
-  for (const auto &cp : call_paths) {
-    constraints.push_back(cp->constraints);
-  }
-}
-
 std::string Node::dump_recursive(int lvl) const {
   std::stringstream result;
 
@@ -99,6 +93,50 @@ std::string Node::dump_recursive(int lvl) const {
   }
 
   return result.str();
+}
+
+klee::ConstraintManager Node::get_constraints() const {
+  klee::ConstraintManager accumulated;
+
+  const Node *node = this;
+
+  for (auto c : node->get_node_constraints()) {
+    accumulated.addConstraint(c);
+  }
+
+  const Node* prev = node->get_prev().get();
+
+  while (prev) {
+    if (prev->get_type() == NodeType::BRANCH) {
+      auto prev_branch = static_cast<const Branch *>(prev);
+
+      auto on_true = prev_branch->get_on_true();
+      auto on_false = prev_branch->get_on_false();
+
+      assert(on_true);
+      assert(on_false);
+
+      auto condition = prev_branch->get_condition();
+      assert(!condition.isNull());
+      
+      if (on_true->get_id() == node->get_id()) {
+        accumulated.addConstraint(condition);
+      } else {
+        assert(on_false->get_id() == node->get_id());
+        auto not_condition = kutil::solver_toolbox.exprBuilder->Not(condition);
+        accumulated.addConstraint(not_condition);
+      }
+    }
+
+    for (auto c : prev->get_node_constraints()) {
+      accumulated.addConstraint(c);
+    }
+
+    node = prev;
+    prev = prev->get_prev().get();
+  }
+
+  return accumulated;
 }
 
 } // namespace BDD

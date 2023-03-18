@@ -555,6 +555,8 @@ std::string expr_to_string(klee::ref<klee::Expr> expr, bool one_liner) {
   return expr_str;
 }
 
+} // namespace kutil
+
 std::ostream &operator<<(std::ostream &os, const arg_t &arg) {
   if (arg.fn_ptr_name.first) {
     os << arg.fn_ptr_name.second;
@@ -612,63 +614,16 @@ std::ostream &operator<<(std::ostream &os, const call_t &call) {
 }
 
 std::ostream &operator<<(std::ostream &str, const call_path_t &cp) {
-  str << "  Calls:"
-      << "\n";
+  str << "Callpath:\n";
+
   for (auto call : cp.calls) {
-    str << "    Function: " << call.function_name << "\n";
-    if (!call.args.empty()) {
-      str << "      With Args:"
-          << "\n";
-      for (auto arg : call.args) {
-        str << "        " << arg.first << "\n";
-
-        str << "            Expr: ";
-        arg.second.expr->dump();
-
-        if (!arg.second.in.isNull()) {
-          str << "            Before: ";
-          arg.second.in->dump();
-        }
-
-        if (!arg.second.out.isNull()) {
-          str << "            After: ";
-          arg.second.out->dump();
-        }
-
-        if (arg.second.fn_ptr_name.first) {
-          str << "            Fn: " << arg.second.fn_ptr_name.second;
-          str << "\n";
-        }
-      }
-    }
-    if (!call.extra_vars.empty()) {
-      str << "      With Extra Vars:"
-          << "\n";
-      for (auto extra_var : call.extra_vars) {
-        str << "        " << extra_var.first << "\n";
-        if (!extra_var.second.first.isNull()) {
-          str << "            Before: ";
-          extra_var.second.first->dump();
-        }
-        if (!extra_var.second.second.isNull()) {
-          str << "            After: ";
-          extra_var.second.second->dump();
-        }
-      }
-    }
-
-    if (!call.ret.isNull()) {
-      str << "      With Ret: ";
-      call.ret->dump();
-    }
+    str << "  " << call << "\n";
   }
 
   return str;
 }
 
 std::ostream &operator<<(std::ostream &os, const klee::ref<klee::Expr> &expr) {
-  os << expr_to_string(expr, true);
+  os << kutil::expr_to_string(expr, true);
   return os;
 }
-
-} // namespace kutil

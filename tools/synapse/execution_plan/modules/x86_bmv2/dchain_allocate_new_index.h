@@ -49,7 +49,7 @@ private:
       auto _index_out = call.args[symbex::FN_DCHAIN_ARG_OUT].out;
       auto _success = call.ret;
 
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module = std::make_shared<DchainAllocateNewIndex>(
           node, _dchain_addr, _time, _index_out, _success, _generated_symbols);

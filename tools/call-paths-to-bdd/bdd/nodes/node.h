@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <unordered_set>
 #include <vector>
 
@@ -24,45 +25,43 @@ protected:
   BDDNode_ptr next;
   BDDNode_ptr prev;
 
-  std::vector<klee::ConstraintManager> constraints;
+  klee::ConstraintManager constraints;
 
 public:
-  Node(uint64_t _id, NodeType _type)
-      : id(_id), type(_type), next(nullptr), prev(nullptr) {}
-
-  Node(uint64_t _id, NodeType _type,
-       const std::vector<call_path_t *> &_call_paths)
-      : id(_id), type(_type), next(nullptr), prev(nullptr) {
-    process_call_paths(_call_paths);
-  }
+  Node(uint64_t _id, NodeType _type, klee::ConstraintManager _constraints)
+      : id(_id), type(_type), next(nullptr), prev(nullptr),
+        constraints(_constraints) {}
 
   Node(uint64_t _id, NodeType _type, const BDDNode_ptr &_next,
-       const BDDNode_ptr &_prev, const std::vector<call_path_t *> &_call_paths)
-      : id(_id), type(_type), next(_next), prev(_prev) {
-    process_call_paths(_call_paths);
-  }
-
-  Node(uint64_t _id, NodeType _type, const BDDNode_ptr &_next,
-       const BDDNode_ptr &_prev,
-       const std::vector<klee::ConstraintManager> &_constraints)
+       const BDDNode_ptr &_prev, klee::ConstraintManager _constraints)
       : id(_id), type(_type), next(_next), prev(_prev),
         constraints(_constraints) {}
 
-  void replace_next(const BDDNode_ptr &_next) { next = _next; }
+  void replace_next(const BDDNode_ptr &_next) {
+    assert(_next);
+    next = _next;
+  }
 
   void add_next(const BDDNode_ptr &_next) {
     assert(next == nullptr);
     assert(_next);
-
     next = _next;
   }
 
-  void replace_prev(const BDDNode_ptr &_prev) { prev = _prev; }
+  void replace_prev(const BDDNode_ptr &_prev) {
+    assert(_prev);
+    prev = _prev;
+  }
 
   void add_prev(const BDDNode_ptr &_prev) {
     assert(prev == nullptr);
     assert(_prev);
     prev = _prev;
+  }
+
+  void disconnect() {
+    prev = nullptr;
+    next = nullptr;
   }
 
   const BDDNode_ptr &get_next() const { return next; }
@@ -74,17 +73,18 @@ public:
   NodeType get_type() const { return type; }
   uint64_t get_id() const { return id; }
 
-
-  const std::vector<klee::ConstraintManager> &get_constraints() const {
+  const klee::ConstraintManager &get_node_constraints() const {
     return constraints;
   }
 
-  void
-  set_constraints(const std::vector<klee::ConstraintManager> &_constraints) {
+  klee::ConstraintManager get_constraints() const;
+
+  void set_constraints(const klee::ConstraintManager &_constraints) {
     constraints = _constraints;
   }
 
-  symbols_t get_all_generated_symbols() const;
+  symbols_t get_generated_symbols() const;
+  virtual symbols_t get_local_generated_symbols() const;
 
   void update_id(uint64_t new_id);
 

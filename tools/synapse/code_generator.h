@@ -94,7 +94,7 @@ public:
       output_file += "fpga.v";
       break;
     case TargetType::x86_Tofino:
-      output_file += "tofino-x86.c";
+      output_file += "tofino-x86.cpp";
       break;
     case TargetType::Tofino:
       output_file += "tofino.p4";

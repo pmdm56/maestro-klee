@@ -14,6 +14,10 @@ bool is_bool(klee::ref<klee::Expr> expr);
 bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);
 int64_t get_constant_signed(klee::ref<klee::Expr> expr);
+bool manager_contains(klee::ConstraintManager constraints,
+                      klee::ref<klee::Expr> expr);
+klee::ConstraintManager join_managers(klee::ConstraintManager m1,
+                                      klee::ConstraintManager m2);
 
 std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr);
 std::pair<bool, std::string> get_symbol(klee::ref<klee::Expr> expr);

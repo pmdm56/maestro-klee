@@ -132,6 +132,13 @@ public:
     os << node->get_id() << ":";
     os << kutil::pretty_print_expr(condition);
 
+    auto constraints = node->get_node_constraints();
+    if (constraints.size()) {
+      for (auto c : constraints) {
+        os << "\\l{" << kutil::pretty_print_expr(c) << "}";
+      }
+    }
+
     os << "\"";
 
     if (processed.find(node->get_id()) != processed.end()) {
@@ -222,7 +229,27 @@ public:
     }
 
     os << ")";
-    os << "\\l";
+
+    auto symbols = node->get_local_generated_symbols();
+    if (symbols.size()) {
+      for (auto s : symbols) {
+        os << "\\l=>{" << s.label;
+
+        if (!s.expr.isNull()) {
+          os << "[" << kutil::pretty_print_expr(s.expr) << "]";
+        }
+
+        os << "}";
+      }
+    }
+
+    auto constraints = node->get_node_constraints();
+    if (constraints.size()) {
+      for (auto c : constraints) {
+        os << "\\l{" << kutil::pretty_print_expr(c) << "}";
+      }
+    }
+
     os << "\", ";
 
     if (processed.find(node->get_id()) != processed.end()) {
@@ -253,6 +280,14 @@ public:
     switch (value) {
     case ReturnInit::ReturnType::SUCCESS: {
       os << "OK";
+
+      auto constraints = node->get_node_constraints();
+      if (constraints.size()) {
+        for (auto c : constraints) {
+          os << "\\l{" << kutil::pretty_print_expr(c) << "}";
+        }
+      }
+
       os << "\", ";
 
       if (processed.find(node->get_id()) != processed.end()) {
@@ -298,6 +333,14 @@ public:
     switch (operation) {
     case ReturnProcess::Operation::FWD: {
       os << "fwd(" << value << ")";
+
+      auto constraints = node->get_node_constraints();
+      if (constraints.size()) {
+        for (auto c : constraints) {
+          os << "\\l{" << kutil::pretty_print_expr(c) << "}";
+        }
+      }
+
       os << "\", ";
 
       if (processed.find(node->get_id()) != processed.end()) {

@@ -40,7 +40,7 @@ private:
       auto _p_addr = call.args[symbex::FN_BORROW_ARG_PACKET].expr;
       auto _unread_length = call.ret;
 
-      auto _generated_symbols = casted->get_generated_symbols();
+      auto _generated_symbols = casted->get_local_generated_symbols();
 
       auto new_module = std::make_shared<PacketGetUnreadLength>(
           node, _p_addr, _unread_length, _generated_symbols);

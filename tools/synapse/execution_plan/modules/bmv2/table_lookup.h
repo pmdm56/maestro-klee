@@ -164,7 +164,7 @@ private:
       return false;
     }
 
-    auto symbols = casted->get_generated_symbols();
+    auto symbols = casted->get_local_generated_symbols();
     assert(symbols.size() == 2);
 
     auto symbols_it = symbols.begin();

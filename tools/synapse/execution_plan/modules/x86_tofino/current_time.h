@@ -33,9 +33,9 @@ private:
     if (call.function_name == symbex::FN_CURRENT_TIME) {
       assert(!call.ret.isNull());
       auto _time = call.ret;
-      auto _generated_symbols = casted->get_generated_symbols();
-
+      auto _generated_symbols = casted->get_local_generated_symbols();
       assert(_generated_symbols.size() == 1);
+      
       auto time_symbol = *_generated_symbols.begin();
 
       auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);

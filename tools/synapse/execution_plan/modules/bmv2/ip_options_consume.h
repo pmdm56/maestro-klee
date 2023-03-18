@@ -24,25 +24,8 @@ public:
         chunk(_chunk), length(_length) {}
 
 private:
-  bool always_true(klee::ref<klee::Expr> expr,
-                   const std::vector<klee::ConstraintManager> &constraints) {
-    kutil::RetrieveSymbols symbol_retriever;
-    symbol_retriever.visit(expr);
-    auto symbols = symbol_retriever.get_retrieved();
-    kutil::ReplaceSymbols symbol_replacer(symbols);
-
-    for (auto constraint : constraints) {
-      if (!kutil::solver_toolbox.is_expr_always_true(constraint, expr,
-                                                     symbol_replacer)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   bool is_valid_ipv4(const BDD::Node *ethernet_node,
-                     const std::vector<klee::ConstraintManager> &constraints) {
+                     const klee::ConstraintManager &constraints) {
     assert(ethernet_node);
     assert(ethernet_node->get_type() == BDD::Node::NodeType::CALL);
 
@@ -60,13 +43,12 @@ private:
     auto eq =
         kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
-    return always_true(eq, constraints);
+    return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
-  bool
-  is_valid_ip_options(const BDD::Node *ip_options_node,
-                      klee::ref<klee::Expr> len,
-                      const std::vector<klee::ConstraintManager> &constraints) {
+  bool is_valid_ip_options(const BDD::Node *ip_options_node,
+                           klee::ref<klee::Expr> len,
+                           const klee::ConstraintManager &constraints) {
     assert(ip_options_node);
     assert(!len.isNull());
 

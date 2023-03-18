@@ -1,3 +1,6 @@
+#include "klee-util.h"
+#include <iostream>
+
 #include "bdd.h"
 
 #include "call-paths-groups.h"
@@ -137,11 +140,52 @@ call_t BDD::get_successful_call(std::vector<call_path_t *> call_paths) const {
   return call_paths[0]->calls[0];
 }
 
-BDDNode_ptr BDD::populate(call_paths_t call_paths) {
+klee::ConstraintManager
+get_common_constraints(std::vector<call_path_t *> call_paths,
+                       const klee::ConstraintManager &exclusion_list) {
+  klee::ConstraintManager common;
+
+  if (call_paths.size() == 0 || call_paths[0]->constraints.size() == 0) {
+    return common;
+  }
+
+  auto call_path = call_paths[0];
+
+  for (auto constraint : call_path->constraints) {
+    auto is_common = true;
+    auto is_excluded = kutil::manager_contains(exclusion_list, constraint);
+
+    if (is_excluded) {
+      continue;
+    }
+
+    for (auto cp : call_paths) {
+      auto constraints = kutil::join_managers(cp->constraints, exclusion_list);
+      auto is_true =
+          kutil::solver_toolbox.is_expr_always_true(constraints, constraint);
+
+      if (!is_true) {
+        is_common = false;
+        break;
+      }
+    }
+
+    if (is_common) {
+      common.addConstraint(constraint);
+    }
+  }
+
+  return common;
+}
+
+BDDNode_ptr BDD::populate(call_paths_t call_paths,
+                          klee::ConstraintManager accumulated) {
   BDDNode_ptr local_root = nullptr;
   BDDNode_ptr local_leaf = nullptr;
+  klee::ConstraintManager empty_contraints;
 
-  auto return_raw = std::make_shared<ReturnRaw>(id, call_paths);
+  auto return_raw =
+      std::make_shared<ReturnRaw>(id, empty_contraints, call_paths.backup);
   id++;
 
   while (call_paths.cp.size()) {
@@ -158,8 +202,10 @@ BDDNode_ptr BDD::populate(call_paths_t call_paths) {
       }
 
       auto call = get_successful_call(on_true.cp);
-      auto node = std::make_shared<Call>(id, call, on_true.cp);
+      auto constraints = get_common_constraints(on_true.cp, accumulated);
+      auto node = std::make_shared<Call>(id, constraints, call);
 
+      accumulated = kutil::join_managers(accumulated, constraints);
       id++;
 
       // root node
@@ -182,13 +228,22 @@ BDDNode_ptr BDD::populate(call_paths_t call_paths) {
       }
     } else {
       auto discriminating_constraint = group.get_discriminating_constraint();
+      auto node = std::make_shared<Branch>(id, empty_contraints,
+                                           discriminating_constraint);
 
-      auto node = std::make_shared<Branch>(id, discriminating_constraint,
-                                           call_paths.cp);
       id++;
 
-      auto on_true_root = populate(on_true);
-      auto on_false_root = populate(on_false);
+      auto not_discriminating_constraint =
+          kutil::solver_toolbox.exprBuilder->Not(discriminating_constraint);
+
+      auto on_true_accumulated = accumulated;
+      auto on_false_accumulated = accumulated;
+
+      on_true_accumulated.addConstraint(discriminating_constraint);
+      on_false_accumulated.addConstraint(not_discriminating_constraint);
+
+      auto on_true_root = populate(on_true, on_true_accumulated);
+      auto on_false_root = populate(on_false, on_false_accumulated);
 
       node->add_on_true(on_true_root);
       node->add_on_false(on_false_root);
@@ -219,6 +274,9 @@ BDDNode_ptr BDD::populate(call_paths_t call_paths) {
   if (local_root == nullptr) {
     local_root = return_raw;
   } else {
+    return_raw->update_id(id);
+    id++;
+
     local_leaf->add_next(return_raw);
     return_raw->add_prev(local_leaf);
 
@@ -250,11 +308,8 @@ BDDNode_ptr BDD::populate_init(const BDDNode_ptr &root) {
       }
 
       if (!is_skip_function(node)) {
-        BDDNode_ptr empty;
-
         new_node = node->clone();
-        new_node->replace_next(empty);
-        new_node->replace_prev(empty);
+        new_node->disconnect();
         assert(new_node);
       }
 
@@ -320,16 +375,17 @@ BDDNode_ptr BDD::populate_init(const BDDNode_ptr &root) {
     }
   }
 
+  auto empty_constraints = klee::ConstraintManager();
+
   if (local_root == nullptr) {
-    local_root = std::make_shared<ReturnInit>(
-        id, nullptr, ReturnInit::ReturnType::SUCCESS, root->get_constraints());
+    local_root = std::make_shared<ReturnInit>(id, nullptr, empty_constraints,
+                                              ReturnInit::ReturnType::SUCCESS);
     id++;
   }
 
   if (build_return && local_leaf) {
-    auto ret = std::make_shared<ReturnInit>(id, nullptr,
-                                            ReturnInit::ReturnType::SUCCESS,
-                                            local_leaf->get_constraints());
+    auto ret = std::make_shared<ReturnInit>(id, nullptr, empty_constraints,
+                                            ReturnInit::ReturnType::SUCCESS);
     id++;
 
     local_leaf->replace_next(ret);
@@ -361,11 +417,8 @@ BDDNode_ptr BDD::populate_process(const BDDNode_ptr &root, bool store) {
       }
 
       if (store && !is_skip_function(node)) {
-        BDDNode_ptr empty;
-
         new_node = node->clone();
-        new_node->replace_next(empty);
-        new_node->replace_prev(empty);
+        new_node->disconnect();
       }
 
       node = node->get_next().get();
@@ -503,62 +556,6 @@ void BDD::rename_symbols(BDDNode_ptr node, SymbolFactory &factory) {
       node = node->get_next();
     } else {
       return;
-    }
-  }
-}
-
-void BDD::trim_constraints(BDDNode_ptr node) {
-  std::vector<BDDNode_ptr> nodes{node};
-
-  while (nodes.size()) {
-    auto node = nodes[0];
-    nodes.erase(nodes.begin());
-
-    auto available_symbols = node->get_all_generated_symbols();
-    auto managers = node->get_constraints();
-
-    std::vector<klee::ConstraintManager> new_managers;
-
-    for (auto manager : managers) {
-      klee::ConstraintManager new_manager;
-
-      for (auto constraint : manager) {
-        kutil::RetrieveSymbols retriever;
-        retriever.visit(constraint);
-
-        auto used_symbols = retriever.get_retrieved_strings();
-
-        auto used_not_available_it = std::find_if(
-            used_symbols.begin(), used_symbols.end(),
-            [&](const std::string &used_symbol) {
-              auto available_symbol_it = std::find_if(
-                  available_symbols.begin(), available_symbols.end(),
-                  [&](const symbol_t &available_symbol) {
-                    return available_symbol.label == used_symbol;
-                  });
-
-              return available_symbol_it == available_symbols.end();
-            });
-
-        if (used_not_available_it != used_symbols.end()) {
-          continue;
-        }
-
-        new_manager.addConstraint(constraint);
-      }
-
-      new_managers.push_back(new_manager);
-    }
-
-    node->set_constraints(new_managers);
-
-    if (node->get_type() == Node::NodeType::BRANCH) {
-      auto branch_node = static_cast<Branch *>(node.get());
-
-      nodes.push_back(branch_node->get_on_true());
-      nodes.push_back(branch_node->get_on_false());
-    } else if (node->get_next()) {
-      nodes.push_back(node->get_next());
     }
   }
 }

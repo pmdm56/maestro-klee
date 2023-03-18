@@ -144,7 +144,7 @@ public:
     Log::log() << "solutions: " << h.get_all().size() << "\n";
     Log::log() << "winner:    " << h.get_score(h.get()) << "\n";
 
-    Graphviz::visualize(h.get());
+    // Graphviz::visualize(h.get());
     // Graphviz::visualize(h.get_all().back());
 
     // for (auto &ep : h.get_all()) {
