@@ -29,10 +29,10 @@ namespace Clone {
 		if(builder->is_init_empty()) {
 			info("Init is empty");
 			builder->populate_init(root->clone());
-			root->get_next()->visit(*this);
+			//root->get_next()->visit(*this);
 		}
 		else {
-			root->visit(*this);
+			//root->visit(*this);
 		}
 	}
 
@@ -43,10 +43,10 @@ namespace Clone {
 		if(builder->is_process_empty()) {
 			info("Process is empty");
 			builder->populate_process(root->clone());
-			root->get_next()->visit(*this);
+			//root->get_next()->visit(*this);
 		}
 		else {
-			root->visit(*this);
+			//root->visit(*this);
 		}
 	}
 
@@ -121,6 +121,6 @@ namespace Clone {
 		assert(bdd.get_process() != nullptr);
 		const auto &processRoot { bdd.get_process().get() }; 
 
-		visitInitRoot(processRoot);
+		visitProcessRoot(processRoot);
 	}
 }

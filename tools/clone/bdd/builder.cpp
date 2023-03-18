@@ -54,18 +54,14 @@ namespace Clone {
 
 	void Builder::populate_init(BDD::BDDNode_ptr node) {
 		debug("Initializing init");
-		BDDNode_ptr empty;
-		node->replace_next(empty);
-		node->replace_prev(empty);
+		node->disconnect();
 		this->bdd->set_init(node);
 		init_tails.insert(node);
 	}
 
 	void Builder::populate_process(BDD::BDDNode_ptr node) {
 		debug("Initializing process");
-		BDDNode_ptr empty;
-		node->replace_next(empty);
-		node->replace_prev(empty);
+		node->disconnect();
 		this->bdd->set_process(node);
 		process_tails.insert(node);
 	}

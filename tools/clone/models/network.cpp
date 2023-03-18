@@ -107,7 +107,7 @@ namespace Clone {
 
 		const BDD::BDD clone = bdd->clone();
 
-		printer.visit(clone);
+		//printer.visit(clone);
 		//builder->dump("output.bdd");
 	}
 
