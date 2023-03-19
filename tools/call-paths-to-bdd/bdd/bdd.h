@@ -82,8 +82,8 @@ public:
   BDDNode_ptr populate_init(const BDDNode_ptr &root);
   BDDNode_ptr populate_process(const BDDNode_ptr &root, bool store = false);
 
-  void set_init(BDDNode_ptr _nf_init) { nf_init = _nf_init; }
-  void set_process(BDDNode_ptr _nf_process) { nf_process = _nf_process; }
+  void set_init(const BDDNode_ptr &_nf_init) { this->nf_init = _nf_init; }
+  void set_process(const BDDNode_ptr &_nf_process) { this->nf_process = _nf_process; }
 
   void add_node(call_t call);
   void dump(int lvl, BDDNode_ptr node) const;

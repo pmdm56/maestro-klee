@@ -23,7 +23,7 @@ namespace Clone {
 
     template<typename... Args>
     void danger(Args&&... args) {
-        std::cout << "\033[35m";
+        std::cout << "\033[31m";
         std::cout << "[ERROR] ";
         std::cout << "\033[37m";
         print_arg(std::forward<Args>(args)...);
@@ -33,7 +33,7 @@ namespace Clone {
 
     template<typename... Args>
     void debug(Args&&... args) {
-        std::cout << "\033[36m";
+        std::cout << "\033[35m";
         std::cout << "[DEBUG] ";
         std::cout << "\033[37m";
         print_arg(std::forward<Args>(args)...);
@@ -42,7 +42,7 @@ namespace Clone {
 
     template<typename... Args>
     void success(Args&&... args) {
-        std::cout << "\033[34m";
+        std::cout << "\033[32m";
         std::cout << "[SUCCESS] ";
         std::cout << "\033[37m";    
         print_arg(std::forward<Args>(args)...);

@@ -13,7 +13,8 @@ namespace Clone {
 		const std::unique_ptr<BDD::BDD> bdd;
 		std::unordered_set<BDD::BDDNode_ptr> init_tails;
 		std::unordered_set<BDD::BDDNode_ptr> process_tails;
-		
+
+		uint64_t counter = 1;
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
 		void explore_node(BDD::BDDNode_ptr node, std::vector<unsigned> &constraints);
