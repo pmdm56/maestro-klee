@@ -54,7 +54,7 @@ namespace Clone {
 				branch->replace_on_false(next_false);
 				next_false->replace_prev(curr);
 				explore_node(next_false, constraints);
-				
+				break;
 			}
 			case Node::NodeType::CALL: {
 				auto call { static_cast<Call*>(curr.get()) };
@@ -65,15 +65,24 @@ namespace Clone {
 				curr->replace_next(next);
 				next->replace_prev(curr);
 				explore_node(next, constraints);
+				break;
 			}	
 			case Node::NodeType::RETURN_INIT: {
-				init_tails.insert(curr);
+				auto ret { static_cast<ReturnInit*>(curr.get()) };
+				if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
+					init_tails.insert(curr);
+				}
+				break;
 			}
 			case Node::NodeType::RETURN_PROCESS: {
+				auto ret { static_cast<ReturnProcess*>(curr.get()) };
 				process_tails.insert(curr);
+				break;
 			}
 			case Node::NodeType::RETURN_RAW: {
+				auto ret { static_cast<ReturnRaw*>(curr.get()) };
 				process_tails.insert(curr);
+				break;
 			}
 		}
 	}
@@ -100,37 +109,44 @@ namespace Clone {
 
 		auto init { other->get_init()->clone() };
 		auto process { other->get_process()->clone() };
-		explore_node(init, constraints);
-		explore_node(process, constraints);
 
 		if(is_init_empty()) {
 			bdd->set_init(init);
 			assert(bdd->get_init() != nullptr);
 		}
 		else {
-			/*auto &tail = *init_tails.begin();
-			auto &prev = tail->get_prev();
-		
-			if(prev->get_type() == Node::NodeType::BRANCH) {
-				auto branch { static_cast<Branch*>(prev.get()) };
-				auto on_true = branch->get_on_true();
-				auto on_false = branch->get_on_false();
+			for(auto &tail: init_tails) {
+				debug("Replacing tail ", tail->get_id(), " with init ", init->get_id());
+				
+				auto &prev = tail->get_prev();
+			
+				if(prev->get_type() == Node::NodeType::BRANCH) {
+					auto branch { static_cast<Branch*>(prev.get()) };
+					auto on_true = branch->get_on_true();
+					auto on_false = branch->get_on_false();
 
-				if(on_true->get_id() == tail->get_id()) {
-					branch->replace_on_true(init);
-				}
-				else if (on_false->get_id() == tail->get_id()) {
-					branch->replace_on_false(init);
+					if (on_true->get_id() == tail->get_id()) {
+						branch->replace_on_true(init);
+					}
+					else if (on_false->get_id() == tail->get_id()) {
+						branch->replace_on_false(init);
+					}
+					else {
+						danger("Could not find tail in branch ", tail->get_id(), " in node ", prev->get_id());
+						assert(false);
+					}
 				}
 				else {
-					assert(false);
+					prev->replace_next(init);
 				}
 
-			}
-			else {
-				prev->replace_next(init);
-			}
-			init->replace_prev(prev);*/
+				init->replace_prev(prev);
+				break;
+				init = init->clone(true);
+				init->recursive_update_ids(++counter);
+			 }
+
+			 init_tails.clear();
 		}
 
 		if(is_process_empty()) {
@@ -138,14 +154,10 @@ namespace Clone {
 			assert(bdd->get_process() != nullptr);
 		}
 
-		auto file = std::ofstream("output.gv");
-      	assert(file.is_open());
+		explore_node(init, constraints);
+		explore_node(process, constraints);
 
-		BDD::GraphvizGenerator gv(file);
-		debug(bdd->get_number_of_nodes(bdd->get_process()) + bdd->get_number_of_nodes(bdd->get_init()));
-		gv.visit(*bdd);
-
-		exit(0);
+		BDD::GraphvizGenerator::visualize(*bdd, true, false);
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {
