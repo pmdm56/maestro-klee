@@ -33,6 +33,12 @@ const ip_protocol_t IP_PROTOCOLS_ICMP = 1;
 const ip_protocol_t IP_PROTOCOLS_TCP  = 6;
 const ip_protocol_t IP_PROTOCOLS_UDP  = 17;
 
+header cpu_h {
+  bit<16> code_path;
+  bit<7> pad;
+  port_t out_port;
+}
+
 /*@{HEADERS DEFINITIONS}@*/
 
 struct my_ingress_metadata_t {
@@ -40,6 +46,7 @@ struct my_ingress_metadata_t {
 }
 
 struct my_ingress_headers_t {
+  cpu_h cpu;
   /*@{INGRESS HEADERS}@*/
 }
 
@@ -87,8 +94,14 @@ parser IngressParser(
     tofino_parser.apply(pkt, ig_intr_md);
 
     transition select(ig_intr_md.ingress_port) {
+      CPU_PCIE_PORT: parse_cpu;
       default: parse_headers;
     }
+  }
+
+  state parse_cpu {
+    pkt.extract(hdr.cpu);
+    transition parse_headers;
   }
 
   /*@{INGRESS PARSE HEADERS}@*/ 
@@ -116,12 +129,18 @@ control Ingress(
     ig_dprsr_md.drop_ctl = 1;
   }
 
-  action send_to_cpu(){
+  action send_to_cpu(bit<16> code_path){
+    hdr.cpu.setValid();
+    hdr.cpu.code_path = code_path;
     fwd(CPU_PCIE_PORT);
   }
 
   apply {
-    /*@{INGRESS APPLY}@*/
+    if (hdr.cpu.isValid()) {
+      fwd(hdr.cpu.out_port);
+    } else {
+      /*@{INGRESS APPLY}@*/
+    }
   }
 }
 

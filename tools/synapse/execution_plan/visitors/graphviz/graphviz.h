@@ -84,7 +84,7 @@ public:
         {TargetType::Tofino, "cornflowerblue"},
         {TargetType::Netronome, "gold"},
         {TargetType::FPGA, "coral1"},
-        {TargetType::x86_BMv2, "firebrick2"},
+        {TargetType::x86_BMv2, "darkorange2"},
         {TargetType::x86_Tofino, "firebrick2"},
     };
 

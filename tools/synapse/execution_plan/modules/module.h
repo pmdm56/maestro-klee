@@ -133,9 +133,11 @@ public:
 
   BDD::BDDNode_ptr get_node() const {
     if (!node) {
-      std::cerr << "\n";
-      std::cerr << get_target_name() << "::" << get_name() << "NO NODE\n";
+      Log::err() << get_target_name() << "::" << get_name() << " has no node\n";
+      assert(false && "Missing node");
+      exit(1);
     }
+
     assert(node);
     return node;
   }

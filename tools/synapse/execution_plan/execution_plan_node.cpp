@@ -46,6 +46,29 @@ void ExecutionPlanNode::replace_node(BDD::BDDNode_ptr node) {
   module->replace_node(node);
 }
 
+ExecutionPlanNode_ptr ExecutionPlanNode::clone(bool recursive) const {
+  // TODO: we are losing BDD traversal information.
+  // That should also be cloned.
+
+  auto cloned_node = ExecutionPlanNode::build(this);
+
+  // The constructor increments the ID, let's fix that
+  cloned_node->set_id(id);
+
+  if (recursive) {
+    auto next_clones = Branches();
+    
+    for (auto n : next) {
+      auto cloned_next = n->clone(true);
+      next_clones.push_back(cloned_next);
+    }
+
+    cloned_node->set_next(next_clones);
+  }
+
+  return cloned_node;
+}
+
 void ExecutionPlanNode::visit(ExecutionPlanVisitor &visitor) const {
   visitor.visit(this);
 }

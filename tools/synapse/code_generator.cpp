@@ -271,13 +271,115 @@ CodeGenerator::fpga_extractor(const ExecutionPlan &execution_plan) const {
   exit(1);
 }
 
+typedef std::vector<
+    std::pair<ExecutionPlanNode_ptr, targets::tofino::cpu_code_path_t>>
+    x86_tofino_roots_t;
+
+x86_tofino_roots_t get_roots(const ExecutionPlan &execution_plan) {
+  assert(execution_plan.get_root());
+
+  auto roots = x86_tofino_roots_t();
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
+
+  while (nodes.size()) {
+    auto &node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    auto module = node->get_module();
+    assert(module);
+
+    auto next = node->get_next();
+
+    if (module->get_type() == Module::ModuleType::Tofino_SendToController) {
+      auto send_to_controller =
+          static_cast<targets::tofino::SendToController *>(module.get());
+      auto cpu_code_path = send_to_controller->get_cpu_code_path();
+
+      assert(next.size() == 1);
+      auto cloned_node = next[0]->clone(true);
+
+      roots.emplace_back(cloned_node, cpu_code_path);
+      continue;
+    }
+
+    nodes.insert(nodes.end(), next.begin(), next.end());
+  }
+
+  return roots;
+}
+
 ExecutionPlan
 CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
   if (only_has_modules_from_target(execution_plan, TargetType::x86_Tofino)) {
     return execution_plan;
   }
 
-  assert(false && "TODO");
+  auto roots = get_roots(execution_plan);
+
+  if (roots.size() == 0) {
+    auto extracted = ExecutionPlan(execution_plan, ExecutionPlanNode_ptr());
+    return extracted;
+  }
+
+  auto code_path = kutil::solver_toolbox.create_new_symbol(
+      symbex::CPU_CODE_PATH, sizeof(targets::tofino::cpu_code_path_t) * 8);
+
+  ExecutionPlanNode_ptr new_root;
+  ExecutionPlanNode_ptr new_leaf;
+
+  for (auto i = 0u; i < roots.size(); i++) {
+    auto root = roots[i];
+
+    auto path_id = kutil::solver_toolbox.exprBuilder->Constant(
+        root.second, code_path->getWidth());
+    auto path_eq_path_id =
+        kutil::solver_toolbox.exprBuilder->Eq(code_path, path_id);
+
+    auto if_path_eq_path_id =
+        std::make_shared<targets::x86_tofino::If>(nullptr, path_eq_path_id);
+    auto if_ep_node = ExecutionPlanNode::build(if_path_eq_path_id);
+
+    auto then_module = std::make_shared<targets::x86_tofino::Then>(nullptr);
+    auto then_ep_node = ExecutionPlanNode::build(then_module);
+
+    auto else_module = std::make_shared<targets::x86_tofino::Else>(nullptr);
+    auto else_ep_node = ExecutionPlanNode::build(else_module);
+
+    auto then_else_ep_nodes = Branches{then_ep_node, else_ep_node};
+
+    if_ep_node->set_next(then_else_ep_nodes);
+
+    then_ep_node->set_prev(if_ep_node);
+    else_ep_node->set_prev(if_ep_node);
+
+    if (new_leaf) {
+      new_leaf->set_next(if_ep_node);
+      if_ep_node->set_prev(new_leaf);
+    } else {
+      new_leaf = else_ep_node;
+      new_root = if_ep_node;
+    }
+
+    then_ep_node->set_next(root.first);
+    root.first->set_prev(then_ep_node);
+
+    if (i == roots.size() - 1) {
+      auto drop_module = std::make_shared<targets::x86_tofino::Drop>(nullptr);
+      auto drop_ep_node = ExecutionPlanNode::build(drop_module);
+
+      else_ep_node->set_next(drop_ep_node);
+      drop_ep_node->set_prev(else_ep_node);
+
+      new_leaf = nullptr;
+    } else {
+      new_leaf = else_ep_node;
+    }
+  }
+
+  auto extracted = ExecutionPlan(execution_plan, new_root);
+  // Graphviz::visualize(extracted);
+
+  return extracted;
 }
 
 ExecutionPlan
@@ -295,10 +397,10 @@ CodeGenerator::tofino_extractor(const ExecutionPlan &execution_plan) const {
     assert(module);
     assert(module->get_target() == TargetType::Tofino);
 
-    // if (module->get_type() == Module::ModuleType::Tofino_SendToController) {
-    //   auto no_next = Branches();
-    //   node->set_next(no_next);
-    // }
+    if (module->get_type() == Module::ModuleType::Tofino_SendToController) {
+      auto no_next = Branches();
+      node->set_next(no_next);
+    }
 
     auto next = node->get_next();
     nodes.insert(nodes.end(), next.begin(), next.end());

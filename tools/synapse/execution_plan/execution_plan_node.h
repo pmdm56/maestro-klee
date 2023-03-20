@@ -45,6 +45,8 @@ public:
   void replace_next(ExecutionPlanNode_ptr before, ExecutionPlanNode_ptr after);
   void replace_prev(ExecutionPlanNode_ptr _prev);
   void replace_node(BDD::BDDNode_ptr node);
+  ExecutionPlanNode_ptr clone(bool recursive = false) const;
+
   void visit(ExecutionPlanVisitor &visitor) const;
 
   static ExecutionPlanNode_ptr build(Module_ptr _module);

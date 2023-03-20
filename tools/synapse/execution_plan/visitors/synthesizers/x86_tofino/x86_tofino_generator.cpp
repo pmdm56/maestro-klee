@@ -23,6 +23,12 @@ variable_query_t x86TofinoGenerator::search_variable(std::string symbol) const {
     if (in_port_var.valid) {
       return in_port_var;
     }
+  } else if (symbol == symbex::CPU_CODE_PATH) {
+    auto code_path_var = headers.get_hdr_field(CPU, CPU_CODE_PATH);
+
+    if (code_path_var.valid) {
+      return code_path_var;
+    }
   }
 
   auto local_var = local_vars.get(symbol);
@@ -117,7 +123,6 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::Drop *node) {
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::ForwardThroughTofino *node) {
   assert(node);
-  assert(node->get_node());
   auto port = node->get_port();
 
   nf_proces_builder.indent();
@@ -136,7 +141,6 @@ void x86TofinoGenerator::visit(
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::PacketParseEthernet *node) {
   assert(node);
-  assert(node->get_node());
 
   const hdr_field_t eth_dst_addr{ETH_DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
   const hdr_field_t eth_src_addr{ETH_SRC_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
@@ -163,7 +167,6 @@ void x86TofinoGenerator::visit(
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::PacketModifyEthernet *node) {
   assert(node);
-  assert(node->get_node());
 
   auto ethernet_chunk = node->get_ethernet_chunk();
   auto modifications = node->get_modifications();
@@ -189,7 +192,6 @@ void x86TofinoGenerator::visit(
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
   assert(node);
-  assert(node->get_node());
 
   auto condition = node->get_condition();
   auto condition_transpiled = transpile(condition);
@@ -208,12 +210,10 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::Then *node) {
   assert(node);
-  assert(node->get_node());
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::Else *node) {
   assert(node);
-  assert(node->get_node());
 
   local_vars.push();
 

@@ -7,9 +7,11 @@ namespace synapse {
 namespace targets {
 namespace tofino {
 
+typedef uint16_t cpu_code_path_t;
+
 class SendToController : public Module {
 private:
-  uint64_t cpu_code_path;
+  cpu_code_path_t cpu_code_path;
 
 public:
   SendToController()
@@ -18,7 +20,7 @@ public:
     next_target = TargetType::x86_Tofino;
   }
 
-  SendToController(BDD::BDDNode_ptr node, uint64_t _cpu_code_path)
+  SendToController(BDD::BDDNode_ptr node, cpu_code_path_t _cpu_code_path)
       : Module(ModuleType::Tofino_SendToController, TargetType::Tofino,
                "SendToController", node),
         cpu_code_path(_cpu_code_path) {
@@ -70,8 +72,8 @@ private:
       if (node->get_type() == BDD::Node::NodeType::CALL) {
         auto clone = node->clone();
 
-        clone->replace_next(root);
-        clone->replace_prev(nullptr);
+        clone->disconnect();
+        clone->add_next(root);
 
         root->replace_prev(clone);
 
@@ -151,7 +153,7 @@ public:
     return true;
   }
 
-  uint64_t get_cpu_code_path() const { return cpu_code_path; }
+  cpu_code_path_t get_cpu_code_path() const { return cpu_code_path; }
 };
 } // namespace tofino
 } // namespace targets

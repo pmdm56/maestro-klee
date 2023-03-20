@@ -115,7 +115,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::If *node) {
-  assert(node->get_node());
+  assert(node);
 
   auto condition = node->get_condition();
   auto condition_transpiled = transpile(condition);
@@ -137,7 +137,7 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::Then *node) {
-  assert(node->get_node());
+  assert(node);
 
   if (ingress.parser.is_active()) {
     ingress.parser.push_on_true();
@@ -145,7 +145,7 @@ void TofinoGenerator::visit(const targets::tofino::Then *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::Else *node) {
-  assert(node->get_node());
+  assert(node);
 
   if (ingress.parser.is_active()) {
     ingress.parser.push_on_false();
@@ -160,7 +160,7 @@ void TofinoGenerator::visit(const targets::tofino::Else *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::Forward *node) {
-  assert(node->get_node());
+  assert(node);
   auto port = node->get_port();
 
   ingress.apply_block_builder.indent();
@@ -179,7 +179,7 @@ void TofinoGenerator::visit(const targets::tofino::Forward *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::EthernetConsume *node) {
-  assert(node->get_node());
+  assert(node);
   assert(ingress.parser.is_active());
 
   const hdr_field_t eth_dst_addr{DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
@@ -198,7 +198,7 @@ void TofinoGenerator::visit(const targets::tofino::EthernetConsume *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::EthernetModify *node) {
-  assert(node->get_node());
+  assert(node);
 
   auto ethernet_chunk = node->get_ethernet_chunk();
   auto modifications = node->get_modifications();
@@ -223,7 +223,7 @@ void TofinoGenerator::visit(const targets::tofino::EthernetModify *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
-  assert(node->get_node());
+  assert(node);
 
   auto keys = node->get_keys();
   auto params = node->get_params();
@@ -346,7 +346,21 @@ void TofinoGenerator::visit(const targets::tofino::Ignore *node) {
 }
 
 void TofinoGenerator::visit(const targets::tofino::SendToController *node) {
-  assert(false && "TODO");
+  auto cpu_code_path = node->get_cpu_code_path();
+
+  ingress.apply_block_builder.indent();
+  ingress.apply_block_builder.append(INGRESS_SEND_TO_CPU_ACTION);
+  ingress.apply_block_builder.append("(");
+  ingress.apply_block_builder.append(cpu_code_path);
+  ingress.apply_block_builder.append(");");
+  ingress.apply_block_builder.append_new_line();
+
+  auto closed = ingress.pending_ifs.close();
+
+  for (auto i = 0; i < closed; i++) {
+    ingress.parser.pop();
+    ingress.local_vars.pop();
+  }
 }
 
 } // namespace tofino
