@@ -35,7 +35,9 @@ const ip_protocol_t IP_PROTOCOLS_UDP  = 17;
 
 header cpu_h {
   bit<16> code_path;
-  bit<7> pad;
+  bit<7> pad0;
+  port_t in_port;
+  bit<7> pad1;
   port_t out_port;
 }
 
@@ -121,7 +123,7 @@ control Ingress(
     ig_tm_md.mcast_grp_a = 1;
   }
 
-  action fwd(port_t port){
+  action fwd(port_t port) {
     ig_tm_md.ucast_egress_port = port;
   }
 
@@ -129,15 +131,17 @@ control Ingress(
     ig_dprsr_md.drop_ctl = 1;
   }
 
-  action send_to_cpu(bit<16> code_path){
+  action send_to_cpu(bit<16> code_path) {
     hdr.cpu.setValid();
     hdr.cpu.code_path = code_path;
+    hdr.cpu.in_port = ig_intr_md.ingress_port;
     fwd(CPU_PCIE_PORT);
   }
 
   apply {
     if (hdr.cpu.isValid()) {
       fwd(hdr.cpu.out_port);
+      hdr.cpu.setInvalid();
     } else {
       /*@{INGRESS APPLY}@*/
     }
