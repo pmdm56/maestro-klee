@@ -173,10 +173,7 @@ void TofinoGenerator::visit(const targets::tofino::Forward *node) {
   auto closed = ingress.pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
-    if (ingress.parser.is_active()) {
-      ingress.parser.pop();
-    }
-
+    ingress.parser.pop();
     ingress.local_vars.pop();
   }
 }
@@ -339,10 +336,7 @@ void TofinoGenerator::visit(const targets::tofino::Drop *node) {
   auto closed = ingress.pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
-    if (ingress.parser.is_active()) {
-      ingress.parser.pop();
-    }
-
+    ingress.parser.pop();
     ingress.local_vars.pop();
   }
 }

@@ -117,6 +117,10 @@ processing_result_t Module::process_node(const ExecutionPlan &ep,
     reordered.insert(reordered.end(), ep_reodered.begin(), ep_reodered.end());
   }
 
+  if (reordered.size() > 0) {
+    Log::dbg() << "+ " << reordered.size() << " reordered BDDs\n";
+  }
+
   result.next_eps.insert(result.next_eps.end(), reordered.begin(),
                          reordered.end());
 
