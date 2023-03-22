@@ -90,6 +90,7 @@ namespace Clone {
 	void Network::traverse_all_flows() {
 		const unique_ptr<Builder> builder { Builder::create() };
 		
+		info("Total of ", sources.size(), " sources");
 		for(auto &source: sources) {
 			vector<unsigned> constraints {};
 			

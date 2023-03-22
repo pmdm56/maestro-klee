@@ -3,6 +3,7 @@
 #include "../util/logger.hpp"
 
 #include "klee/Constraints.h"
+#include "solver_toolbox.h"
 
 using namespace BDD;
 
@@ -31,21 +32,29 @@ namespace Clone {
 				assert(branch->get_on_false());
 				BDDNode_ptr next_true = branch->get_on_true()->clone();
 				BDDNode_ptr next_false = branch->get_on_false()->clone();
-				
-				// for(auto &constraint: branch->get_constraints()) {
-				// 	kutil::RetrieveSymbols retriever(true);
-    			// 	retriever.visit(constraint);
 
-				//     auto symbols = retriever.get_retrieved_strings();
+				for(auto &constraint: branch->get_node_constraints()) {
+					kutil::RetrieveSymbols visitor;
+					visitor.visit(constraint);
 
-				// 	if (symbols.size() != 1 || *symbols.begin() != "VIGOR_DEVICE") {
-      			// 		continue;
-    			// 	}
-				// 	else {
-				// 		info("Found constraint at node ", curr->get_id());
-				// 		exit(1);
-				// 	}
-				// }
+					for(auto &symbol: visitor.get_retrieved_strings()) {
+						debug("Found constraint ", symbol, " at branch", curr->get_id());
+					}
+				}
+
+				const auto &condition { branch->get_condition() } ;
+				const auto &condition_symbols { kutil::get_symbols(condition) };
+
+				 if (condition_symbols.size() == 1 && *condition_symbols.begin() == "VIGOR_DEVICE") {
+				 	debug("Found VIGOR_DEVICE condition at ", curr->get_id());
+
+				 	auto symbol { kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
+				 	auto one { kutil::solver_toolbox.exprBuilder->Constant(1, symbol->getWidth()) };
+				 	auto eq { kutil::solver_toolbox.exprBuilder->Eq(symbol, one) };
+				 	bool res { kutil::solver_toolbox.is_expr_always_false(branch->get_constraints(), eq) };
+					
+				 	debug("Result: ", res, " for ", branch->get_id());
+				}
 
 				branch->replace_on_true(next_true);
 				next_true->replace_prev(curr);
@@ -62,6 +71,15 @@ namespace Clone {
 				assert(call->get_next());
 				BDDNode_ptr next { call->get_next()->clone() };
 
+				for(auto &constraint: call->get_node_constraints()) {
+					kutil::RetrieveSymbols visitor;
+					visitor.visit(constraint);
+
+					for(auto &symbol: visitor.get_retrieved_strings()) {
+						debug("Found constraint ", symbol, " at call ", curr->get_id());
+					}
+				}
+
 				curr->replace_next(next);
 				next->replace_prev(curr);
 				explore_node(next, constraints);
@@ -76,7 +94,9 @@ namespace Clone {
 			}
 			case Node::NodeType::RETURN_PROCESS: {
 				auto ret { static_cast<ReturnProcess*>(curr.get()) };
-				process_tails.insert(curr);
+				if(ret->get_return_value() == ReturnProcess::Operation::FWD) {
+					process_tails.insert(curr);
+				}
 				break;
 			}
 			case Node::NodeType::RETURN_RAW: {
@@ -105,10 +125,12 @@ namespace Clone {
 	}
 
 	void Builder::join_bdd(const std::shared_ptr<const BDD::BDD> &other, vector<unsigned> &constraints) {
-		debug("Joining BDDs");
+		debug("Joining BDD");
 
 		auto init { other->get_init()->clone() };
 		auto process { other->get_process()->clone() };
+
+		other->
 
 		if(is_init_empty()) {
 			bdd->set_init(init);
