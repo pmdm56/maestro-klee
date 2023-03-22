@@ -130,7 +130,6 @@ namespace Clone {
 		auto init { other->get_init()->clone() };
 		auto process { other->get_process()->clone() };
 
-		other->
 
 		if(is_init_empty()) {
 			bdd->set_init(init);
