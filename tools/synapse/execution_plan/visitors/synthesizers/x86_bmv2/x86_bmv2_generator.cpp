@@ -2,6 +2,7 @@
 #include "../../../../log.h"
 #include "../../../modules/bmv2/table_lookup.h"
 #include "../../../modules/x86_bmv2/x86_bmv2.h"
+#include "../util.h"
 
 #define MARKER_GLOBAL_STATE "global_state"
 #define MARKER_RUNTIME_CONFIGURE "runtime_configure"
@@ -28,15 +29,6 @@ std::string build_table_name(std::string bdd_function, uint64_t table_id) {
   table_name << build_table_label(bdd_function, table_id);
 
   return table_name.str();
-}
-
-std::string get_label(BDD::symbols_t symbols, std::string base) {
-  auto found_it = std::find_if(
-      symbols.begin(), symbols.end(),
-      [&](const BDD::symbol_t &symbol) { return symbol.label_base == base; });
-
-  assert(found_it != symbols.end());
-  return found_it->label;
 }
 
 std::string transpile(const klee::ref<klee::Expr> &e, stack_t &stack,

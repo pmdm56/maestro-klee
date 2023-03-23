@@ -73,6 +73,29 @@ struct stack_t {
     assert(stack.size());
     stack.back().push_back(var);
   }
+
+  std::string get_new_label(const std::string &base) const {
+    int matches = 0;
+
+    auto has_same_base = [&](const std::string &label) {
+      auto delim = label.find(base);
+      return delim != std::string::npos && delim == 0;
+    };
+
+    for (const auto &frame : stack) {
+      for (const auto &variable : frame) {
+        if (has_same_base(variable.get_label())) {
+          matches++;
+        }
+      }
+    }
+
+    if (matches == 0) {
+      return base;
+    }
+
+    return base + "_" + std::to_string(matches);
+  }
 };
 
 } // namespace x86_tofino

@@ -140,6 +140,21 @@ std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
   return code;
 }
 
+std::string Transpiler::size_to_type(bits_t size) const {
+  assert(size > 0);
+  assert(size % 8 == 0);
+
+  if (size <= 64) {
+    std::stringstream type_builder;
+    type_builder << "uint";
+    type_builder << size;
+    type_builder << "_t";
+    return type_builder.str();
+  }
+
+  return "bytes_t";
+}
+
 klee::ExprVisitor::Action
 InternalTranspiler::visitRead(const klee::ReadExpr &) {
   assert(false && "TODO");
@@ -187,7 +202,9 @@ InternalTranspiler::visitConcat(const klee::ConcatExpr &e) {
 }
 
 klee::ExprVisitor::Action
-InternalTranspiler::visitExtract(const klee::ExtractExpr &) {
+InternalTranspiler::visitExtract(const klee::ExtractExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::ExtractExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 

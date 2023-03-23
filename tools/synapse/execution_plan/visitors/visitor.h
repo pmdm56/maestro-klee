@@ -83,6 +83,12 @@ class Else;
 class Drop;
 class PacketModifyEthernet;
 class ForwardThroughTofino;
+class MapGet;
+class MapPut;
+class EtherAddrHash;
+class DchainAllocateNewIndex;
+class DchainIsIndexAllocated;
+class DchainRejuvenateIndex;
 } // namespace x86_tofino
 
 } // namespace targets
@@ -178,6 +184,12 @@ public:
   VISIT(targets::x86_tofino::Drop)
   VISIT(targets::x86_tofino::PacketModifyEthernet)
   VISIT(targets::x86_tofino::ForwardThroughTofino)
+  VISIT(targets::x86_tofino::MapGet)
+  VISIT(targets::x86_tofino::MapPut)
+  VISIT(targets::x86_tofino::EtherAddrHash)
+  VISIT(targets::x86_tofino::DchainAllocateNewIndex)
+  VISIT(targets::x86_tofino::DchainIsIndexAllocated)
+  VISIT(targets::x86_tofino::DchainRejuvenateIndex)
 
 protected:
   virtual void log(const ExecutionPlanNode *ep_node) const;

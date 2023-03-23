@@ -1,10 +1,11 @@
 #pragma once
 
 #include "../module.h"
+#include "memory_bank.h"
 
 namespace synapse {
 namespace targets {
-namespace x86_bmv2 {
+namespace x86_tofino {
 
 class DchainAllocateNewIndex : public Module {
 private:
@@ -17,8 +18,8 @@ private:
 
 public:
   DchainAllocateNewIndex()
-      : Module(ModuleType::x86_BMv2_DchainAllocateNewIndex, TargetType::x86_BMv2,
-               "DchainAllocate") {}
+      : Module(ModuleType::x86_Tofino_DchainAllocateNewIndex,
+               TargetType::x86_Tofino, "DchainAllocate") {}
 
   DchainAllocateNewIndex(BDD::BDDNode_ptr node,
                          klee::ref<klee::Expr> _dchain_addr,
@@ -26,8 +27,8 @@ public:
                          klee::ref<klee::Expr> _index_out,
                          klee::ref<klee::Expr> _success,
                          BDD::symbols_t _generated_symbols)
-      : Module(ModuleType::x86_BMv2_DchainAllocateNewIndex, TargetType::x86_BMv2,
-               "DchainAllocate", node),
+      : Module(ModuleType::x86_Tofino_DchainAllocateNewIndex,
+               TargetType::x86_Tofino, "DchainAllocate", node),
         dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
         success(_success), generated_symbols(_generated_symbols) {}
 
@@ -50,6 +51,17 @@ private:
       auto _success = call.ret;
 
       auto _generated_symbols = casted->get_local_generated_symbols();
+
+      auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
+      auto saved = mb->has_data_structure(_dchain_addr);
+
+      if (!saved) {
+        auto config = get_dchain_config(ep.get_bdd(), _dchain_addr);
+        auto dchain_ds = std::shared_ptr<x86TofinoMemoryBank::ds_t>(
+            new x86TofinoMemoryBank::dchain_t(_dchain_addr, node->get_id(),
+                                              config.index_range));
+        mb->add_data_structure(dchain_ds);
+      }
 
       auto new_module = std::make_shared<DchainAllocateNewIndex>(
           node, _dchain_addr, _time, _index_out, _success, _generated_symbols);
@@ -116,6 +128,6 @@ public:
     return generated_symbols;
   }
 };
-} // namespace x86_bmv2
+} // namespace x86_tofino
 } // namespace targets
 } // namespace synapse

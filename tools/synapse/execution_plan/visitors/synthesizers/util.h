@@ -49,5 +49,8 @@ public:
 bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
                                       synapse::TargetType target);
 
+std::string get_label(BDD::symbols_t symbols, std::string base);
+BDD::symbol_t get_symbol(BDD::symbols_t symbols, std::string base);
+
 } // namespace synthesizer
 } // namespace synapse

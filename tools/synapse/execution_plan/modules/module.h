@@ -78,7 +78,6 @@ public:
     Tofino_TableLookup,
     Tofino_Drop,
     Tofino_SendToController,
-    x86_Tofino_CurrentTime,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
     x86_Tofino_SendToTofino,
@@ -89,6 +88,12 @@ public:
     x86_Tofino_Else,
     x86_Tofino_Drop,
     x86_Tofino_ForwardThroughTofino,
+    x86_Tofino_MapGet,
+    x86_Tofino_MapPut,
+    x86_Tofino_EtherAddrHash,
+    x86_Tofino_DchainAllocateNewIndex,
+    x86_Tofino_DchainIsIndexAllocated,
+    x86_Tofino_DchainRejuvenateIndex,
   };
 
 protected:
@@ -206,6 +211,13 @@ protected:
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;
+
+  struct dchain_config_t {
+    uint64_t index_range;
+  };
+
+  dchain_config_t get_dchain_config(const BDD::BDD &bdd,
+                                    klee::ref<klee::Expr> dchain_addr);
 };
 
 } // namespace synapse
