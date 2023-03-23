@@ -33,6 +33,11 @@ public:
     exprs.push_back(expr);
   }
 
+  Variable(std::string _label, klee::ref<klee::Expr> expr)
+      : label(_label), size_bits(expr->getWidth()) {
+    exprs.push_back(expr);
+  }
+
   Variable(std::string _label, bits_t _size_bits)
       : label(_label), size_bits(_size_bits) {}
 
@@ -54,11 +59,19 @@ public:
   }
 
   virtual std::string get_type() const {
+    assert(size_bits > 0);
+    assert(size_bits % 8 == 0);
+
     std::stringstream type;
 
-    type << "bit<";
-    type << size_bits;
-    type << ">";
+    if (size_bits <= 64) {
+      type << "uint";
+      type << size_bits;
+      type << "_t";
+      return type.str();
+    } else {
+      type << "bytes_t";
+    }
 
     return type.str();
   }

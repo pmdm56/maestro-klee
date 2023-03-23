@@ -8,6 +8,8 @@
 
 #include <sstream>
 
+namespace target = synapse::targets::x86_tofino;
+
 namespace synapse {
 namespace synthesizer {
 namespace x86_tofino {
@@ -23,9 +25,15 @@ variable_query_t x86TofinoGenerator::search_variable(std::string symbol) const {
     if (in_port_var.valid) {
       return in_port_var;
     }
+  } else if (symbol == symbex::CPU_CODE_PATH) {
+    auto code_path_var = headers.get_hdr_field(CPU, CPU_CODE_PATH);
+
+    if (code_path_var.valid) {
+      return code_path_var;
+    }
   }
 
-  auto local_var = local_vars.get(symbol);
+  auto local_var = vars.get(symbol);
 
   if (local_var.valid) {
     return local_var;
@@ -36,7 +44,7 @@ variable_query_t x86TofinoGenerator::search_variable(std::string symbol) const {
 
 variable_query_t
 x86TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
-  auto local_var = local_vars.get(expr);
+  auto local_var = vars.get(expr);
 
   if (local_var.valid) {
     return local_var;
@@ -60,7 +68,74 @@ x86TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   return variable_query_t();
 }
 
+void x86TofinoGenerator::init_state(ExecutionPlan ep) {
+  auto mb = ep.get_memory_bank<target::x86TofinoMemoryBank>(x86_Tofino);
+  auto data_structures = mb->get_data_structures();
+
+  for (auto ds : data_structures) {
+    switch (ds->type) {
+    case target::x86TofinoMemoryBank::ds_type_t::MAP: {
+      auto map_ds = static_cast<target::x86TofinoMemoryBank::map_t *>(ds.get());
+
+      auto label = "map_" + std::to_string(map_ds->node_id);
+      auto map_var = Variable(label, map_ds->addr);
+      auto value_type = transpiler.size_to_type(map_ds->value_size);
+
+      state_decl_builder.indent();
+      state_decl_builder.append("std::unique_ptr<Map<");
+      state_decl_builder.append(value_type);
+      state_decl_builder.append(">> ");
+      state_decl_builder.append(label);
+      state_decl_builder.append(";");
+      state_decl_builder.append_new_line();
+
+      state_init_builder.indent();
+      state_init_builder.append(label);
+      state_init_builder.append(" = Map<");
+      state_init_builder.append(value_type);
+      state_init_builder.append(">::build();");
+      state_init_builder.append_new_line();
+
+      vars.append(map_var);
+    } break;
+
+    case target::x86TofinoMemoryBank::ds_type_t::DCHAIN: {
+      auto dchain_ds =
+          static_cast<target::x86TofinoMemoryBank::dchain_t *>(ds.get());
+
+      auto label = "dchain_" + std::to_string(dchain_ds->node_id);
+      auto dchain_var = Variable(label, dchain_ds->addr);
+
+      state_decl_builder.indent();
+      state_decl_builder.append("std::unique_ptr<Dchain> ");
+      state_decl_builder.append(label);
+      state_decl_builder.append(";");
+      state_decl_builder.append_new_line();
+
+      state_init_builder.indent();
+      state_init_builder.append(label);
+      state_init_builder.append(" = Dchain::build(");
+      state_init_builder.append(dchain_ds->index_range);
+      state_init_builder.append(");");
+      state_init_builder.append_new_line();
+
+      vars.append(dchain_var);
+    } break;
+    }
+  }
+
+  auto time = mb->get_time();
+  assert(!time.expr.isNull());
+
+  auto time_var = Variable(TIME_VAR_LABEL, time.expr->getWidth(), {time.label});
+  time_var.add_expr(time.expr);
+
+  vars.append(time_var);
+}
+
 void x86TofinoGenerator::visit(ExecutionPlan ep) {
+  init_state(ep);
+
   ExecutionPlanVisitor::visit(ep);
 
   std::stringstream state_decl_code;
@@ -69,7 +144,7 @@ void x86TofinoGenerator::visit(ExecutionPlan ep) {
 
   state_decl_builder.dump(state_decl_code);
   state_init_builder.dump(state_init_code);
-  nf_proces_builder.dump(nf_process_code);
+  nf_process_builder.dump(nf_process_code);
 
   fill_mark(MARKER_STATE_DECL, state_decl_code.str());
   fill_mark(MARKER_STATE_INIT, state_init_code.str());
@@ -89,10 +164,6 @@ void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
   }
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::CurrentTime *node) {
-  assert(false && "TODO");
-}
-
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::PacketParseCPU *node) {
   assert(false && "TODO");
@@ -101,42 +172,40 @@ void x86TofinoGenerator::visit(
 void x86TofinoGenerator::visit(const targets::x86_tofino::Drop *node) {
   assert(node);
 
-  nf_proces_builder.indent();
-  nf_proces_builder.append("return ");
-  nf_proces_builder.append(DROP_PORT_VALUE);
-  nf_proces_builder.append(";");
-  nf_proces_builder.append_new_line();
+  nf_process_builder.indent();
+  nf_process_builder.append("return ");
+  nf_process_builder.append(DROP_PORT_VALUE);
+  nf_process_builder.append(";");
+  nf_process_builder.append_new_line();
 
   auto closed = pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
-    local_vars.pop();
+    vars.pop();
   }
 }
 
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::ForwardThroughTofino *node) {
   assert(node);
-  assert(node->get_node());
   auto port = node->get_port();
 
-  nf_proces_builder.indent();
-  nf_proces_builder.append("return ");
-  nf_proces_builder.append(port);
-  nf_proces_builder.append(";");
-  nf_proces_builder.append_new_line();
+  nf_process_builder.indent();
+  nf_process_builder.append("return ");
+  nf_process_builder.append(port);
+  nf_process_builder.append(";");
+  nf_process_builder.append_new_line();
 
   auto closed = pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
-    local_vars.pop();
+    vars.pop();
   }
 }
 
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::PacketParseEthernet *node) {
   assert(node);
-  assert(node->get_node());
 
   const hdr_field_t eth_dst_addr{ETH_DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
   const hdr_field_t eth_src_addr{ETH_SRC_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
@@ -151,19 +220,18 @@ void x86TofinoGenerator::visit(
 
   headers.add(header);
 
-  nf_proces_builder.indent();
-  nf_proces_builder.append("auto ");
-  nf_proces_builder.append(HDR_ETH_VARIABLE);
-  nf_proces_builder.append(" = ");
-  nf_proces_builder.append(PACKET_VAR_LABEL);
-  nf_proces_builder.append(".parse_ethernet();");
-  nf_proces_builder.append_new_line();
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(HDR_ETH_VARIABLE);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append(PACKET_VAR_LABEL);
+  nf_process_builder.append(".parse_ethernet();");
+  nf_process_builder.append_new_line();
 }
 
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::PacketModifyEthernet *node) {
   assert(node);
-  assert(node->get_node());
 
   auto ethernet_chunk = node->get_ethernet_chunk();
   auto modifications = node->get_modifications();
@@ -178,49 +246,229 @@ void x86TofinoGenerator::visit(
     auto transpiled_byte = transpile(modified_byte);
     auto transpiled_expr = transpile(expr);
 
-    nf_proces_builder.indent();
-    nf_proces_builder.append(transpiled_byte);
-    nf_proces_builder.append(" = ");
-    nf_proces_builder.append(transpiled_expr);
-    nf_proces_builder.append(";");
-    nf_proces_builder.append_new_line();
+    nf_process_builder.indent();
+    nf_process_builder.append(transpiled_byte);
+    nf_process_builder.append(" = ");
+    nf_process_builder.append(transpiled_expr);
+    nf_process_builder.append(";");
+    nf_process_builder.append_new_line();
   }
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
   assert(node);
-  assert(node->get_node());
 
   auto condition = node->get_condition();
   auto condition_transpiled = transpile(condition);
 
-  nf_proces_builder.indent();
-  nf_proces_builder.append("if (");
-  nf_proces_builder.append(condition_transpiled);
-  nf_proces_builder.append(") {");
-  nf_proces_builder.append_new_line();
+  nf_process_builder.indent();
+  nf_process_builder.append("if (");
+  nf_process_builder.append(condition_transpiled);
+  nf_process_builder.append(") {");
+  nf_process_builder.append_new_line();
 
-  nf_proces_builder.inc_indentation();
+  nf_process_builder.inc_indentation();
 
-  local_vars.push();
+  vars.push();
   pending_ifs.push();
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::Then *node) {
   assert(node);
-  assert(node->get_node());
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::Else *node) {
   assert(node);
-  assert(node->get_node());
 
-  local_vars.push();
+  vars.push();
 
-  nf_proces_builder.indent();
-  nf_proces_builder.append("else {");
-  nf_proces_builder.append_new_line();
-  nf_proces_builder.inc_indentation();
+  nf_process_builder.indent();
+  nf_process_builder.append("else {");
+  nf_process_builder.append_new_line();
+  nf_process_builder.inc_indentation();
+}
+
+void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
+  assert(node);
+
+  auto map_addr = node->get_map_addr();
+  auto key = node->get_key();
+  auto map_has_this_key = node->get_map_has_this_key();
+  auto value_out = node->get_value_out();
+
+  auto generated_symbols = node->get_generated_symbols();
+
+  assert(!map_addr.isNull());
+  assert(!key.isNull());
+  assert(!map_has_this_key.isNull());
+  assert(!value_out.isNull());
+
+  assert(generated_symbols.size() == 2);
+
+  auto map_has_this_key_label =
+      get_label(generated_symbols, symbex::MAP_HAS_THIS_KEY);
+
+  auto allocated_index_label =
+      get_label(generated_symbols, symbex::MAP_ALLOCATED_INDEX);
+
+  auto contains_var =
+      Variable(map_has_this_key_label, map_has_this_key->getWidth(),
+               {map_has_this_key_label});
+  contains_var.add_expr(map_has_this_key);
+
+  auto value_var = Variable(allocated_index_label, value_out->getWidth(),
+                            {allocated_index_label});
+  value_var.add_expr(value_out);
+
+  vars.append(contains_var);
+  vars.append(value_var);
+
+  nf_process_builder.indent();
+  nf_process_builder.append(value_var.get_type());
+  nf_process_builder.append(" ");
+  nf_process_builder.append(value_var.get_label());
+  nf_process_builder.append(";");
+  nf_process_builder.append_new_line();
+
+  auto map = vars.get(map_addr);
+
+  auto key_label_base = map.var->get_label() + "_key";
+  auto key_label = vars.get_new_label(key_label_base);
+  auto key_var = Variable(key_label, key->getWidth());
+
+  vars.append(key_var);
+
+  assert(key->getWidth() > 0);
+  assert(key->getWidth() % 8 == 0);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("bytes_t ");
+  nf_process_builder.append(key_label);
+  nf_process_builder.append("(");
+  nf_process_builder.append(key->getWidth() / 8);
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
+
+  for (bits_t b = 0u; b < key->getWidth(); b += 8) {
+    auto byte = kutil::solver_toolbox.exprBuilder->Extract(key, b, 8);
+    auto byte_transpiled = transpile(byte);
+
+    nf_process_builder.indent();
+    nf_process_builder.append(key_label);
+    nf_process_builder.append(".values[");
+    nf_process_builder.append(b / 8);
+    nf_process_builder.append("]");
+    nf_process_builder.append(" = ");
+    nf_process_builder.append(byte_transpiled);
+    nf_process_builder.append(";");
+    nf_process_builder.append_new_line();
+  }
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(contains_var.get_label());
+  nf_process_builder.append(" = ");
+  nf_process_builder.append("state->");
+  nf_process_builder.append(map.var->get_label());
+  nf_process_builder.append("->get(");
+  nf_process_builder.append(key_label);
+  nf_process_builder.append(", ");
+  nf_process_builder.append(value_var.get_label());
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(const targets::x86_tofino::MapPut *node) {
+  assert(false && "TODO");
+}
+
+void x86TofinoGenerator::visit(const targets::x86_tofino::EtherAddrHash *node) {
+  assert(node);
+
+  auto addr = node->get_addr();
+  auto generated_symbol = node->get_generated_symbol();
+
+  auto addr_transpiled = transpile(addr);
+  auto hash_var = Variable(generated_symbol.label, generated_symbol.expr);
+
+  vars.append(hash_var);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(hash_var.get_label());
+  nf_process_builder.append(" = ");
+  nf_process_builder.append("ether_addr_hash(");
+  nf_process_builder.append(addr_transpiled);
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::DchainAllocateNewIndex *node) {
+  assert(node);
+
+  auto dchain_addr = node->get_dchain_addr();
+  auto time = node->get_time();
+  auto index_out = node->get_index_out();
+  auto success = node->get_success();
+  auto generated_symbols = node->get_generated_symbols();
+
+  assert(!dchain_addr.isNull());
+  assert(!time.isNull());
+  assert(!index_out.isNull());
+  assert(!success.isNull());
+  assert(generated_symbols.size() == 2);
+
+  auto out_of_space =
+      get_symbol(generated_symbols, symbex::DCHAIN_OUT_OF_SPACE);
+  auto out_of_space_var =
+      Variable(out_of_space.label, success->getWidth(), {out_of_space.label});
+  auto out_of_space_type = out_of_space_var.get_type();
+  out_of_space_var.add_expr(out_of_space.expr);
+  vars.append(out_of_space_var);
+
+  auto new_index = get_symbol(generated_symbols, symbex::DCHAIN_NEW_INDEX);
+  auto new_index_var =
+      Variable(new_index.label, success->getWidth(), {new_index.label});
+  auto new_index_type = new_index_var.get_type();
+  new_index_var.add_expr(new_index.expr);
+  vars.append(new_index_var);
+
+  auto dchain = vars.get(dchain_addr);
+  auto time_transpiled = transpile(time);
+
+  assert(dchain.valid);
+
+  nf_process_builder.indent();
+  nf_process_builder.append(new_index_type);
+  nf_process_builder.append(" ");
+  nf_process_builder.append(new_index_var.get_label());
+  nf_process_builder.append(";");
+  nf_process_builder.append_new_line();
+
+  nf_process_builder.indent();
+  nf_process_builder.append(out_of_space_type);
+  nf_process_builder.append(" ");
+  nf_process_builder.append(out_of_space_var.get_label());
+  nf_process_builder.append(" = ");
+  nf_process_builder.append("state->");
+  nf_process_builder.append(dchain.var->get_label());
+  nf_process_builder.append("->allocate_new_index(");
+  nf_process_builder.append(new_index_var.get_label());
+  nf_process_builder.append(", ");
+  nf_process_builder.append(time_transpiled);
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::DchainIsIndexAllocated *node) {
+  assert(false && "TODO");
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::DchainRejuvenateIndex *node) {
+  assert(false && "TODO");
 }
 
 } // namespace x86_tofino

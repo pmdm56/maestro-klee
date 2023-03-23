@@ -117,6 +117,10 @@ processing_result_t Module::process_node(const ExecutionPlan &ep,
     reordered.insert(reordered.end(), ep_reodered.begin(), ep_reodered.end());
   }
 
+  if (reordered.size() > 0) {
+    Log::dbg() << "+ " << reordered.size() << " reordered BDDs\n";
+  }
+
   result.next_eps.insert(result.next_eps.end(), reordered.begin(),
                          reordered.end());
 
@@ -223,6 +227,53 @@ Module::build_modifications(klee::ref<klee::Expr> before,
   }
 
   return _modifications;
+}
+
+Module::dchain_config_t
+Module::get_dchain_config(const BDD::BDD &bdd,
+                          klee::ref<klee::Expr> dchain_addr) {
+  auto node = bdd.get_init();
+
+  while (node) {
+    auto curr = node;
+
+    // gets the successful branching condition, so this works all the time
+    node = curr->get_next();
+
+    if (curr->get_type() != BDD::Node::NodeType::CALL) {
+      continue;
+    }
+
+    auto call_node = static_cast<const BDD::Call *>(curr.get());
+    auto call = call_node->get_call();
+
+    if (call.function_name != symbex::FN_DCHAIN_ALLOCATE) {
+      continue;
+    }
+
+    assert(!call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_CHAIN_OUT].out.isNull());
+    assert(
+        !call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_INDEX_RANGE].expr.isNull());
+
+    auto addr = call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_CHAIN_OUT].out;
+    auto index_range =
+        call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_INDEX_RANGE].expr;
+
+    auto eq_addr =
+        kutil::solver_toolbox.are_exprs_always_equal(addr, dchain_addr);
+
+    if (!eq_addr) {
+      continue;
+    }
+
+    auto index_range_value = kutil::solver_toolbox.value_from_expr(index_range);
+    return dchain_config_t{index_range_value};
+  }
+
+  assert(false && "Should have found dchain configuration");
+
+  Log::err() << "Dchain configuration not found.\n";
+  exit(1);
 }
 
 } // namespace synapse

@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -18,7 +19,7 @@ extern "C" {
 #endif
 #include <bf_rt/bf_rt_common.h>
 #include <bf_switchd/bf_switchd.h>
-#include <bfutils/bf_utils.h>  // required for bfshell
+#include <bfutils/bf_utils.h> // required for bfshell
 #include <pkt_mgr/pkt_mgr_intf.h>
 #ifdef __cplusplus
 }
@@ -32,135 +33,148 @@ extern "C" {
 #define SWITCH_PACKET_MAX_BUFFER_SIZE 10000
 #define MTU 1500
 
-#define SWAP_ENDIAN_16(v) { (v) = __bswap_16((v)); }
-#define SWAP_ENDIAN_32(v) { (v) = __bswap_32((v)); }
+#define SWAP_ENDIAN_16(v)                                                      \
+  { (v) = __bswap_16((v)); }
+#define SWAP_ENDIAN_32(v)                                                      \
+  { (v) = __bswap_32((v)); }
 
 bf_rt_target_t dev_tgt;
 const bfrt::BfRtInfo *info;
 std::shared_ptr<bfrt::BfRtSession> session;
 
 struct cpu_t {
-	uint16_t code_path;
-	uint16_t in_port;
-	uint16_t out_port;
+  uint16_t code_path;
+  uint16_t in_port;
+  uint16_t out_port;
 
-	uint16_t get_cpu_out_port() const { return ntohs(out_port) & 0b111111111; }
-	void set_cpu_out_port(uint16_t port) {
-		out_port = htons(port & 0b111111111);
-	}
-
-	void dump() const {
-		printf("###[ CPU ]###\n");
-		printf("code path  %u\n", code_path);
-		printf("in port   %u\n", in_port);
-		printf("out port   %u\n", out_port);
-	}
+  void dump() const {
+    printf("###[ CPU ]###\n");
+    printf("code path  %u\n", code_path);
+    printf("in port    %u\n", in_port);
+    printf("out port   %u\n", out_port);
+  }
 } __attribute__((packed));
 
 struct eth_t {
-	uint8_t dst_mac[6];
-	uint8_t src_mac[6];
-	uint16_t eth_type;
+  uint8_t dst_mac[6];
+  uint8_t src_mac[6];
+  uint16_t eth_type;
 
-	void dump() const {
-		printf("###[ Ethernet ]###\n");
-		printf("dst  %02x:%02x:%02x:%02x:%02x:%02x\n", dst_mac[0], dst_mac[1],
-			   dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5]);
-		printf("src  %02x:%02x:%02x:%02x:%02x:%02x\n", src_mac[0], src_mac[1],
-			   src_mac[2], src_mac[3], src_mac[4], src_mac[5]);
-		printf("type 0x%x\n", eth_type);
-	}
+  void dump() const {
+    printf("###[ Ethernet ]###\n");
+    printf("dst  %02x:%02x:%02x:%02x:%02x:%02x\n", dst_mac[0], dst_mac[1],
+           dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5]);
+    printf("src  %02x:%02x:%02x:%02x:%02x:%02x\n", src_mac[0], src_mac[1],
+           src_mac[2], src_mac[3], src_mac[4], src_mac[5]);
+    printf("type 0x%x\n", eth_type);
+  }
 } __attribute__((packed));
 
 struct ipv4_t {
-	uint8_t ihl : 4;
-	uint8_t version : 4;
-	uint8_t ecn : 2;
-	uint8_t dscp : 6;
-	uint16_t tot_len;
-	uint16_t id;
-	uint16_t frag_off;
-	uint8_t ttl;
-	uint8_t protocol;
-	uint16_t check;
-	uint32_t src_ip;
-	uint32_t dst_ip;
+  uint8_t ihl : 4;
+  uint8_t version : 4;
+  uint8_t ecn : 2;
+  uint8_t dscp : 6;
+  uint16_t tot_len;
+  uint16_t id;
+  uint16_t frag_off;
+  uint8_t ttl;
+  uint8_t protocol;
+  uint16_t check;
+  uint32_t src_ip;
+  uint32_t dst_ip;
 
-	void dump() const {
-		printf("###[ IP ]###\n");
-		printf("ihl     %u\n", (ihl & 0x0f));
-		printf("version %u\n", (ihl & 0xf0) >> 4);
-		printf("tos     %u\n", version);
-		printf("len     %u\n", ntohs(tot_len));
-		printf("id      %u\n", ntohs(id));
-		printf("off     %u\n", ntohs(frag_off));
-		printf("ttl     %u\n", ttl);
-		printf("proto   %u\n", protocol);
-		printf("chksum  0x%x\n", ntohs(check));
-		printf("src     %u.%u.%u.%u\n", (src_ip >> 0) & 0xff,
-			   (src_ip >> 8) & 0xff, (src_ip >> 16) & 0xff,
-			   (src_ip >> 24) & 0xff);
-		printf("dst     %u.%u.%u.%u\n", (dst_ip >> 0) & 0xff,
-			   (dst_ip >> 8) & 0xff, (dst_ip >> 16) & 0xff,
-			   (dst_ip >> 24) & 0xff);
-	}
+  void dump() const {
+    printf("###[ IP ]###\n");
+    printf("ihl     %u\n", (ihl & 0x0f));
+    printf("version %u\n", (ihl & 0xf0) >> 4);
+    printf("tos     %u\n", version);
+    printf("len     %u\n", ntohs(tot_len));
+    printf("id      %u\n", ntohs(id));
+    printf("off     %u\n", ntohs(frag_off));
+    printf("ttl     %u\n", ttl);
+    printf("proto   %u\n", protocol);
+    printf("chksum  0x%x\n", ntohs(check));
+    printf("src     %u.%u.%u.%u\n", (src_ip >> 0) & 0xff, (src_ip >> 8) & 0xff,
+           (src_ip >> 16) & 0xff, (src_ip >> 24) & 0xff);
+    printf("dst     %u.%u.%u.%u\n", (dst_ip >> 0) & 0xff, (dst_ip >> 8) & 0xff,
+           (dst_ip >> 16) & 0xff, (dst_ip >> 24) & 0xff);
+  }
 } __attribute__((packed));
 
 struct tcpudp_t {
-	uint16_t src_port;
-	uint16_t dst_port;
+  uint16_t src_port;
+  uint16_t dst_port;
 
-	void dump() const {
-		printf("###[ TCP/UDP ]###\n");
-		printf("sport   %u\n", ntohs(src_port));
-		printf("dport   %u\n", ntohs(dst_port));
-	}
+  void dump() const {
+    printf("###[ TCP/UDP ]###\n");
+    printf("sport   %u\n", ntohs(src_port));
+    printf("dport   %u\n", ntohs(dst_port));
+  }
 } __attribute__((packed));
 
 struct pkt_t {
-	uint8_t *base;
-	uint8_t *curr;
-	uint32_t size;
+  uint8_t *base;
+  uint8_t *curr;
+  uint32_t size;
 
-	pkt_t(uint8_t *_data, uint32_t _size)
-		: base(_data), curr(_data), size(_size) {}
+  pkt_t(uint8_t *_data, uint32_t _size)
+      : base(_data), curr(_data), size(_size) {}
 
-	cpu_t *parse_cpu() {
-		auto ptr = (cpu_t *)curr;
-		curr += sizeof(cpu_t);
+  cpu_t *parse_cpu() {
+    auto ptr = (cpu_t *)curr;
+    curr += sizeof(cpu_t);
 
-		SWAP_ENDIAN_16(ptr->code_path);
-		SWAP_ENDIAN_16(ptr->in_port);
-		SWAP_ENDIAN_16(ptr->out_port);
+    SWAP_ENDIAN_16(ptr->code_path);
+    SWAP_ENDIAN_16(ptr->in_port);
+    SWAP_ENDIAN_16(ptr->out_port);
 
-		return ptr;
-	}
+    return ptr;
+  }
 
-	eth_t *parse_ethernet() {
-		auto ptr = (eth_t *)curr;
-		curr += sizeof(eth_t);
-		return ptr;
-	}
+  eth_t *parse_ethernet() {
+    auto ptr = (eth_t *)curr;
+    curr += sizeof(eth_t);
+    return ptr;
+  }
 
-	ipv4_t *parse_ipv4() {
-		auto ptr = curr;
-		curr += sizeof(ipv4_t);
-		return (ipv4_t *)ptr;
-	}
+  ipv4_t *parse_ipv4() {
+    auto ptr = curr;
+    curr += sizeof(ipv4_t);
+    return (ipv4_t *)ptr;
+  }
 
-	tcpudp_t *parse_tcpudp() {
-		auto ptr = curr;
-		curr += sizeof(tcpudp_t);
-		return (tcpudp_t *)ptr;
-	}
+  tcpudp_t *parse_tcpudp() {
+    auto ptr = curr;
+    curr += sizeof(tcpudp_t);
+    return (tcpudp_t *)ptr;
+  }
 
   void commit() {
     auto cpu = (cpu_t *)base;
-		SWAP_ENDIAN_16(cpu->code_path);
-		SWAP_ENDIAN_16(cpu->in_port);
-		SWAP_ENDIAN_16(cpu->out_port);
+    SWAP_ENDIAN_16(cpu->code_path);
+    SWAP_ENDIAN_16(cpu->in_port);
+    SWAP_ENDIAN_16(cpu->out_port);
   }
 };
+
+unsigned ether_addr_hash(uint8_t *addr) {
+  uint8_t addr_bytes_0 = addr[0];
+  uint8_t addr_bytes_1 = addr[1];
+  uint8_t addr_bytes_2 = addr[2];
+  uint8_t addr_bytes_3 = addr[3];
+  uint8_t addr_bytes_4 = addr[4];
+  uint8_t addr_bytes_5 = addr[5];
+
+  unsigned hash = 0;
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_0);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_1);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_2);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_3);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_4);
+  hash = __builtin_ia32_crc32si(hash, addr_bytes_5);
+  return hash;
+}
 
 char *get_env_var_value(const char *env_var) {
   auto env_var_value = getenv(env_var);
@@ -259,7 +273,7 @@ bf_status_t pcie_rx(bf_dev_id_t device, bf_pkt *pkt, void *data,
   session->commitTransaction(hw_sync);
 
   if (port != DROP) {
-    cpu->set_cpu_out_port(port);
+    cpu->out_port = port;
     p.commit();
     pcie_tx(device, (uint8_t *)in_packet, packet_size);
   }
@@ -358,7 +372,7 @@ template <int key_size> unsigned key_hash(void *k) {
   return hash;
 }
 
-class Table {
+class __Table {
 protected:
   std::string table_name;
   const bfrt::BfRtTable *table;
@@ -367,7 +381,7 @@ protected:
   std::unique_ptr<bfrt::BfRtTableData> data;
 
 protected:
-  Table(const std::string &_table_name)
+  __Table(const std::string &_table_name)
       : table_name(_table_name), table(nullptr) {
     assert(info);
     assert(session);
@@ -475,7 +489,7 @@ public:
   static void dump_table_names(const bfrt::BfRtInfo *bfrtInfo);
 };
 
-class Port_HDL_Info : Table {
+class Port_HDL_Info : __Table {
 private:
   // Key fields IDs
   bf_rt_id_t CONN_ID;
@@ -485,7 +499,7 @@ private:
   bf_rt_id_t DEV_PORT;
 
 public:
-  Port_HDL_Info() : Table("$PORT_HDL_INFO") {
+  Port_HDL_Info() : __Table("$PORT_HDL_INFO") {
     auto bf_status = table->keyFieldIdGet("$CONN_ID", &CONN_ID);
     assert(bf_status == BF_SUCCESS);
     bf_status = table->keyFieldIdGet("$CHNL_ID", &CHNL_ID);
@@ -525,7 +539,7 @@ private:
   }
 };
 
-class Port_Stat : Table {
+class Port_Stat : __Table {
 private:
   struct key_fields_t {
     // Key fields IDs
@@ -629,7 +643,7 @@ private:
   data_fields_t data_fields;
 
 public:
-  Port_Stat() : Table("$PORT_STAT") {
+  Port_Stat() : __Table("$PORT_STAT") {
     init_key({
         {"$DEV_PORT", &key_fields.dev_port},
     });
@@ -806,7 +820,7 @@ private:
   }
 };
 
-class Ports : Table {
+class Ports : __Table {
 private:
   // Key fields IDs
   bf_rt_id_t DEV_PORT;
@@ -822,7 +836,7 @@ private:
   Port_Stat port_stat;
 
 public:
-  Ports() : Table("$PORT"), port_hdl_info(), port_stat() {
+  Ports() : __Table("$PORT"), port_hdl_info(), port_stat() {
     auto bf_status = table->keyFieldIdGet("$DEV_PORT", &DEV_PORT);
     assert(bf_status == BF_SUCCESS);
 
@@ -1002,7 +1016,55 @@ inline bool operator==(const fields_values_t &lhs, const fields_values_t &rhs) {
   return true;
 }
 
-class SynapseTable : Table {
+typedef uint8_t byte_t;
+
+struct bytes_t {
+  uint32_t size;
+  byte_t *values;
+
+  bytes_t() : size(0) {}
+
+  bytes_t(uint32_t _size) : size(_size), values(new byte_t[_size]) {}
+
+  bytes_t(const bytes_t &key) : size(key.size), values(new byte_t[key.size]) {
+    for (auto i = 0u; i < size; i++) {
+      values[i] = key.values[i];
+    }
+  }
+
+  ~bytes_t() {
+    if (values)
+      delete values;
+  }
+
+  struct hash {
+    std::size_t operator()(const bytes_t &k) const {
+      int hash = 0;
+
+      for (auto i = 0u; i < k.size; i++) {
+        hash ^= std::hash<int>()(k.values[i]);
+      }
+
+      return hash;
+    }
+  };
+};
+
+inline bool operator==(const bytes_t &lhs, const bytes_t &rhs) {
+  if (lhs.size != rhs.size) {
+    return false;
+  }
+
+  for (auto i = 0u; i < lhs.size; i++) {
+    if (lhs.values[i] != rhs.values[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+class Table : __Table {
 private:
   struct field_t {
     const std::string name;
@@ -1017,10 +1079,10 @@ private:
   std::unordered_set<fields_values_t, fields_values_t::hash> set_keys;
 
 public:
-  SynapseTable(const std::string _table_name,
-               const std::vector<std::string> _key_fields_names,
-               const std::vector<std::string> _param_fields_names)
-      : Table("Ingress." + _table_name) {
+  Table(const std::string _table_name,
+        const std::vector<std::string> _key_fields_names,
+        const std::vector<std::string> _param_fields_names)
+      : __Table("Ingress." + _table_name) {
     for (auto key_field_name : _key_fields_names) {
       bf_rt_id_t field_id;
       init_key(key_field_name, &field_id);
@@ -1057,12 +1119,12 @@ public:
     return true;
   }
 
-  static std::unique_ptr<SynapseTable>
+  static std::unique_ptr<Table>
   build(const std::string _table_name,
         const std::vector<std::string> _key_fields_names,
         const std::vector<std::string> _param_fields_names) {
-    return std::unique_ptr<SynapseTable>(
-        new SynapseTable(_table_name, _key_fields_names, _param_fields_names));
+    return std::unique_ptr<Table>(
+        new Table(_table_name, _key_fields_names, _param_fields_names));
   }
 
 private:
@@ -1091,23 +1153,250 @@ private:
   }
 };
 
-struct state_t {
-  std::unique_ptr<SynapseTable> dp_map;
+template <typename T> class Map {
+private:
+  std::unordered_map<bytes_t, T, bytes_t::hash> data;
 
-  /*@{NF STATE DECL}@*/
+public:
+  Map() {}
 
-  state_t() {
-    /*@{NF STATE INIT}@*/
+  bool get(bytes_t key, T &value) const {
+    if (contains(key)) {
+      value = data.at(key);
+      return true;
+    }
+
+    return false;
+  }
+
+  bool contains(bytes_t key) const { return data.find(key) != data.end(); }
+
+  void put(bytes_t key, T value) {
+    data[key] = value;
+    assert(contains(key));
+  }
+
+  static std::unique_ptr<Map> build() {
+    return std::unique_ptr<Map>(new Map());
   }
 };
 
-std::unique_ptr<state_t> state;
+#define DCHAIN_RESERVED (2)
 
-void state_init() { state = std::unique_ptr<state_t>(new state_t()); }
+class Dchain {
+private:
+  struct dchain_cell {
+    int prev;
+    int next;
+  };
 
-port_t nf_process(time_ns_t now, cpu_t *cpu, pkt_t &pkt) {
-  /*@{NF_PROCESS}@*/
-}
+  enum DCHAIN_ENUM {
+    ALLOC_LIST_HEAD = 0,
+    FREE_LIST_HEAD = 1,
+    INDEX_SHIFT = DCHAIN_RESERVED
+  };
+
+  struct dchain_cell *cells;
+  time_ns_t *timestamps;
+
+  void impl_init(int size) {
+    struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
+    al_head->prev = 0;
+    al_head->next = 0;
+    int i = INDEX_SHIFT;
+
+    struct dchain_cell *fl_head = cells + FREE_LIST_HEAD;
+    fl_head->next = i;
+    fl_head->prev = fl_head->next;
+
+    while (i < (size + INDEX_SHIFT - 1)) {
+      struct dchain_cell *current = cells + i;
+      current->next = i + 1;
+      current->prev = current->next;
+
+      ++i;
+    }
+
+    struct dchain_cell *last = cells + i;
+    last->next = FREE_LIST_HEAD;
+    last->prev = last->next;
+  }
+
+  int impl_allocate_new_index(int &index) {
+    struct dchain_cell *fl_head = cells + FREE_LIST_HEAD;
+    struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
+    int allocated = fl_head->next;
+    if (allocated == FREE_LIST_HEAD) {
+      return 0;
+    }
+
+    struct dchain_cell *allocp = cells + allocated;
+    // Extract the link from the "empty" chain.
+    fl_head->next = allocp->next;
+    fl_head->prev = fl_head->next;
+
+    // Add the link to the "new"-end "alloc" chain.
+    allocp->next = ALLOC_LIST_HEAD;
+    allocp->prev = al_head->prev;
+
+    struct dchain_cell *alloc_head_prevp = cells + al_head->prev;
+    alloc_head_prevp->next = allocated;
+    al_head->prev = allocated;
+
+    index = allocated - INDEX_SHIFT;
+
+    return 1;
+  }
+
+  int impl_free_index(int index) {
+    int freed = index + INDEX_SHIFT;
+
+    struct dchain_cell *freedp = cells + freed;
+    int freed_prev = freedp->prev;
+    int freed_next = freedp->next;
+
+    // The index is already free.
+    if (freed_next == freed_prev) {
+      if (freed_prev != ALLOC_LIST_HEAD) {
+        return 0;
+      }
+    }
+
+    struct dchain_cell *fr_head = cells + FREE_LIST_HEAD;
+    struct dchain_cell *freed_prevp = cells + freed_prev;
+    freed_prevp->next = freed_next;
+
+    struct dchain_cell *freed_nextp = cells + freed_next;
+    freed_nextp->prev = freed_prev;
+
+    freedp->next = fr_head->next;
+    freedp->prev = freedp->next;
+
+    fr_head->next = freed;
+    fr_head->prev = fr_head->next;
+
+    return 1;
+  }
+
+  int impl_get_oldest_index(int& index) {
+    struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
+
+    // No allocated indexes.
+    if (al_head->next == ALLOC_LIST_HEAD) {
+      return 0;
+    }
+
+    index = al_head->next - INDEX_SHIFT;
+
+    return 1;
+  }
+
+  int impl_rejuvenate_index(int index) {
+    int lifted = index + INDEX_SHIFT;
+
+    struct dchain_cell *liftedp = cells + lifted;
+    int lifted_next = liftedp->next;
+    int lifted_prev = liftedp->prev;
+
+    if (lifted_next == lifted_prev) {
+      if (lifted_next != ALLOC_LIST_HEAD) {
+        return 0;
+      } else {
+        return 1;
+      }
+    }
+
+    struct dchain_cell *lifted_prevp = cells + lifted_prev;
+    lifted_prevp->next = lifted_next;
+
+    struct dchain_cell *lifted_nextp = cells + lifted_next;
+    lifted_nextp->prev = lifted_prev;
+
+    struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
+    int al_head_prev = al_head->prev;
+
+    liftedp->next = ALLOC_LIST_HEAD;
+    liftedp->prev = al_head_prev;
+
+    struct dchain_cell *al_head_prevp = cells + al_head_prev;
+    al_head_prevp->next = lifted;
+
+    al_head->prev = lifted;
+    return 1;
+  }
+
+  int impl_is_index_allocated(int index) {
+    int lifted = index + INDEX_SHIFT;
+
+    struct dchain_cell *liftedp = cells + lifted;
+    int lifted_next = liftedp->next;
+    int lifted_prev = liftedp->prev;
+
+    int result;
+    if (lifted_next == lifted_prev) {
+      if (lifted_next != ALLOC_LIST_HEAD) {
+        return 0;
+      } else {
+        return 1;
+      }
+    } else {
+      return 1;
+    }
+  }
+
+public:
+  Dchain(int index_range) {
+    cells = (struct dchain_cell *)malloc(sizeof(struct dchain_cell) *
+                                         (index_range + DCHAIN_RESERVED));
+    timestamps = (time_ns_t *)malloc(sizeof(time_ns_t) * (index_range));
+
+    impl_init(index_range);
+  }
+
+  int allocate_new_index(int& index_out, time_ns_t time) {
+    int ret = impl_allocate_new_index(index_out);
+
+    if (ret) {
+      timestamps[index_out] = time;
+    }
+
+    return ret;
+  }
+
+  int rejuvenate_index(int index, time_ns_t time) {
+    int ret = impl_rejuvenate_index(index);
+
+    if (ret) {
+      timestamps[index] = time;
+    }
+
+    return ret;
+  }
+
+  int expire_one_index(int& index_out, time_ns_t time) {
+    int has_ind = impl_get_oldest_index(index_out);
+
+    if (has_ind) {
+      if (timestamps[index_out] < time) {
+        int rez = impl_free_index(index_out);
+        return rez;
+      }
+    }
+
+    return 0;
+  }
+
+  int is_index_allocated(int index) { return impl_is_index_allocated(index); }
+
+  int free_index(int index) { return impl_free_index(index); }
+
+  ~Dchain() {
+    free(cells);
+    free(timestamps);
+  }
+};
+
+void state_init();
 
 int main(int argc, char **argv) {
   init_bf_switchd();
@@ -1123,4 +1412,20 @@ int main(int argc, char **argv) {
   }
 
   return 0;
+}
+
+struct state_t {
+  /*@{NF STATE DECL}@*/
+
+  state_t() {
+    /*@{NF STATE INIT}@*/
+  }
+};
+
+std::unique_ptr<state_t> state;
+
+void state_init() { state = std::unique_ptr<state_t>(new state_t()); }
+
+port_t nf_process(time_ns_t now, cpu_t *cpu, pkt_t &pkt) {
+  /*@{NF_PROCESS}@*/
 }

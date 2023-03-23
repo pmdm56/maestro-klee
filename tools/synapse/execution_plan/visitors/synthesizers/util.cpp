@@ -49,5 +49,23 @@ bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
   return false;
 }
 
+std::string get_label(BDD::symbols_t symbols, std::string base) {
+  auto found_it = std::find_if(
+      symbols.begin(), symbols.end(),
+      [&](const BDD::symbol_t &symbol) { return symbol.label_base == base; });
+
+  assert(found_it != symbols.end());
+  return found_it->label;
+}
+
+BDD::symbol_t get_symbol(BDD::symbols_t symbols, std::string base) {
+  auto found_it = std::find_if(
+      symbols.begin(), symbols.end(),
+      [&](const BDD::symbol_t &symbol) { return symbol.label_base == base; });
+
+  assert(found_it != symbols.end());
+  return *found_it;
+}
+
 } // namespace synthesizer
 } // namespace synapse

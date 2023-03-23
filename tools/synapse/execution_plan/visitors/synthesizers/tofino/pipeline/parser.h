@@ -24,42 +24,41 @@ private:
   std::vector<std::shared_ptr<state_t>> states;
 
   int state_id;
-  bool active;
+  std::stack<bool> active;
 
 public:
   Parser(int indentation)
-      : builder(indentation),
-        accept(new state_t(state_t::type_t::TERMINATOR, "accept")),
-        reject(new state_t(state_t::type_t::TERMINATOR, "reject")), state_id(0),
-        active(true) {}
+      : builder(indentation), accept(new terminator_state_t("accept")),
+        reject(new terminator_state_t("reject")), state_id(0), active() {
+    active.push(true);
 
-  void deactivate() { active = false; }
-  bool is_active() const { return active; }
+    auto starter = std::shared_ptr<state_t>(new initial_state_t());
+    states.push_back(starter);
+    states_stack.push(starter);
+  }
+
+  void deactivate() {
+    assert(active.size());
+    active.top() = false;
+  }
+
+  bool is_active() const {
+    assert(active.size());
+    return active.top();
+  }
 
   void transition_accept() {
-    assert(active);
-
-    if (states_stack.size() == 0) {
-      states.push_back(accept);
-      states_stack.push(accept);
-    } else {
-      transition(accept);
-    }
+    assert(is_active());
+    transition(accept);
   }
 
   void transition_reject() {
-    assert(active);
-
-    if (states_stack.size() == 0) {
-      states.push_back(reject);
-      states_stack.push(reject);
-    } else {
-      transition(reject);
-    }
+    assert(is_active());
+    transition(reject);
   }
 
   void push_on_true() {
-    assert(active);
+    assert(is_active());
     assert(states_stack.size());
     auto current = states_stack.top();
 
@@ -69,7 +68,7 @@ public:
   }
 
   void push_on_false() {
-    assert(active);
+    assert(is_active());
     assert(states_stack.size());
     auto current = states_stack.top();
 
@@ -79,7 +78,7 @@ public:
   }
 
   void pop() {
-    assert(active);
+    assert(active.size());
     assert(states_stack.size());
 
     if (states_stack.top()->type == state_t::type_t::CONDITIONAL) {
@@ -91,10 +90,11 @@ public:
     }
 
     states_stack.pop();
+    active.pop();
   }
 
   void add_condition(const std::string &condition) {
-    assert(active);
+    assert(is_active());
 
     std::stringstream conditional_label;
 
@@ -110,12 +110,13 @@ public:
 
     states.push_back(new_stage);
     states_stack.push(new_stage);
+    active.push(true);
   }
 
   void add_extractor(std::string label) { add_extractor(label, std::string()); }
 
   void add_extractor(std::string hdr, std::string dynamic_length) {
-    assert(active);
+    assert(is_active());
 
     std::stringstream label_stream;
     label_stream << "parse_";
@@ -134,120 +135,52 @@ public:
 
     states.push_back(new_stage);
     states_stack.push(new_stage);
+    active.push(true);
   }
 
   void synthesize(std::ostream &os) {
     assert(states.size());
     auto root = states[0];
 
-    builder.indent();
-    builder.append("state ");
-    builder.append(PARSER_INITIAL_STATE_LABEL);
-    builder.append(" {");
-    builder.append_new_line();
+    auto built_stages = std::vector<std::shared_ptr<state_t>>{root};
 
-    builder.inc_indentation();
+    while (built_stages.size()) {
+      auto stage = built_stages[0];
+      built_stages.erase(built_stages.begin());
 
-    builder.indent();
-    builder.append("transition ");
-    builder.append(root->label);
-    builder.append(";");
-    builder.append_new_line();
+      stage->synthesize(builder);
 
-    builder.dec_indentation();
+      switch (stage->type) {
+      case state_t::type_t::INITIAL: {
+        auto initial = static_cast<initial_state_t *>(stage.get());
+        assert(initial->next);
+        built_stages.push_back(initial->next);
+      } break;
 
-    builder.indent();
-    builder.append("}");
-    builder.append_new_line();
-
-    auto built_states = std::vector<std::shared_ptr<state_t>>{root};
-
-    while (built_states.size()) {
-      auto stage = built_states[0];
-      built_states.erase(built_states.begin());
-
-      if (stage->type == state_t::type_t::TERMINATOR) {
-        continue;
-      }
-
-      builder.append_new_line();
-
-      builder.indent();
-      builder.append("state ");
-      builder.append(stage->label);
-      builder.append(" {");
-      builder.append_new_line();
-
-      builder.inc_indentation();
-
-      if (stage->type == state_t::type_t::CONDITIONAL) {
+      case state_t::type_t::CONDITIONAL: {
         auto conditional = static_cast<conditional_state_t *>(stage.get());
-
-        builder.indent();
-        builder.append("transition select(");
-        builder.append(conditional->condition);
-        builder.append(") {");
-        builder.append_new_line();
-
-        builder.inc_indentation();
-
-        builder.indent();
         assert(conditional->next_on_true || conditional->next_on_false);
 
         if (conditional->next_on_true) {
-          builder.append("true :");
-          builder.append(conditional->next_on_true->label);
-          builder.append(";");
-          builder.append_new_line();
-
-          built_states.push_back(conditional->next_on_false);
+          built_stages.push_back(conditional->next_on_false);
         }
 
         if (conditional->next_on_false) {
-          if (conditional->next_on_false->label != "reject") {
-            builder.append("false :");
-            builder.append(conditional->next_on_false->label);
-            builder.append(";");
-            builder.append_new_line();
-          }
-
-          built_states.push_back(conditional->next_on_true);
+          built_stages.push_back(conditional->next_on_true);
         }
 
-        builder.dec_indentation();
-        builder.append("}");
-        builder.append_new_line();
+      } break;
 
-      } else if (stage->type == state_t::type_t::EXTRACTOR) {
+      case state_t::type_t::EXTRACTOR: {
         auto extractor = static_cast<extractor_state_t *>(stage.get());
         assert(extractor->next);
+        built_stages.push_back(extractor->next);
+      } break;
 
-        builder.indent();
-        builder.append(PARSER_PACKET_VARIABLE_LABEL);
-        builder.append(".extract(hdr.");
-        builder.append(extractor->hdr);
-
-        if (extractor->dynamic_length.size()) {
-          builder.append(", ");
-          builder.append(extractor->dynamic_length);
-        }
-
-        builder.append(");");
-        builder.append_new_line();
-
-        builder.indent();
-        builder.append("transition ");
-        builder.append(extractor->next->label);
-        builder.append(";");
-        builder.append_new_line();
-
-        built_states.push_back(extractor->next);
+      case state_t::type_t::TERMINATOR: {
+        // do nothing
+      } break;
       }
-
-      builder.dec_indentation();
-      builder.indent();
-      builder.append("}");
-      builder.append_new_line();
     }
 
     builder.dump(os);
@@ -307,11 +240,17 @@ public:
 
 private:
   void transition(std::shared_ptr<state_t> new_state) {
-    assert(active);
+    assert(is_active());
     assert(states_stack.size());
     auto current = states_stack.top();
 
     switch (current->type) {
+    case state_t::type_t::INITIAL: {
+      auto initial = static_cast<initial_state_t *>(current.get());
+      assert(!initial->next);
+      initial->next = new_state;
+    } break;
+
     case state_t::type_t::CONDITIONAL: {
       auto conditional = static_cast<conditional_state_t *>(current.get());
 

@@ -156,7 +156,7 @@ public:
           std::stringstream new_label;
           new_label << field_var.var->get_label();
           new_label << "[";
-          new_label << contains_result.offset_bits;
+          new_label << contains_result.offset_bits / 8;
           new_label << "]";
 
           auto new_var = Variable(new_label.str(), 8, expr);

@@ -3,12 +3,17 @@
 #include "../../target.h"
 #include "../module.h"
 
-#include "current_time.h"
+#include "dchain_allocate_new_index.h"
+#include "dchain_is_index_allocated.h"
+#include "dchain_rejuvenate_index.h"
 #include "drop.h"
 #include "else.h"
+#include "ether_addr_hash.h"
 #include "forward_through_tofino.h"
 #include "if.h"
 #include "ignore.h"
+#include "map_get.h"
+#include "map_put.h"
 #include "memory_bank.h"
 #include "packet_modify_ethernet.h"
 #include "packet_parse_cpu.h"
@@ -25,7 +30,6 @@ public:
       : Target(TargetType::x86_Tofino,
                {
                    MODULE(Ignore),
-                   MODULE(CurrentTime),
                    MODULE(PacketParseCPU),
                    MODULE(PacketParseEthernet),
                    MODULE(PacketModifyEthernet),
@@ -34,6 +38,12 @@ public:
                    MODULE(Else),
                    MODULE(Drop),
                    MODULE(ForwardThroughTofino),
+                   MODULE(MapGet),
+                   MODULE(MapPut),
+                   MODULE(EtherAddrHash),
+                   MODULE(DchainAllocateNewIndex),
+                   MODULE(DchainIsIndexAllocated),
+                   MODULE(DchainRejuvenateIndex),
                },
                MemoryBank_ptr(new x86TofinoMemoryBank())) {}
 

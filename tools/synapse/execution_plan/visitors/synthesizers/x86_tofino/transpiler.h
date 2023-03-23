@@ -1,9 +1,10 @@
 #pragma once
 
+#include "klee-util.h"
 #include <klee/Expr.h>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace synapse {
 namespace synthesizer {
@@ -18,6 +19,7 @@ public:
   Transpiler(x86TofinoGenerator &_tg) : tg(_tg) {}
 
   std::string transpile(const klee::ref<klee::Expr> &expr);
+  std::string size_to_type(bits_t size) const;
 };
 } // namespace x86_tofino
 } // namespace synthesizer

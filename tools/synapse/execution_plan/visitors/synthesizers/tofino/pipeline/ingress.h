@@ -42,12 +42,15 @@ public:
         headers(headers_defs_ind, headers_decl_ind), parser(parser_ind),
         pending_ifs(apply_block_builder) {
     intrinsic_metadata = std::vector<Variable>{
+        {
+            INGRESS_INTRINSIC_META_RESUBMIT_FLAG,
+            INGRESS_INTRINSIC_META_RESUBMIT_FLAG_SIZE_BITS,
+        },
 
-        {INGRESS_INTRINSIC_META_RESUBMIT_FLAG,
-         INGRESS_INTRINSIC_META_RESUBMIT_FLAG_SIZE_BITS},
-
-        {INGRESS_INTRINSIC_META_PACKET_VERSION,
-         INGRESS_INTRINSIC_META_PACKET_VERSION_SIZE_BITS},
+        {
+            INGRESS_INTRINSIC_META_PACKET_VERSION,
+            INGRESS_INTRINSIC_META_PACKET_VERSION_SIZE_BITS,
+        },
 
         {
             INGRESS_INTRINSIC_META_INGRESS_PORT,
@@ -55,10 +58,13 @@ public:
             {symbex::PORT, symbex::PORT2},
         },
 
-        {INGRESS_INTRINSIC_META_TIMESTAMP,
-         INGRESS_INTRINSIC_META_TIMESTAMP_SIZE_BITS},
-
+        {
+            INGRESS_INTRINSIC_META_TIMESTAMP,
+            INGRESS_INTRINSIC_META_TIMESTAMP_SIZE_BITS,
+        },
     };
+    
+    
   }
 
   variable_query_t search_variable(std::string symbol) const {

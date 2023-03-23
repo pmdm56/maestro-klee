@@ -84,7 +84,7 @@ public:
         {TargetType::Tofino, "cornflowerblue"},
         {TargetType::Netronome, "gold"},
         {TargetType::FPGA, "coral1"},
-        {TargetType::x86_BMv2, "firebrick2"},
+        {TargetType::x86_BMv2, "darkorange2"},
         {TargetType::x86_Tofino, "firebrick2"},
     };
 
@@ -469,7 +469,6 @@ public:
    ********************************************/
 
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Ignore)
-  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::CurrentTime)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseCPU)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseEthernet)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::If)
@@ -478,5 +477,11 @@ public:
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Drop)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyEthernet)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::ForwardThroughTofino)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::MapGet)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::MapPut)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::EtherAddrHash)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainAllocateNewIndex)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainIsIndexAllocated)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainRejuvenateIndex)
 };
 } // namespace synapse
