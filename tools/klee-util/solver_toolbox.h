@@ -42,6 +42,11 @@ struct solver_toolbox_t {
                            klee::ref<klee::Expr> expr,
                            ReplaceSymbols &symbol_replacer) const;
 
+  bool is_expr_maybe_true(klee::ConstraintManager constraints,
+                          klee::ref<klee::Expr> expr) const;
+  bool is_expr_maybe_false(klee::ConstraintManager constraints,
+                           klee::ref<klee::Expr> expr) const;
+
   bool is_expr_always_false(klee::ref<klee::Expr> expr) const;
   bool is_expr_always_false(klee::ConstraintManager constraints,
                             klee::ref<klee::Expr> expr) const;

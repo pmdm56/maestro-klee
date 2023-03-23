@@ -14,8 +14,8 @@ solver_toolbox_t::create_new_symbol(const std::string &symbol_name,
   auto domain = klee::Expr::Int32;
   auto range = klee::Expr::Int8;
 
-  auto root = solver_toolbox.arr_cache.CreateArray(symbol_name, width, nullptr,
-                                                   nullptr, domain, range);
+  auto root = solver_toolbox.arr_cache.CreateArray(
+      symbol_name, width / 8, nullptr, nullptr, domain, range);
 
   auto updates = klee::UpdateList(root, nullptr);
   auto read_entire_symbol = klee::ref<klee::Expr>();
@@ -57,6 +57,50 @@ bool solver_toolbox_t::is_expr_always_true(klee::ConstraintManager constraints,
 
   bool result;
   bool success = solver->mustBeTrue(sat_query, result);
+  assert(success);
+
+  return result;
+}
+
+bool solver_toolbox_t::is_expr_maybe_true(klee::ConstraintManager constraints,
+                                          klee::ref<klee::Expr> expr) const {
+  RetrieveSymbols retriever;
+  retriever.visit(expr);
+  auto symbols = retriever.get_retrieved();
+
+  ReplaceSymbols replacer(symbols);
+
+  klee::ConstraintManager renamed_constraints;
+  for (auto c : constraints) {
+    renamed_constraints.addConstraint(replacer.visit(c));
+  }
+
+  klee::Query sat_query(renamed_constraints, expr);
+
+  bool result;
+  bool success = solver->mayBeTrue(sat_query, result);
+  assert(success);
+
+  return result;
+}
+
+bool solver_toolbox_t::is_expr_maybe_false(klee::ConstraintManager constraints,
+                                           klee::ref<klee::Expr> expr) const {
+  RetrieveSymbols retriever;
+  retriever.visit(expr);
+  auto symbols = retriever.get_retrieved();
+
+  ReplaceSymbols replacer(symbols);
+
+  klee::ConstraintManager renamed_constraints;
+  for (auto c : constraints) {
+    renamed_constraints.addConstraint(replacer.visit(c));
+  }
+
+  klee::Query sat_query(renamed_constraints, expr);
+
+  bool result;
+  bool success = solver->mayBeFalse(sat_query, result);
   assert(success);
 
   return result;
