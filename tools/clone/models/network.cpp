@@ -78,17 +78,22 @@ namespace Clone {
 	}
 
 
-	void Network::explore_node(const shared_ptr<Node> &node, const unique_ptr<Builder> &builder, unsigned input_port) {
-		if(node->get_node_type() == NodeType::NF) {
-			assert(nfs.find(node->get_name()) != nfs.end());
-			const auto &nf { nfs.at(node->get_name()) };
+	void Network::explore_node(const shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, unsigned input_port) {
+		switch(node->get_node_type()) {
+			case NodeType::DEVICE: {
+				assert(nfs.find(node->get_name()) != nfs.end());
+				const auto &nf { nfs.at(node->get_name()) };
 
- 			assert(nf->get_bdd() != nullptr);
-			const auto &bdd { nf->get_bdd() };
+				assert(nf->get_bdd() != nullptr);
+				const auto &bdd { nf->get_bdd() };
 
-			builder->join_bdd(bdd, input_port);
+				builder->join_bdd(bdd, input_port);
+				break;
+			}
+			case NodeType::NF: {
+				break;
+			}
 		}
-
 		visited.insert(node);
 
 		for(auto &p: node->get_children()) {

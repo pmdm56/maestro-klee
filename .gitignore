@@ -39,3 +39,4 @@ bdds/
 input/
 *.bdd
 *.gv
+.cache/
