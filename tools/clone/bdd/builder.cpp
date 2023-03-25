@@ -12,14 +12,38 @@ namespace Clone {
 	/* Constructors and destructors */
 
 	Builder::Builder(unique_ptr<BDD::BDD> bdd): bdd(move(bdd)) {
-		debug("Builder created");
 	}
 
 	Builder::~Builder() = default;
 
 	/* Private methods */
 
-	void Builder::explore_node(BDD::BDDNode_ptr curr, vector<unsigned> &constraints) {
+	void Builder::trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
+		auto prev = curr->get_prev();
+
+		if(prev->get_type() == Node::NodeType::BRANCH) {
+			auto branch { static_cast<Branch*>(prev.get()) };
+			auto on_true = branch->get_on_true();
+			auto on_false = branch->get_on_false();
+
+			if (on_true->get_id() == curr->get_id()) {
+				branch->replace_on_true(next);
+			}
+			else if (on_false->get_id() == curr->get_id()) {
+				branch->replace_on_false(next);
+			}
+			else {
+				danger("Could not trim branch ", prev->get_id(), " to leaf ", curr->get_id());
+			}
+		}
+		else {
+			prev->replace_next(next);
+		}
+
+		next->replace_prev(prev);
+	}
+
+	void Builder::explore_node(BDD::BDDNode_ptr curr, unsigned input_port) {
 		assert(curr);
 		
 		curr->update_id(counter++);
@@ -32,37 +56,39 @@ namespace Clone {
 				assert(branch->get_on_false());
 				BDDNode_ptr next_true = branch->get_on_true()->clone();
 				BDDNode_ptr next_false = branch->get_on_false()->clone();
+				
+				const auto &condition_symbols { kutil::get_symbols(branch->get_condition()) };
 
-				for(auto &constraint: branch->get_node_constraints()) {
-					kutil::RetrieveSymbols visitor;
-					visitor.visit(constraint);
-
-					for(auto &symbol: visitor.get_retrieved_strings()) {
-						debug("Found constraint ", symbol, " at branch", curr->get_id());
-					}
-				}
-
-				const auto &condition { branch->get_condition() } ;
-				const auto &condition_symbols { kutil::get_symbols(condition) };
-
-				 if (condition_symbols.size() == 1 && *condition_symbols.begin() == "VIGOR_DEVICE") {
-				 	debug("Found VIGOR_DEVICE condition at ", curr->get_id());
-
+				if (condition_symbols.size() == 1 && *condition_symbols.begin() == "VIGOR_DEVICE") {
 				 	auto symbol { kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
-				 	auto one { kutil::solver_toolbox.exprBuilder->Constant(1, symbol->getWidth()) };
+				 	auto one { kutil::solver_toolbox.exprBuilder->Constant(0, symbol->getWidth()) };
 				 	auto eq { kutil::solver_toolbox.exprBuilder->Eq(symbol, one) };
-				 	bool res { kutil::solver_toolbox.is_expr_always_false(branch->get_constraints(), eq) };
-					
-				 	debug("Result: ", res, " for ", branch->get_id());
+					auto cm = branch->get_constraints();
+					cm.addConstraint(eq);
+					branch->set_constraints(cm);
 				}
 
-				branch->replace_on_true(next_true);
-				next_true->replace_prev(curr);
-				explore_node(next_true, constraints);
+				bool maybe_true = kutil::solver_toolbox.is_expr_maybe_true(branch->get_constraints(), branch->get_condition()) ;
+				bool maybe_false = kutil::solver_toolbox.is_expr_maybe_false(branch->get_constraints(), branch->get_condition()) ;
+				
+				if(!maybe_true) {
+					info("Trimming branch ", curr->get_id(), " to false branch");
+					trim_branch(curr, next_false);
+				}
+				else if(!maybe_false) {
+					info("Trimming branch ", curr->get_id(), " to true branch");
+					trim_branch(curr, next_true);
+				}
+				else {
+					branch->replace_on_true(next_true);
+					next_true->replace_prev(curr);
+					explore_node(next_true, input_port);
 
-				branch->replace_on_false(next_false);
-				next_false->replace_prev(curr);
-				explore_node(next_false, constraints);
+					branch->replace_on_false(next_false);
+					next_false->replace_prev(curr);
+					explore_node(next_false, input_port);
+				}
+
 				break;
 			}
 			case Node::NodeType::CALL: {
@@ -71,18 +97,9 @@ namespace Clone {
 				assert(call->get_next());
 				BDDNode_ptr next { call->get_next()->clone() };
 
-				for(auto &constraint: call->get_node_constraints()) {
-					kutil::RetrieveSymbols visitor;
-					visitor.visit(constraint);
-
-					for(auto &symbol: visitor.get_retrieved_strings()) {
-						debug("Found constraint ", symbol, " at call ", curr->get_id());
-					}
-				}
-
 				curr->replace_next(next);
 				next->replace_prev(curr);
-				explore_node(next, constraints);
+				explore_node(next, input_port);
 				break;
 			}	
 			case Node::NodeType::RETURN_INIT: {
@@ -110,7 +127,6 @@ namespace Clone {
 	/* Static methods */
 
 	std::unique_ptr<Builder> Builder::create() {
-		debug("Creating builder");
 		auto builder { new Builder(unique_ptr<BDD::BDD>(new BDD::BDD())) };
 		return std::unique_ptr<Builder>(move(builder));
 	}
@@ -124,50 +140,15 @@ namespace Clone {
 		return bdd->get_process() == nullptr;
 	}
 
-	void Builder::join_bdd(const std::shared_ptr<const BDD::BDD> &other, vector<unsigned> &constraints) {
+	void Builder::join_bdd(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
 		debug("Joining BDD");
 
 		auto init { other->get_init()->clone() };
 		auto process { other->get_process()->clone() };
 
-
 		if(is_init_empty()) {
 			bdd->set_init(init);
 			assert(bdd->get_init() != nullptr);
-		}
-		else {
-			for(auto &tail: init_tails) {
-				debug("Replacing tail ", tail->get_id(), " with init ", init->get_id());
-				
-				auto &prev = tail->get_prev();
-			
-				if(prev->get_type() == Node::NodeType::BRANCH) {
-					auto branch { static_cast<Branch*>(prev.get()) };
-					auto on_true = branch->get_on_true();
-					auto on_false = branch->get_on_false();
-
-					if (on_true->get_id() == tail->get_id()) {
-						branch->replace_on_true(init);
-					}
-					else if (on_false->get_id() == tail->get_id()) {
-						branch->replace_on_false(init);
-					}
-					else {
-						danger("Could not find tail in branch ", tail->get_id(), " in node ", prev->get_id());
-						assert(false);
-					}
-				}
-				else {
-					prev->replace_next(init);
-				}
-
-				init->replace_prev(prev);
-				break;
-				init = init->clone(true);
-				init->recursive_update_ids(++counter);
-			 }
-
-			 init_tails.clear();
 		}
 
 		if(is_process_empty()) {
@@ -175,8 +156,8 @@ namespace Clone {
 			assert(bdd->get_process() != nullptr);
 		}
 
-		explore_node(init, constraints);
-		explore_node(process, constraints);
+		explore_node(init, input_port);
+		explore_node(process, input_port);
 
 		BDD::GraphvizGenerator::visualize(*bdd, true, false);
 	}

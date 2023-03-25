@@ -38,6 +38,8 @@ namespace Clone {
 	/* Set of nodes */
 	typedef std::unordered_set<std::shared_ptr<Node>> NodeSet;
 
+	typedef std::shared_ptr<Node> NodePtr;
+
 	/**
 	 * This class represents a network.
 	 * 
@@ -54,7 +56,7 @@ namespace Clone {
 		Nodes nodes;
 
 		/* Nodes where traffic can start */
-		NodeSet sources;
+		std::vector<std::pair<NodePtr, unsigned>> sources;
 
 		/* Nodes where traffic can end */
 		NodeSet sinks;
@@ -64,8 +66,8 @@ namespace Clone {
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 		
 		void build_graph();
-		void explore_node(const std::shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, std::vector<unsigned> &constraints);
 		void traverse_all_flows();
+		void explore_node(const std::shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, unsigned input_port);
 		void print_graph() const;
 	public:
 		~Network();

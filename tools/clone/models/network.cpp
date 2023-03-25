@@ -45,7 +45,7 @@ namespace Clone {
 			node1->add_child(port1, port2, node2);
 			
 			if(node1_type == NodeType::DEVICE) {
-				sources.insert(node1);
+				sources.push_back(make_pair(node1, port1));
 			}
 
 			if(node2_type == NodeType::DEVICE) {
@@ -62,7 +62,23 @@ namespace Clone {
 		}
 	}
 
-	void Network::explore_node(const shared_ptr<Node> &node, const unique_ptr<Builder> &builder, vector<unsigned> &constraints) {
+	void Network::traverse_all_flows() {
+		const unique_ptr<Builder> builder { Builder::create() };
+		
+		info("Total of ", sources.size(), " sources");
+		for(auto &source: sources) {			
+			assert(source.first->get_node_type() == NodeType::DEVICE);
+			info("Traversing source: ", source.first->get_name(), " port: ", source.second);
+			explore_node(source.first, builder, 0);
+
+			visited.clear();
+		}
+
+		const auto &bdd { builder->get_bdd().get() };
+	}
+
+
+	void Network::explore_node(const shared_ptr<Node> &node, const unique_ptr<Builder> &builder, unsigned input_port) {
 		if(node->get_node_type() == NodeType::NF) {
 			assert(nfs.find(node->get_name()) != nfs.end());
 			const auto &nf { nfs.at(node->get_name()) };
@@ -70,7 +86,7 @@ namespace Clone {
  			assert(nf->get_bdd() != nullptr);
 			const auto &bdd { nf->get_bdd() };
 
-			builder->join_bdd(bdd, constraints);
+			builder->join_bdd(bdd, input_port);
 		}
 
 		visited.insert(node);
@@ -82,30 +98,9 @@ namespace Clone {
 
 			if(visited.find(child) != visited.end()) continue;
 
-			constraints.push_back(port_dst);
-			explore_node(child, builder, constraints);
+			explore_node(child, builder, port_dst);
 		}
 	}
-	
-	void Network::traverse_all_flows() {
-		const unique_ptr<Builder> builder { Builder::create() };
-		
-		info("Total of ", sources.size(), " sources");
-		for(auto &source: sources) {
-			vector<unsigned> constraints {};
-			
-			info("Traversing source: ", source->get_name());
-			explore_node(source, builder, constraints);
-
-			visited.clear();
-		}
-
-		const auto &bdd { builder->get_bdd().get() };
-
-		//printer.visit(clone);
-		//builder->dump("output.bdd");
-	}
-
 
 	void Network::print_graph() const {
 		for(auto &node: nodes) {
@@ -114,7 +109,7 @@ namespace Clone {
 
 		debug("Sources: ");
 		for(auto &source: sources) {
-			debug(source->get_name());
+			debug(source.first->get_name());
 		}
 
 		debug("Sinks: ");
