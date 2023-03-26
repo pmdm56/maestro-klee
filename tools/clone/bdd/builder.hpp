@@ -3,7 +3,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <deque>
 #include <unordered_set>
+
 #include "call-paths-to-bdd.h"
 
 
@@ -18,7 +20,7 @@ namespace Clone {
 		uint64_t counter = 1;
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
-		unsigned clone_node(BDD::BDDNode_ptr node, unsigned input_port);
+		void clone_node(BDD::BDDNode_ptr node, unsigned input_port);
 		void trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
 	public:
 		~Builder();
@@ -32,7 +34,7 @@ namespace Clone {
 		void add_merged_nf_init(const std::string &nf_id);
 
 		void join_init(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
-		unsigned join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
+		void join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
 		
 		const std::unique_ptr<BDD::BDD>& get_bdd() const;
 		void dump(std::string path);

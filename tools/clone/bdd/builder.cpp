@@ -2,6 +2,7 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
+#include "bdd/nodes/node.h"
 #include "klee/Constraints.h"
 #include "solver_toolbox.h"
 
@@ -18,9 +19,10 @@ namespace Clone {
 
 	/* Private methods */
 
-	unsigned Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
+	void Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
 		assert(root);
 
+		deque<BDDNode_ptr> q;
 		stack<BDDNode_ptr> s;
 
 		s.push(root);
@@ -29,7 +31,8 @@ namespace Clone {
 			auto curr = s.top();
 			s.pop();
 
-			curr->update_id(counter++);
+			//curr->update_id(counter++);
+
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -98,7 +101,7 @@ namespace Clone {
 
 					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
 						debug("Found a process tail ", ret->get_id());
-						return ret->get_return_value();
+						q.push_back(curr);
 					}
 
 					break;
@@ -175,7 +178,7 @@ namespace Clone {
 		clone_node(initRoot, input_port);
 	}
 
-	unsigned Builder::join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
+	void Builder::join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
 		auto processRoot = other->get_process()->clone();
 
 		if(is_process_empty()) {
@@ -183,7 +186,7 @@ namespace Clone {
 			assert(bdd->get_process() != nullptr);
 		}
 
-		return clone_node(processRoot, input_port);
+		clone_node(processRoot, input_port);
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {

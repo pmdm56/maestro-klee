@@ -103,8 +103,8 @@ namespace Clone {
 				builder->add_merged_nf_init(nf->get_id());
 			}
 			debug("Input port for ", nf->get_id(), ": ", input_port);
-			unsigned output_port = builder->join_process(bdd, input_port);
-			debug("Output port: ", output_port);
+			builder->join_process(bdd, input_port);
+
 			BDD::GraphvizGenerator::visualize(*bdd, true, false);
 			exit(0);
 			break;
