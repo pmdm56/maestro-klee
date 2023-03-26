@@ -18,108 +18,66 @@ namespace Clone {
 
 	/* Private methods */
 
-	void Builder::trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
-		auto prev = curr->get_prev();
+	unsigned Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
+		assert(root);
 
-		if(prev->get_type() == Node::NodeType::BRANCH) {
-			auto branch { static_cast<Branch*>(prev.get()) };
-			auto on_true = branch->get_on_true();
-			auto on_false = branch->get_on_false();
+		stack<BDDNode_ptr> s;
 
-			if (on_true->get_id() == curr->get_id()) {
-				branch->replace_on_true(next);
-			}
-			else if (on_false->get_id() == curr->get_id()) {
-				branch->replace_on_false(next);
-			}
-			else {
-				danger("Could not trim branch ", prev->get_id(), " to leaf ", curr->get_id());
-			}
-		}
-		else {
-			prev->replace_next(next);
-		}
+		s.push(root);
 
-		next->replace_prev(prev);
-	}
+		while(!s.empty()) {
+			auto curr = s.top();
+			s.pop();
 
-	void Builder::explore_node(BDD::BDDNode_ptr curr, unsigned input_port) {
-		assert(curr);
-		
-		curr->update_id(counter++);
+			curr->update_id(counter++);
 
-		switch(curr->get_type()) {
-			case Node::NodeType::BRANCH: {
-				auto branch { static_cast<Branch*>(curr.get()) };
+			switch(curr->get_type()) {
+				case Node::NodeType::BRANCH: {
+					auto branch { static_cast<Branch*>(curr.get()) };
+					assert(branch->get_on_true());
+					assert(branch->get_on_false());
 
-				assert(branch->get_on_true());
-				assert(branch->get_on_false());
-				BDDNode_ptr next_true = branch->get_on_true()->clone();
-				BDDNode_ptr next_false = branch->get_on_false()->clone();
-				
-				const auto &condition_symbols { kutil::get_symbols(branch->get_condition()) };
-
-				if (condition_symbols.size() == 1 && *condition_symbols.begin() == "VIGOR_DEVICE") {
-				 	auto symbol { kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
-				 	auto one { kutil::solver_toolbox.exprBuilder->Constant(0, symbol->getWidth()) };
-				 	auto eq { kutil::solver_toolbox.exprBuilder->Eq(symbol, one) };
-					auto cm = branch->get_constraints();
-					cm.addConstraint(eq);
-					branch->set_constraints(cm);
-				}
-
-				bool maybe_true = kutil::solver_toolbox.is_expr_maybe_true(branch->get_constraints(), branch->get_condition()) ;
-				bool maybe_false = kutil::solver_toolbox.is_expr_maybe_false(branch->get_constraints(), branch->get_condition()) ;
-				
-				if(!maybe_true) {
-					info("Trimming branch ", curr->get_id(), " to false branch");
-					trim_branch(curr, next_false);
-				}
-				else if(!maybe_false) {
-					info("Trimming branch ", curr->get_id(), " to true branch");
-					trim_branch(curr, next_true);
-				}
-				else {
+					auto next_true = branch->get_on_true()->clone();
+					auto next_false = branch->get_on_false()->clone();
+					branch->set_on_true(nullptr);
+					branch->set_on_false(nullptr);
 					branch->replace_on_true(next_true);
-					next_true->replace_prev(curr);
-					explore_node(next_true, input_port);
-
 					branch->replace_on_false(next_false);
-					next_false->replace_prev(curr);
-					explore_node(next_false, input_port);
-				}
+					s.push(next_true);
+					s.push(next_false);
 
-				break;
-			}
-			case Node::NodeType::CALL: {
-				auto call { static_cast<Call*>(curr.get()) };
-
-				assert(call->get_next());
-				BDDNode_ptr next { call->get_next()->clone() };
-
-				curr->replace_next(next);
-				next->replace_prev(curr);
-				explore_node(next, input_port);
-				break;
-			}	
-			case Node::NodeType::RETURN_INIT: {
-				auto ret { static_cast<ReturnInit*>(curr.get()) };
-				if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
-					init_tails.insert(curr);
+					break;
 				}
-				break;
-			}
-			case Node::NodeType::RETURN_PROCESS: {
-				auto ret { static_cast<ReturnProcess*>(curr.get()) };
-				if(ret->get_return_value() == ReturnProcess::Operation::FWD) {
-					process_tails.insert(curr);
+				case Node::NodeType::CALL: {
+					auto call { static_cast<Call*>(curr.get()) };
+					assert(call->get_next());
+
+					auto next = call->get_next()->clone();
+					call->replace_next(next);
+					s.push(next);
+
+					break;
 				}
-				break;
-			}
-			case Node::NodeType::RETURN_RAW: {
-				auto ret { static_cast<ReturnRaw*>(curr.get()) };
-				process_tails.insert(curr);
-				break;
+				case Node::NodeType::RETURN_INIT: {
+					auto ret { static_cast<ReturnInit*>(curr.get()) };
+
+					break;
+				}
+				case Node::NodeType::RETURN_PROCESS: {
+					auto ret { static_cast<ReturnProcess*>(curr.get()) };
+
+					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
+						debug("Found a process tail ", ret->get_id());
+						return ret->get_return_value();
+					}
+
+					break;
+				}
+				case Node::NodeType::RETURN_RAW: {
+					auto ret { static_cast<ReturnRaw*>(curr.get()) };
+					
+					break;
+				}
 			}
 		}
 	}
@@ -140,26 +98,34 @@ namespace Clone {
 		return bdd->get_process() == nullptr;
 	}
 
-	void Builder::join_bdd(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
-		debug("Joining BDD");
+	bool Builder::is_init_merged(const std::string &nf_id) const {
+		return merged_nf_inits.find(nf_id) != merged_nf_inits.end();
+	}
 
-		auto init { other->get_init()->clone() };
-		auto process { other->get_process()->clone() };
+	void Builder::add_merged_nf_init(const std::string &nf_id) {
+		merged_nf_inits.insert(nf_id);
+	}
+
+	void Builder::join_init(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
+		auto initRoot = other->get_init()->clone();
 
 		if(is_init_empty()) {
-			bdd->set_init(init);
+			bdd->set_init(initRoot);
 			assert(bdd->get_init() != nullptr);
 		}
 
+		clone_node(initRoot, input_port);
+	}
+
+	unsigned Builder::join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
+		auto processRoot = other->get_process()->clone();
+
 		if(is_process_empty()) {
-			bdd->set_process(process);
+			bdd->set_process(processRoot);
 			assert(bdd->get_process() != nullptr);
 		}
 
-		explore_node(init, input_port);
-		explore_node(process, input_port);
-
-		BDD::GraphvizGenerator::visualize(*bdd, true, false);
+		return clone_node(processRoot, input_port);
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {

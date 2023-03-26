@@ -11,6 +11,7 @@ namespace Clone {
 	class Builder { 
 	private:
 		const std::unique_ptr<BDD::BDD> bdd;
+		std::unordered_set<std::string> merged_nf_inits;
 		std::unordered_set<BDD::BDDNode_ptr> init_tails;
 		std::unordered_set<BDD::BDDNode_ptr> process_tails;
 
@@ -19,6 +20,7 @@ namespace Clone {
 
 		void trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
 		void explore_node(BDD::BDDNode_ptr node, unsigned input_port);
+		unsigned clone_node(BDD::BDDNode_ptr node, unsigned input_port);
 	public:
 		~Builder();
 
@@ -27,8 +29,11 @@ namespace Clone {
 		bool is_init_empty() const;
 		bool is_process_empty() const;
 
-		void join_bdd(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
+		bool is_init_merged(const std::string &nf_id) const;
+		void add_merged_nf_init(const std::string &nf_id);
 
+		void join_init(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
+		unsigned join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
 		
 		const std::unique_ptr<BDD::BDD>& get_bdd() const;
 		void dump(std::string path);

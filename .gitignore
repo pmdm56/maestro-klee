@@ -40,3 +40,4 @@ input/
 *.bdd
 *.gv
 .cache/
+CMakePresets.json

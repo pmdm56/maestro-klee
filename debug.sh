@@ -25,6 +25,7 @@ function debug {
                          -DCMAKE_BUILD_TYPE=Debug \
                          -DENABLE_KLEE_ASSERTS=ON \
                          -DENABLE_DOXYGEN=ON \
+                         -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
                          ..
 
   make -kj $(nproc) || exit 1

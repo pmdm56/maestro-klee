@@ -2,6 +2,7 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
+#include "bdd/visitors/graphviz-generator.h"
 #include "call-paths-to-bdd.h"
 
 #include "device.hpp"
@@ -9,6 +10,7 @@
 #include "link.hpp"
 #include "node.hpp"
 #include "../bdd/builder.hpp"
+#include <cstdlib>
 
 namespace Clone {
 
@@ -19,7 +21,6 @@ namespace Clone {
 	Network::~Network() = default;
 
 	/* Private methods */
-
 	void Network::build_graph() {
 		for(auto &link: links) {
 			const string &node1_str { link->get_node1() };
@@ -80,31 +81,35 @@ namespace Clone {
 
 	void Network::explore_node(const shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, unsigned input_port) {
 		switch(node->get_node_type()) {
-			case NodeType::DEVICE: {
-				assert(nfs.find(node->get_name()) != nfs.end());
-				const auto &nf { nfs.at(node->get_name()) };
+		case NodeType::DEVICE: {
+			for(auto &p: node->get_children()) {
+				const unsigned port_src { p.first };
+				const unsigned port_dst { p.second.first };
+				const auto& child { p.second.second };
 
-				assert(nf->get_bdd() != nullptr);
-				const auto &bdd { nf->get_bdd() };
+				explore_node(child, builder, port_dst);
+			}
+			break;
+		}
+		case NodeType::NF: {
+			assert(nfs.find(node->get_name()) != nfs.end());
+			const auto& nf { nfs.at(node->get_name()) };
 
-				builder->join_bdd(bdd, input_port);
-				break;
+			assert(nf->get_bdd() != nullptr);
+			const auto&bdd { nf->get_bdd() };
+
+			if(!builder->is_init_merged(nf->get_id())) {
+				builder->join_init(bdd, input_port);
+				builder->add_merged_nf_init(nf->get_id());
 			}
-			case NodeType::NF: {
-				break;
-			}
+			unsigned output_port = builder->join_process(bdd, input_port);
+			debug("Output port: ", output_port);
+			BDD::GraphvizGenerator::visualize(*bdd, true, false);
+			exit(0);
+			break;
+		}
 		}
 		visited.insert(node);
-
-		for(auto &p: node->get_children()) {
-			const unsigned port_src { p.first };
-			const unsigned port_dst { p.second.first };
-			const auto &child { p.second.second };
-
-			if(visited.find(child) != visited.end()) continue;
-
-			explore_node(child, builder, port_dst);
-		}
 	}
 
 	void Network::print_graph() const {

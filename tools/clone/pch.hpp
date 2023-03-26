@@ -10,6 +10,7 @@
 #include <memory>
 #include <queue>
 #include <deque>
+#include <stack>
 
 using std::cout;
 using std::endl;
@@ -25,6 +26,7 @@ using std::vector;
 using std::unordered_map;
 using std::queue;
 using std::deque;
+using std::stack;
 
 using std::move;
 using std::unique_ptr;
