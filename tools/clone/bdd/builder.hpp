@@ -18,9 +18,8 @@ namespace Clone {
 		uint64_t counter = 1;
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
-		void trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
-		void explore_node(BDD::BDDNode_ptr node, unsigned input_port);
 		unsigned clone_node(BDD::BDDNode_ptr node, unsigned input_port);
+		void trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
 	public:
 		~Builder();
 
