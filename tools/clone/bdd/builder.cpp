@@ -31,8 +31,7 @@ namespace Clone {
 			auto curr = s.top();
 			s.pop();
 
-			//curr->update_id(counter++);
-
+			//zcurr->update_id(counter++);
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -113,6 +112,8 @@ namespace Clone {
 				}
 			}
 		}
+
+		//root->recursive_update_ids(++counter);
 	}
 
 	void Builder::trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
