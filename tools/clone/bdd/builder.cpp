@@ -31,7 +31,7 @@ namespace Clone {
 			auto curr = s.top();
 			s.pop();
 
-			curr->update_id(curr->get_id() + 1);
+			curr->update_id(counter++);
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -51,7 +51,7 @@ namespace Clone {
 						auto vigor_device { kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
 						auto port { kutil::solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) };
 						auto eq { kutil::solver_toolbox.exprBuilder->Eq(vigor_device, port) };
-						auto cm = branch->get_node_constraints();
+						auto cm = branch->get_constraints();
 						cm.addConstraint(eq);
 						branch->set_constraints(cm);
 					}
