@@ -31,7 +31,7 @@ namespace Clone {
 			auto curr = s.top();
 			s.pop();
 
-			//zcurr->update_id(counter++);
+			curr->update_id(curr->get_id() + 1);
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -86,6 +86,7 @@ namespace Clone {
 
 					auto next = call->get_next()->clone();
 					call->replace_next(next);
+					next->replace_prev(curr);
 					s.push(next);
 
 					break;

@@ -105,7 +105,7 @@ namespace Clone {
 			debug("Input port for ", nf->get_id(), ": ", input_port);
 			builder->join_process(bdd, input_port);
 
-			BDD::GraphvizGenerator::visualize(*bdd, true, false);
+			BDD::GraphvizGenerator::visualize( *builder->get_bdd(), true, false);
 			exit(0);
 			break;
 		}
