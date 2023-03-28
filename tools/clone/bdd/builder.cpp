@@ -3,6 +3,7 @@
 #include "../util/logger.hpp"
 
 #include "bdd/nodes/node.h"
+#include "bdd/nodes/return_init.h"
 #include "klee/Constraints.h"
 #include "solver_toolbox.h"
 
@@ -94,6 +95,10 @@ namespace Clone {
 				case Node::NodeType::RETURN_INIT: {
 					auto ret { static_cast<ReturnInit*>(curr.get()) };
 
+					if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
+						debug("Found a init tail ", ret->get_id());
+						q.push_back(curr);
+					}
 					break;
 				}
 				case Node::NodeType::RETURN_PROCESS: {
