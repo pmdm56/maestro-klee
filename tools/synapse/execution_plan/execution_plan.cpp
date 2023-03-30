@@ -457,12 +457,27 @@ bool operator==(const ExecutionPlan &lhs, const ExecutionPlan &rhs) {
     }
   }
 
-  auto lhs_nodes = std::vector<ExecutionPlanNode_ptr>{lhs.get_root()};
-  auto rhs_nodes = std::vector<ExecutionPlanNode_ptr>{rhs.get_root()};
+  auto lhs_root = lhs.get_root();
+  auto rhs_root = rhs.get_root();
+
+  if ((lhs_root.get() == nullptr) != (rhs_root.get() == nullptr)) {
+    return false;
+  }
+
+  auto lhs_nodes = std::vector<ExecutionPlanNode_ptr>{};
+  auto rhs_nodes = std::vector<ExecutionPlanNode_ptr>{};
+
+  if (lhs_root) {
+    lhs_nodes.push_back(lhs_root);
+    rhs_nodes.push_back(rhs_root);
+  }
 
   while (lhs_nodes.size()) {
     auto lhs_node = lhs_nodes[0];
     auto rhs_node = rhs_nodes[0];
+
+    assert(lhs_node);
+    assert(rhs_node);
 
     lhs_nodes.erase(lhs_nodes.begin());
     rhs_nodes.erase(rhs_nodes.begin());

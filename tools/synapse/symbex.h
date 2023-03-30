@@ -11,11 +11,11 @@ constexpr char CPU_CODE_PATH[] = "cpu_code_path";
 
 constexpr char FN_CURRENT_TIME[] = "current_time";
 constexpr char FN_ETHER_HASH[] = "rte_ether_addr_hash";
-constexpr char FN_EXPIRE_MAP[] = "expire_items_single_map";
-constexpr char FN_SET_CHECKSUM[] = "nf_set_rte_ipv4_udptcp_checksum";
-
 constexpr char FN_ETHER_HASH_ARG_OBJ[] = "obj";
+constexpr char FN_EXPIRE_MAP[] = "expire_items_single_map";
+constexpr char EXPIRE_MAP_FREED_FLOWS[] = "number_of_freed_flows";
 
+constexpr char FN_SET_CHECKSUM[] = "nf_set_rte_ipv4_udptcp_checksum";
 constexpr char FN_SET_CHECKSUM_ARG_IP[] = "ip_header";
 constexpr char FN_SET_CHECKSUM_ARG_L4[] = "l4_header";
 constexpr char FN_SET_CHECKSUM_ARG_PACKET[] = "packet";
@@ -56,6 +56,7 @@ constexpr char FN_VECTOR_ARG_INDEX[] = "index";
 constexpr char FN_VECTOR_ARG_VALUE[] = "value";
 constexpr char FN_VECTOR_ARG_OUT[] = "val_out";
 constexpr char FN_VECTOR_EXTRA[] = "borrowed_cell";
+constexpr char VECTOR_VALUE_SYMBOL[] = "vector_data_reset";
 
 constexpr char FN_BORROW_CHUNK_ARG_LEN[] = "length";
 constexpr char FN_BORROW_CHUNK_EXTRA[] = "the_chunk";

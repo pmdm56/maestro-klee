@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../../code_builder.h"
+#include "../../util.h"
 #include "klee-util.h"
 #include "klee/Expr.h"
 
@@ -64,7 +65,7 @@ public:
 
     std::stringstream type;
 
-    if (size_bits <= 64) {
+    if (is_primitive_type(size_bits)) {
       type << "uint";
       type << size_bits;
       type << "_t";
@@ -81,6 +82,25 @@ public:
       if (symbol == s) {
         return true;
       }
+
+      // check if symbol is base for incoming s
+
+      auto delim = s.find(symbol);
+
+      if (delim == std::string::npos || delim > 0) {
+        continue;
+      }
+
+      // format is "{base label}__{node id}"
+      if (s.size() <= symbol.size() + 2) {
+        continue;
+      }
+
+      if (s.substr(symbol.size(), 2) != "__") {
+        continue;
+      }
+
+      return true;
     }
 
     return false;

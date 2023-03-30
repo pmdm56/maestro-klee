@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
 #ifndef NDEBUG
   synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::DEBUG;
 #else
-  synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::ERROR;
+  synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::LOG;
 #endif
 
   BDD::BDD bdd = build_bdd();

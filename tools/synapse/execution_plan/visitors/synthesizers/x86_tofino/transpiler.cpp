@@ -1,5 +1,6 @@
 #include "transpiler.h"
 #include "../../../../log.h"
+#include "../util.h"
 #include "klee-util.h"
 #include "x86_tofino_generator.h"
 
@@ -12,44 +13,46 @@ namespace x86_tofino {
 class InternalTranspiler : public klee::ExprVisitor::ExprVisitor {
 private:
   x86TofinoGenerator &tg;
+  Transpiler &t;
   std::stringstream code;
 
 public:
-  InternalTranspiler(x86TofinoGenerator &_tg) : tg(_tg) {}
+  InternalTranspiler(x86TofinoGenerator &_tg, Transpiler &_t)
+      : tg(_tg), t(_t) {}
 
   std::string get() const { return code.str(); }
 
 private:
-  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &);
-  klee::ExprVisitor::Action visitSelect(const klee::SelectExpr &);
-  klee::ExprVisitor::Action visitConcat(const klee::ConcatExpr &);
-  klee::ExprVisitor::Action visitExtract(const klee::ExtractExpr &);
-  klee::ExprVisitor::Action visitZExt(const klee::ZExtExpr &);
-  klee::ExprVisitor::Action visitSExt(const klee::SExtExpr &);
-  klee::ExprVisitor::Action visitAdd(const klee::AddExpr &);
-  klee::ExprVisitor::Action visitSub(const klee::SubExpr &);
-  klee::ExprVisitor::Action visitMul(const klee::MulExpr &);
-  klee::ExprVisitor::Action visitUDiv(const klee::UDivExpr &);
-  klee::ExprVisitor::Action visitSDiv(const klee::SDivExpr &);
-  klee::ExprVisitor::Action visitURem(const klee::URemExpr &);
-  klee::ExprVisitor::Action visitSRem(const klee::SRemExpr &);
-  klee::ExprVisitor::Action visitNot(const klee::NotExpr &);
-  klee::ExprVisitor::Action visitAnd(const klee::AndExpr &);
-  klee::ExprVisitor::Action visitOr(const klee::OrExpr &);
-  klee::ExprVisitor::Action visitXor(const klee::XorExpr &);
-  klee::ExprVisitor::Action visitShl(const klee::ShlExpr &);
-  klee::ExprVisitor::Action visitLShr(const klee::LShrExpr &);
-  klee::ExprVisitor::Action visitAShr(const klee::AShrExpr &);
-  klee::ExprVisitor::Action visitEq(const klee::EqExpr &);
-  klee::ExprVisitor::Action visitNe(const klee::NeExpr &);
-  klee::ExprVisitor::Action visitUlt(const klee::UltExpr &);
-  klee::ExprVisitor::Action visitUle(const klee::UleExpr &);
-  klee::ExprVisitor::Action visitUgt(const klee::UgtExpr &);
-  klee::ExprVisitor::Action visitUge(const klee::UgeExpr &);
-  klee::ExprVisitor::Action visitSlt(const klee::SltExpr &);
-  klee::ExprVisitor::Action visitSle(const klee::SleExpr &);
-  klee::ExprVisitor::Action visitSgt(const klee::SgtExpr &);
-  klee::ExprVisitor::Action visitSge(const klee::SgeExpr &);
+  klee::ExprVisitor::Action visitRead(const klee::ReadExpr &e);
+  klee::ExprVisitor::Action visitSelect(const klee::SelectExpr &e);
+  klee::ExprVisitor::Action visitConcat(const klee::ConcatExpr &e);
+  klee::ExprVisitor::Action visitExtract(const klee::ExtractExpr &e);
+  klee::ExprVisitor::Action visitZExt(const klee::ZExtExpr &e);
+  klee::ExprVisitor::Action visitSExt(const klee::SExtExpr &e);
+  klee::ExprVisitor::Action visitAdd(const klee::AddExpr &e);
+  klee::ExprVisitor::Action visitSub(const klee::SubExpr &e);
+  klee::ExprVisitor::Action visitMul(const klee::MulExpr &e);
+  klee::ExprVisitor::Action visitUDiv(const klee::UDivExpr &e);
+  klee::ExprVisitor::Action visitSDiv(const klee::SDivExpr &e);
+  klee::ExprVisitor::Action visitURem(const klee::URemExpr &e);
+  klee::ExprVisitor::Action visitSRem(const klee::SRemExpr &e);
+  klee::ExprVisitor::Action visitNot(const klee::NotExpr &e);
+  klee::ExprVisitor::Action visitAnd(const klee::AndExpr &e);
+  klee::ExprVisitor::Action visitOr(const klee::OrExpr &e);
+  klee::ExprVisitor::Action visitXor(const klee::XorExpr &e);
+  klee::ExprVisitor::Action visitShl(const klee::ShlExpr &e);
+  klee::ExprVisitor::Action visitLShr(const klee::LShrExpr &e);
+  klee::ExprVisitor::Action visitAShr(const klee::AShrExpr &e);
+  klee::ExprVisitor::Action visitEq(const klee::EqExpr &e);
+  klee::ExprVisitor::Action visitNe(const klee::NeExpr &e);
+  klee::ExprVisitor::Action visitUlt(const klee::UltExpr &e);
+  klee::ExprVisitor::Action visitUle(const klee::UleExpr &e);
+  klee::ExprVisitor::Action visitUgt(const klee::UgtExpr &e);
+  klee::ExprVisitor::Action visitUge(const klee::UgeExpr &e);
+  klee::ExprVisitor::Action visitSlt(const klee::SltExpr &e);
+  klee::ExprVisitor::Action visitSle(const klee::SleExpr &e);
+  klee::ExprVisitor::Action visitSgt(const klee::SgtExpr &e);
+  klee::ExprVisitor::Action visitSge(const klee::SgeExpr &e);
 };
 
 std::pair<bool, std::string>
@@ -125,7 +128,7 @@ std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
     return variable_result.second;
   }
 
-  auto transpiler = InternalTranspiler(tg);
+  auto transpiler = InternalTranspiler(tg, *this);
   transpiler.visit(expr);
 
   auto code = transpiler.get();
@@ -144,7 +147,7 @@ std::string Transpiler::size_to_type(bits_t size) const {
   assert(size > 0);
   assert(size % 8 == 0);
 
-  if (size <= 64) {
+  if (is_primitive_type(size)) {
     std::stringstream type_builder;
     type_builder << "uint";
     type_builder << size;
@@ -156,12 +159,16 @@ std::string Transpiler::size_to_type(bits_t size) const {
 }
 
 klee::ExprVisitor::Action
-InternalTranspiler::visitRead(const klee::ReadExpr &) {
+InternalTranspiler::visitRead(const klee::ReadExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::ReadExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
 klee::ExprVisitor::Action
-InternalTranspiler::visitSelect(const klee::SelectExpr &) {
+InternalTranspiler::visitSelect(const klee::SelectExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SelectExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
@@ -185,12 +192,11 @@ InternalTranspiler::visitConcat(const klee::ConcatExpr &e) {
 
     if (expr_width != var_width) {
       auto max_width = std::max(expr_width, var_width);
-      code << "(";
-      code << "(bit<";
-      code << max_width;
-      code << ">)";
+      code << "((";
+      code << t.size_to_type(max_width);
+      code << ")(";
       code << variable.var->get_label();
-      code << ")";
+      code << "))";
     } else {
       code << variable.var->get_label();
     }
@@ -203,80 +209,218 @@ InternalTranspiler::visitConcat(const klee::ConcatExpr &e) {
 
 klee::ExprVisitor::Action
 InternalTranspiler::visitExtract(const klee::ExtractExpr &e) {
+  auto expr = e.expr;
+  auto offset = e.offset;
+  // auto sz = e.width;
+
+  // capture (Extract 0 (ZExt w8 X))
+  if (offset == 0 && expr->getKind() == klee::Expr::Kind::ZExt &&
+      expr->getWidth() == klee::Expr::Int8) {
+    assert(expr->getNumKids() == 1);
+    auto zextended_expr = expr->getKid(0);
+    code << tg.transpile(zextended_expr);
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
   klee::ref<klee::Expr> eref = const_cast<klee::ExtractExpr *>(&e);
   std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
 klee::ExprVisitor::Action
-InternalTranspiler::visitZExt(const klee::ZExtExpr &) {
+InternalTranspiler::visitZExt(const klee::ZExtExpr &e) {
+  auto sz = e.getWidth();
+  auto expr = e.getKid(0);
+  assert(sz % 8 == 0);
+
+  code << "((";
+  code << t.size_to_type(sz);
+  code << ")(";
+  code << tg.transpile(expr);
+  code << "))";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action
+InternalTranspiler::visitSExt(const klee::SExtExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SExtExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
+  assert(false && "TODO");
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitAdd(const klee::AddExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " + ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitSub(const klee::SubExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " - ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitMul(const klee::MulExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " * ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action
+InternalTranspiler::visitUDiv(const klee::UDivExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " / ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action
+InternalTranspiler::visitSDiv(const klee::SDivExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SDivExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
 klee::ExprVisitor::Action
-InternalTranspiler::visitSExt(const klee::SExtExpr &) {
+InternalTranspiler::visitURem(const klee::URemExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " % ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action
+InternalTranspiler::visitSRem(const klee::SRemExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SRemExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
-klee::ExprVisitor::Action InternalTranspiler::visitAdd(const klee::AddExpr &) {
-  assert(false && "TODO");
+klee::ExprVisitor::Action InternalTranspiler::visitNot(const klee::NotExpr &e) {
+  assert(e.getNumKids() == 1);
+
+  auto arg = e.getKid(0);
+  auto arg_parsed = tg.transpile(arg);
+
+  code << "!(" << arg_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
 }
 
-klee::ExprVisitor::Action InternalTranspiler::visitSub(const klee::SubExpr &) {
-  assert(false && "TODO");
+klee::ExprVisitor::Action InternalTranspiler::visitAnd(const klee::AndExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " & ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
 }
 
-klee::ExprVisitor::Action InternalTranspiler::visitMul(const klee::MulExpr &) {
+klee::ExprVisitor::Action InternalTranspiler::visitOr(const klee::OrExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " | ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitXor(const klee::XorExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " ^ ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitShl(const klee::ShlExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::ShlExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
 klee::ExprVisitor::Action
-InternalTranspiler::visitUDiv(const klee::UDivExpr &) {
+InternalTranspiler::visitLShr(const klee::LShrExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::LShrExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
 klee::ExprVisitor::Action
-InternalTranspiler::visitSDiv(const klee::SDivExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action
-InternalTranspiler::visitURem(const klee::URemExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action
-InternalTranspiler::visitSRem(const klee::SRemExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitNot(const klee::NotExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitAnd(const klee::AndExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitOr(const klee::OrExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitXor(const klee::XorExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitShl(const klee::ShlExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action
-InternalTranspiler::visitLShr(const klee::LShrExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action
-InternalTranspiler::visitAShr(const klee::AShrExpr &) {
+InternalTranspiler::visitAShr(const klee::AShrExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::AShrExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
@@ -296,39 +440,107 @@ klee::ExprVisitor::Action InternalTranspiler::visitEq(const klee::EqExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
-klee::ExprVisitor::Action InternalTranspiler::visitNe(const klee::NeExpr &) {
+klee::ExprVisitor::Action InternalTranspiler::visitNe(const klee::NeExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " != ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitUlt(const klee::UltExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " < ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitUle(const klee::UleExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " <= ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitUgt(const klee::UgtExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " > ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitUge(const klee::UgeExpr &e) {
+  assert(e.getNumKids() == 2);
+
+  auto lhs = e.getKid(0);
+  auto rhs = e.getKid(1);
+
+  auto lhs_parsed = tg.transpile(lhs);
+  auto rhs_parsed = tg.transpile(rhs);
+
+  code << "(" << lhs_parsed << ")";
+  code << " >= ";
+  code << "(" << rhs_parsed << ")";
+
+  return klee::ExprVisitor::Action::skipChildren();
+}
+
+klee::ExprVisitor::Action InternalTranspiler::visitSlt(const klee::SltExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SltExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
-klee::ExprVisitor::Action InternalTranspiler::visitUlt(const klee::UltExpr &) {
+klee::ExprVisitor::Action InternalTranspiler::visitSle(const klee::SleExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SleExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
-klee::ExprVisitor::Action InternalTranspiler::visitUle(const klee::UleExpr &) {
+klee::ExprVisitor::Action InternalTranspiler::visitSgt(const klee::SgtExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SgtExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
-klee::ExprVisitor::Action InternalTranspiler::visitUgt(const klee::UgtExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitUge(const klee::UgeExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitSlt(const klee::SltExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitSle(const klee::SleExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitSgt(const klee::SgtExpr &) {
-  assert(false && "TODO");
-}
-
-klee::ExprVisitor::Action InternalTranspiler::visitSge(const klee::SgeExpr &) {
+klee::ExprVisitor::Action InternalTranspiler::visitSge(const klee::SgeExpr &e) {
+  klee::ref<klee::Expr> eref = const_cast<klee::SgeExpr *>(&e);
+  std::cerr << kutil::expr_to_string(eref) << "\n";
   assert(false && "TODO");
 }
 
