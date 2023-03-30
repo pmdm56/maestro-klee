@@ -141,6 +141,10 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
   time_var.add_expr(time.expr);
   vars.append(time_var);
 
+  auto packet_len_var =
+      Variable(PACKET_LENGTH_VAR_LABEL, 32, {symbex::PACKET_LENGTH});
+  vars.append(packet_len_var);
+
   // HACK: we don't care about this symbol
   auto number_of_freed_flows = Variable(symbex::EXPIRE_MAP_FREED_FLOWS, 32,
                                         {symbex::EXPIRE_MAP_FREED_FLOWS});
@@ -235,8 +239,11 @@ void x86TofinoGenerator::visit(
   const hdr_field_t eth_ether_type{ETH_ETHER_TYPE, HDR_ETH_ETHER_TYPE_FIELD,
                                    16};
 
-  std::vector<hdr_field_t> fields = {eth_dst_addr, eth_src_addr,
-                                     eth_ether_type};
+  std::vector<hdr_field_t> fields = {
+      eth_dst_addr,
+      eth_src_addr,
+      eth_ether_type,
+  };
 
   auto chunk = node->get_chunk();
   auto header = Header(ETHERNET, HDR_ETH_VARIABLE, chunk, fields);
@@ -276,6 +283,104 @@ void x86TofinoGenerator::visit(
     nf_process_builder.append(";");
     nf_process_builder.append_new_line();
   }
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketParseIPv4 *node) {
+  assert(node);
+
+  const hdr_field_t ver_ihl{IPV4_VERSION_IHL, HDR_IPV4_VERSION_IHL_FIELD, 8};
+  const hdr_field_t ecn_dscp{IPV4_ECN_DSCP, HDR_IPV4_ECN_DSCP_FIELD, 8};
+  const hdr_field_t tot_len{IPV4_TOT_LEN, HDR_IPV4_TOT_LEN_FIELD, 16};
+  const hdr_field_t id{IPV4_ID, HDR_IPV4_ID_FIELD, 16};
+  const hdr_field_t frag_off{IPV4_FRAG_OFF, HDR_IPV4_FRAG_OFF_FIELD, 16};
+  const hdr_field_t ttl{IPV4_TTL, HDR_IPV4_TTL_FIELD, 8};
+  const hdr_field_t protocol{IPV4_PROTOCOL, HDR_IPV4_PROTOCOL_FIELD, 8};
+  const hdr_field_t check{IPV4_CHECK, HDR_IPV4_CHECK_FIELD, 16};
+  const hdr_field_t src_ip{IPV4_SRC_IP, HDR_IPV4_SRC_IP_FIELD, 32};
+  const hdr_field_t dst_ip{IPV4_DST_IP, HDR_IPV4_DST_IP_FIELD, 32};
+
+  std::vector<hdr_field_t> fields = {
+      ver_ihl, ecn_dscp, tot_len, id,     frag_off,
+      ttl,     protocol, check,   src_ip, dst_ip,
+  };
+
+  auto chunk = node->get_chunk();
+  auto header = Header(IPV4, HDR_IPV4_VARIABLE, chunk, fields);
+
+  headers.add(header);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(HDR_IPV4_VARIABLE);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append(PACKET_VAR_LABEL);
+  nf_process_builder.append(".parse_ipv4();");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketModifyIPv4 *node) {
+  assert(false && "TODO");
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketParseIPv4Options *node) {
+  assert(node);
+
+  auto chunk = node->get_chunk();
+  auto length = node->get_length();
+
+  const hdr_field_t value{IPV4_OPTIONS_VALUE, HDR_IPV4_OPTIONS_VALUE_FIELD,
+                          length};
+  std::vector<hdr_field_t> fields = {value};
+  auto header = Header(IPV4_OPTIONS, HDR_IPV4_OPTIONS_VARIABLE, chunk, fields);
+
+  headers.add(header);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(HDR_IPV4_OPTIONS_VARIABLE);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append(PACKET_VAR_LABEL);
+  nf_process_builder.append(".parse_tcpudp();");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketModifyIPv4Options *node) {
+  assert(false && "TODO");
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketParseTCPUDP *node) {
+  assert(node);
+
+  const hdr_field_t src_port{TCPUDP_SRC_PORT, HDR_TCPUDP_SRC_PORT_FIELD, 16};
+  const hdr_field_t dst_port{TCPUDP_DST_PORT, HDR_TCPUDP_DST_PORT_FIELD, 16};
+
+  std::vector<hdr_field_t> fields = {
+      src_port,
+      dst_port,
+  };
+
+  auto chunk = node->get_chunk();
+  auto header = Header(TCPUDP, HDR_TCPUDP_VARIABLE, chunk, fields);
+
+  headers.add(header);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(HDR_TCPUDP_VARIABLE);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append(PACKET_VAR_LABEL);
+  nf_process_builder.append(".parse_tcpudp();");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketModifyTCPUDP *node) {
+  assert(false && "TODO");
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {

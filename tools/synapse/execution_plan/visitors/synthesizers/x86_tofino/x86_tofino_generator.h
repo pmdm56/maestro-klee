@@ -50,9 +50,6 @@ public:
 
     auto header = Header(CPU, HDR_CPU_VARIABLE, fields);
     headers.add(header);
-
-    
-
   }
 
   std::string transpile(klee::ref<klee::Expr> expr);
@@ -71,6 +68,12 @@ public:
   void visit(const targets::x86_tofino::ForwardThroughTofino *node) override;
   void visit(const targets::x86_tofino::PacketParseEthernet *node) override;
   void visit(const targets::x86_tofino::PacketModifyEthernet *node) override;
+  void visit(const targets::x86_tofino::PacketParseIPv4 *node) override;
+  void visit(const targets::x86_tofino::PacketModifyIPv4 *node) override;
+  void visit(const targets::x86_tofino::PacketParseIPv4Options *node) override;
+  void visit(const targets::x86_tofino::PacketModifyIPv4Options *node) override;
+  void visit(const targets::x86_tofino::PacketParseTCPUDP *node) override;
+  void visit(const targets::x86_tofino::PacketModifyTCPUDP *node) override;
   void visit(const targets::x86_tofino::If *node) override;
   void visit(const targets::x86_tofino::Then *node) override;
   void visit(const targets::x86_tofino::Else *node) override;

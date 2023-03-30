@@ -18,6 +18,12 @@
 #include "packet_modify_ethernet.h"
 #include "packet_parse_cpu.h"
 #include "packet_parse_ethernet.h"
+#include "packet_parse_ipv4.h"
+#include "packet_modify_ipv4.h"
+#include "packet_parse_ipv4_options.h"
+#include "packet_modify_ipv4_options.h"
+#include "packet_parse_tcpudp.h"
+#include "packet_modify_tcpudp.h"
 #include "then.h"
 
 namespace synapse {
@@ -33,6 +39,12 @@ public:
                    MODULE(PacketParseCPU),
                    MODULE(PacketParseEthernet),
                    MODULE(PacketModifyEthernet),
+                   MODULE(PacketParseIPv4),
+                   MODULE(PacketModifyIPv4),
+                   MODULE(PacketParseIPv4Options),
+                   MODULE(PacketModifyIPv4Options),
+                   MODULE(PacketParseTCPUDP),
+                   MODULE(PacketModifyTCPUDP),
                    MODULE(If),
                    MODULE(Then),
                    MODULE(Else),

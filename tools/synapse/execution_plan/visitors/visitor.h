@@ -77,12 +77,18 @@ class Ignore;
 class CurrentTime;
 class PacketParseCPU;
 class PacketParseEthernet;
+class PacketModifyEthernet;
+class PacketParseIPv4;
+class PacketModifyIPv4;
+class PacketParseIPv4Options;
+class PacketModifyIPv4Options;
+class PacketParseTCPUDP;
+class PacketModifyTCPUDP;
+class ForwardThroughTofino;
 class If;
 class Then;
 class Else;
 class Drop;
-class PacketModifyEthernet;
-class ForwardThroughTofino;
 class MapGet;
 class MapPut;
 class EtherAddrHash;
@@ -178,12 +184,18 @@ public:
   VISIT(targets::x86_tofino::CurrentTime)
   VISIT(targets::x86_tofino::PacketParseCPU)
   VISIT(targets::x86_tofino::PacketParseEthernet)
+  VISIT(targets::x86_tofino::PacketModifyEthernet)
+  VISIT(targets::x86_tofino::PacketParseIPv4)
+  VISIT(targets::x86_tofino::PacketModifyIPv4)
+  VISIT(targets::x86_tofino::PacketParseIPv4Options)
+  VISIT(targets::x86_tofino::PacketModifyIPv4Options)
+  VISIT(targets::x86_tofino::PacketParseTCPUDP)
+  VISIT(targets::x86_tofino::PacketModifyTCPUDP)
+  VISIT(targets::x86_tofino::ForwardThroughTofino)
   VISIT(targets::x86_tofino::If)
   VISIT(targets::x86_tofino::Then)
   VISIT(targets::x86_tofino::Else)
   VISIT(targets::x86_tofino::Drop)
-  VISIT(targets::x86_tofino::PacketModifyEthernet)
-  VISIT(targets::x86_tofino::ForwardThroughTofino)
   VISIT(targets::x86_tofino::MapGet)
   VISIT(targets::x86_tofino::MapPut)
   VISIT(targets::x86_tofino::EtherAddrHash)

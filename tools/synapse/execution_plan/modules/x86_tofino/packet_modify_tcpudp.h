@@ -5,25 +5,25 @@
 
 namespace synapse {
 namespace targets {
-namespace bmv2 {
+namespace x86_tofino {
 
-class IPOptionsModify : public Module {
+class PacketModifyTCPUDP : public Module {
 private:
   std::vector<modification_t> modifications;
 
 public:
-  IPOptionsModify()
-      : Module(ModuleType::BMv2_IPOptionsModify, TargetType::BMv2,
-               "IPOptionsModify") {}
+  PacketModifyTCPUDP()
+      : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
+               TargetType::x86_Tofino, "PacketModifyTCPUDP") {}
 
-  IPOptionsModify(BDD::BDDNode_ptr node,
-                  const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::BMv2_IPOptionsModify, TargetType::BMv2,
-               "IPOptionsModify", node),
+  PacketModifyTCPUDP(BDD::BDDNode_ptr node,
+                     const std::vector<modification_t> &_modifications)
+      : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
+               TargetType::x86_Tofino, "PacketModifyTCPUDP", node),
         modifications(_modifications) {}
 
 private:
-  klee::ref<klee::Expr> get_ip_options_chunk(const BDD::Node *node) const {
+  klee::ref<klee::Expr> get_tcpudp_chunk(const BDD::Node *node) const {
     assert(node->get_type() == BDD::Node::NodeType::CALL);
 
     auto call_node = static_cast<const BDD::Call *>(node);
@@ -58,37 +58,31 @@ private:
     auto all_prev_packet_borrow_next_chunk =
         get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
-    if (!all_prev_packet_borrow_next_chunk.size()) {
-      return result;
-    }
+    assert(all_prev_packet_borrow_next_chunk.size());
 
     auto all_prev_packet_return_chunk =
         get_all_prev_functions(casted, symbex::FN_RETURN_CHUNK);
 
-    auto borrow_ip_options =
-        all_prev_packet_borrow_next_chunk.rbegin()[2].get();
-
-    if (all_prev_packet_borrow_next_chunk.size() < 3 ||
-        all_prev_packet_return_chunk.size() !=
-            all_prev_packet_borrow_next_chunk.size() - 3 ||
-        !is_ip_options(borrow_ip_options)) {
+    if (all_prev_packet_return_chunk.size() != 0 ||
+        all_prev_packet_borrow_next_chunk.size() < 3 ||
+        is_ip_options(all_prev_packet_borrow_next_chunk[0].get())) {
       return result;
     }
 
-    assert(!call.args[symbex::FN_BORROW_CHUNK_EXTRA].in.isNull());
+    auto borrow_tcpudp = all_prev_packet_borrow_next_chunk[0].get();
 
-    auto curr_ip_options_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
-    auto prev_ip_options_chunk = get_ip_options_chunk(borrow_ip_options);
+    auto curr_tcpudp_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
+    auto prev_tcpudp_chunk = get_tcpudp_chunk(borrow_tcpudp);
 
-    assert(curr_ip_options_chunk->getWidth() ==
-           prev_ip_options_chunk->getWidth());
+    assert(curr_tcpudp_chunk->getWidth() == 4 * 8);
+    assert(prev_tcpudp_chunk->getWidth() == 4 * 8);
 
     auto _modifications =
-        build_modifications(prev_ip_options_chunk, curr_ip_options_chunk);
+        build_modifications(prev_tcpudp_chunk, curr_tcpudp_chunk);
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::BMv2);
+      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);
@@ -96,7 +90,8 @@ private:
       return result;
     }
 
-    auto new_module = std::make_shared<IPOptionsModify>(node, _modifications);
+    auto new_module =
+        std::make_shared<PacketModifyTCPUDP>(node, _modifications);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -111,7 +106,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new IPOptionsModify(node, modifications);
+    auto cloned = new PacketModifyTCPUDP(node, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -120,7 +115,7 @@ public:
       return false;
     }
 
-    auto other_cast = static_cast<const IPOptionsModify *>(other);
+    auto other_cast = static_cast<const PacketModifyTCPUDP *>(other);
 
     auto other_modifications = other_cast->get_modifications();
 
@@ -149,6 +144,6 @@ public:
     return modifications;
   }
 };
-} // namespace bmv2
+} // namespace x86_tofino
 } // namespace targets
 } // namespace synapse

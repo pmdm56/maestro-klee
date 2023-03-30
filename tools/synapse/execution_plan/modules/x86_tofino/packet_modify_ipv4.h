@@ -5,25 +5,25 @@
 
 namespace synapse {
 namespace targets {
-namespace bmv2 {
+namespace x86_tofino {
 
-class IPOptionsModify : public Module {
+class PacketModifyIPv4 : public Module {
 private:
   std::vector<modification_t> modifications;
 
 public:
-  IPOptionsModify()
-      : Module(ModuleType::BMv2_IPOptionsModify, TargetType::BMv2,
-               "IPOptionsModify") {}
+  PacketModifyIPv4()
+      : Module(ModuleType::x86_Tofino_PacketModifyIPv4, TargetType::x86_Tofino,
+               "PacketModifyIPv4") {}
 
-  IPOptionsModify(BDD::BDDNode_ptr node,
-                  const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::BMv2_IPOptionsModify, TargetType::BMv2,
-               "IPOptionsModify", node),
+  PacketModifyIPv4(BDD::BDDNode_ptr node,
+                   const std::vector<modification_t> &_modifications)
+      : Module(ModuleType::x86_Tofino_PacketModifyIPv4, TargetType::x86_Tofino,
+               "PacketModifyIPv4", node),
         modifications(_modifications) {}
 
 private:
-  klee::ref<klee::Expr> get_ip_options_chunk(const BDD::Node *node) const {
+  klee::ref<klee::Expr> get_ipv4_chunk(const BDD::Node *node) const {
     assert(node->get_type() == BDD::Node::NodeType::CALL);
 
     auto call_node = static_cast<const BDD::Call *>(node);
@@ -33,16 +33,6 @@ private:
     assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
     return call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
-  }
-
-  bool is_ip_options(const BDD::Node *node) const {
-    assert(node->get_type() == BDD::Node::NodeType::CALL);
-
-    auto call_node = static_cast<const BDD::Call *>(node);
-    auto call = call_node->get_call();
-
-    auto len = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
-    return len->getKind() != klee::Expr::Kind::Constant;
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
@@ -58,37 +48,31 @@ private:
     auto all_prev_packet_borrow_next_chunk =
         get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
-    if (!all_prev_packet_borrow_next_chunk.size()) {
-      return result;
-    }
+    assert(all_prev_packet_borrow_next_chunk.size());
 
     auto all_prev_packet_return_chunk =
         get_all_prev_functions(casted, symbex::FN_RETURN_CHUNK);
 
-    auto borrow_ip_options =
-        all_prev_packet_borrow_next_chunk.rbegin()[2].get();
-
-    if (all_prev_packet_borrow_next_chunk.size() < 3 ||
-        all_prev_packet_return_chunk.size() !=
-            all_prev_packet_borrow_next_chunk.size() - 3 ||
-        !is_ip_options(borrow_ip_options)) {
+    if (all_prev_packet_return_chunk.size() !=
+        all_prev_packet_borrow_next_chunk.size() - 2) {
       return result;
     }
 
     assert(!call.args[symbex::FN_BORROW_CHUNK_EXTRA].in.isNull());
 
-    auto curr_ip_options_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
-    auto prev_ip_options_chunk = get_ip_options_chunk(borrow_ip_options);
+    auto borrow_ipv4 = all_prev_packet_borrow_next_chunk.rbegin()[1];
 
-    assert(curr_ip_options_chunk->getWidth() ==
-           prev_ip_options_chunk->getWidth());
+    auto curr_ipv4_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
+    auto prev_ipv4_chunk = get_ipv4_chunk(borrow_ipv4.get());
 
-    auto _modifications =
-        build_modifications(prev_ip_options_chunk, curr_ip_options_chunk);
+    assert(curr_ipv4_chunk->getWidth() == 20 * 8);
+    assert(prev_ipv4_chunk->getWidth() == 20 * 8);
+
+    auto _modifications = build_modifications(prev_ipv4_chunk, curr_ipv4_chunk);
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::BMv2);
+      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);
@@ -96,7 +80,7 @@ private:
       return result;
     }
 
-    auto new_module = std::make_shared<IPOptionsModify>(node, _modifications);
+    auto new_module = std::make_shared<PacketModifyIPv4>(node, _modifications);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -111,7 +95,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new IPOptionsModify(node, modifications);
+    auto cloned = new PacketModifyIPv4(node, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -120,7 +104,7 @@ public:
       return false;
     }
 
-    auto other_cast = static_cast<const IPOptionsModify *>(other);
+    auto other_cast = static_cast<const PacketModifyIPv4 *>(other);
 
     auto other_modifications = other_cast->get_modifications();
 
@@ -149,6 +133,6 @@ public:
     return modifications;
   }
 };
-} // namespace bmv2
+} // namespace tofino
 } // namespace targets
 } // namespace synapse

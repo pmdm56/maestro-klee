@@ -58,7 +58,7 @@ struct cpu_t {
 struct eth_t {
 	uint8_t dst_mac[6];
 	uint8_t src_mac[6];
-	uint16_t eth_type;
+	uint16_t ether_type;
 
 	void dump() const {
 		printf("###[ Ethernet ]###\n");
@@ -66,15 +66,13 @@ struct eth_t {
 			   dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5]);
 		printf("src  %02x:%02x:%02x:%02x:%02x:%02x\n", src_mac[0], src_mac[1],
 			   src_mac[2], src_mac[3], src_mac[4], src_mac[5]);
-		printf("type 0x%x\n", eth_type);
+		printf("type 0x%x\n", ether_type);
 	}
 } __attribute__((packed));
 
 struct ipv4_t {
-	uint8_t ihl : 4;
-	uint8_t version : 4;
-	uint8_t ecn : 2;
-	uint8_t dscp : 6;
+	uint8_t version_ihl;
+	uint8_t ecn_dscp;
 	uint16_t tot_len;
 	uint16_t id;
 	uint16_t frag_off;
@@ -86,9 +84,9 @@ struct ipv4_t {
 
 	void dump() const {
 		printf("###[ IP ]###\n");
-		printf("ihl     %u\n", (ihl & 0x0f));
-		printf("version %u\n", (ihl & 0xf0) >> 4);
-		printf("tos     %u\n", version);
+		printf("version %u\n", (version_ihl & 0xf0) >> 4);
+		printf("ihl     %u\n", (version_ihl & 0x0f));
+		printf("tos     %u\n", ecn_dscp);
 		printf("len     %u\n", ntohs(tot_len));
 		printf("id      %u\n", ntohs(id));
 		printf("off     %u\n", ntohs(frag_off));
@@ -102,6 +100,10 @@ struct ipv4_t {
 			   (dst_ip >> 8) & 0xff, (dst_ip >> 16) & 0xff,
 			   (dst_ip >> 24) & 0xff);
 	}
+} __attribute__((packed));
+
+struct ipv4_options_t {
+	uint8_t* value;
 } __attribute__((packed));
 
 struct tcpudp_t {
@@ -144,6 +146,12 @@ struct pkt_t {
 		auto ptr = curr;
 		curr += sizeof(ipv4_t);
 		return (ipv4_t *)ptr;
+	}
+
+	ipv4_options_t* parse_ipv4_options(int size) {
+		auto ptr = curr;
+		curr += size;
+		return (ipv4_options_t*)ptr;
 	}
 
 	tcpudp_t *parse_tcpudp() {

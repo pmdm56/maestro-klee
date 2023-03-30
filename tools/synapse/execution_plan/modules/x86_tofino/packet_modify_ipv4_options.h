@@ -5,21 +5,21 @@
 
 namespace synapse {
 namespace targets {
-namespace bmv2 {
+namespace x86_tofino {
 
-class IPOptionsModify : public Module {
+class PacketModifyIPv4Options : public Module {
 private:
   std::vector<modification_t> modifications;
 
 public:
-  IPOptionsModify()
-      : Module(ModuleType::BMv2_IPOptionsModify, TargetType::BMv2,
-               "IPOptionsModify") {}
+  PacketModifyIPv4Options()
+      : Module(ModuleType::x86_Tofino_PacketModifyIPv4Options,
+               TargetType::x86_Tofino, "PacketModifyIPv4Options") {}
 
-  IPOptionsModify(BDD::BDDNode_ptr node,
-                  const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::BMv2_IPOptionsModify, TargetType::BMv2,
-               "IPOptionsModify", node),
+  PacketModifyIPv4Options(BDD::BDDNode_ptr node,
+                          const std::vector<modification_t> &_modifications)
+      : Module(ModuleType::x86_Tofino_PacketModifyIPv4Options,
+               TargetType::x86_Tofino, "PacketModifyIPv4Options", node),
         modifications(_modifications) {}
 
 private:
@@ -58,20 +58,25 @@ private:
     auto all_prev_packet_borrow_next_chunk =
         get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
 
-    if (!all_prev_packet_borrow_next_chunk.size()) {
+    auto n_borrowed = all_prev_packet_borrow_next_chunk.size();
+
+    if (n_borrowed < 3) {
       return result;
     }
 
     auto all_prev_packet_return_chunk =
         get_all_prev_functions(casted, symbex::FN_RETURN_CHUNK);
 
+    auto n_returned = all_prev_packet_return_chunk.size();
+
+    if (n_returned != n_borrowed - 3) {
+      return result;
+    }
+
     auto borrow_ip_options =
         all_prev_packet_borrow_next_chunk.rbegin()[2].get();
 
-    if (all_prev_packet_borrow_next_chunk.size() < 3 ||
-        all_prev_packet_return_chunk.size() !=
-            all_prev_packet_borrow_next_chunk.size() - 3 ||
-        !is_ip_options(borrow_ip_options)) {
+    if (!is_ip_options(borrow_ip_options)) {
       return result;
     }
 
@@ -88,7 +93,7 @@ private:
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::BMv2);
+      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);
@@ -96,7 +101,8 @@ private:
       return result;
     }
 
-    auto new_module = std::make_shared<IPOptionsModify>(node, _modifications);
+    auto new_module =
+        std::make_shared<PacketModifyIPv4Options>(node, _modifications);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -111,7 +117,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new IPOptionsModify(node, modifications);
+    auto cloned = new PacketModifyIPv4Options(node, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -120,7 +126,7 @@ public:
       return false;
     }
 
-    auto other_cast = static_cast<const IPOptionsModify *>(other);
+    auto other_cast = static_cast<const PacketModifyIPv4Options *>(other);
 
     auto other_modifications = other_cast->get_modifications();
 
@@ -149,6 +155,6 @@ public:
     return modifications;
   }
 };
-} // namespace bmv2
+} // namespace x86_tofino
 } // namespace targets
 } // namespace synapse
