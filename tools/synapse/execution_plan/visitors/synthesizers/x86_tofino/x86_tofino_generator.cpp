@@ -8,6 +8,16 @@
 
 #include <sstream>
 
+#define ADD_NODE_COMMENT(module)                                               \
+  {                                                                            \
+    if (module->get_node()) {                                                  \
+      nf_process_builder.indent();                                             \
+      nf_process_builder.append("// node ");                                   \
+      nf_process_builder.append((module)->get_node()->get_id());               \
+      nf_process_builder.append_new_line();                                    \
+    }                                                                          \
+  }
+
 namespace target = synapse::targets::x86_tofino;
 
 namespace synapse {
@@ -169,6 +179,7 @@ void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 
   log(ep_node);
 
+  ADD_NODE_COMMENT(ep_node->get_module());
   mod->visit(*this);
 
   for (auto branch : next) {
@@ -273,8 +284,6 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
   auto condition = node->get_condition();
   auto condition_transpiled = transpile(condition);
 
-  nf_process_builder.append_new_line();
-  
   nf_process_builder.indent();
   nf_process_builder.append("if (");
   nf_process_builder.append(condition_transpiled);
@@ -322,7 +331,6 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
     auto contains_var =
         Variable(map_has_this_key_label, map_has_this_key->getWidth(),
                  {map_has_this_key_label});
-    contains_var.add_expr(map_has_this_key);
     vars.append(contains_var);
   }
 
@@ -342,8 +350,6 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
                             {allocated_index_label});
   value_var.add_expr(value_out);
   vars.append(value_var);
-
-  nf_process_builder.append_new_line();
 
   nf_process_builder.indent();
   nf_process_builder.append(value_var.get_type());
@@ -389,7 +395,9 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
   nf_process_builder.indent();
 
   if (!map_has_this_key.isNull()) {
-    auto contains_var = vars.get(map_has_this_key);
+    auto map_has_this_key_label =
+        get_label(generated_symbols, symbex::MAP_HAS_THIS_KEY);
+    auto contains_var = vars.get(map_has_this_key_label);
     assert(contains_var.valid);
     assert(contains_var.offset_bits == 0);
     nf_process_builder.append("auto ");
@@ -433,8 +441,6 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapPut *node) {
 
   assert(key->getWidth() > 0);
   assert(key->getWidth() % 8 == 0);
-
-  nf_process_builder.append_new_line();
 
   nf_process_builder.indent();
   nf_process_builder.append("bytes_t ");
