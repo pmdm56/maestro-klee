@@ -2,6 +2,7 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
+#include "bdd/nodes/node.h"
 #include "bdd/visitors/graphviz-generator.h"
 #include "call-paths-to-bdd.h"
 
@@ -78,22 +79,21 @@ namespace Clone {
 		const auto &bdd { builder->get_bdd().get() };
 	}
 
-	void Network::explore(const std::unique_ptr<Builder> &builder, const shared_ptr<Node> &source) {
-		assert(source->get_node_type() == NodeType::DEVICE);
+	void Network::explore(const std::unique_ptr<Builder> &builder, const shared_ptr<Node> &first_source) {
+		assert(first_source->get_node_type() == NodeType::DEVICE);
 
-		deque<pair<unsigned, shared_ptr<Node>>> q;
+		/* Input port | Node */
+		deque<pair<unsigned, shared_ptr<Node>>> q_sources;
 
-		for(auto &child: source->get_children()) {
-			q.push_back(make_pair(child.second.first, child.second.second));
+		for(auto &child: first_source->get_children()) {
+			q_sources.push_back(make_pair(child.second.first, child.second.second));
 		}
 
-		/** Explore each "flow" starting from a source
-			Begin with source and append other NFs in tails
-		*/
-		while(!q.empty()) {
-			const unsigned &input_port = q.front().first;
-			const auto &node = q.front().second;
-			q.pop_front();
+		/* Explore each "flow" starting from a source | Begin with source and append other NFs in tails	*/
+		while(!q_sources.empty()) {
+			const unsigned &input_port = q_sources.front().first;
+			const auto &node = q_sources.front().second;
+			q_sources.pop_front();
 
 			assert(nfs.find(node->get_name()) != nfs.end());
 			const auto &nf { nfs.at(node->get_name()) };
@@ -102,18 +102,26 @@ namespace Clone {
 
 			builder->add_process_branch(input_port);
 
-			/*
-				Another loop ?
-			*/
+			/* Input port | root */
+			deque<pair<unsigned, BDD::BDDNode_ptr>> q_roots;
 
-			if(!builder->is_init_merged(nf->get_id())) {
-				builder->join_init(bdd, input_port);
-				builder->add_merged_nf_init(nf->get_id());
+			q_roots.push_back(make_pair(input_port, builder->get_process_root()));
+
+			/* TODO: Another loop ? */
+			while(!q_roots.empty()) {
+				unsigned input_port = q_roots.front().first;
+				const auto &root = q_roots.front().second;
+				q_roots.pop_front();
+
+				if(!builder->is_init_merged(nf->get_id())) {
+					builder->join_init(bdd);
+					builder->add_merged_nf_init(nf->get_id());
+				}
+
+				debug("Input port for ", nf->get_id(), ": ", input_port);
+				builder->join_process(bdd, input_port);
 			}
 
-			// TODO: another queue 
-			debug("Input port for ", nf->get_id(), ": ", input_port);
-			builder->join_process(bdd, input_port);
 		}
 	}
 
@@ -137,7 +145,7 @@ namespace Clone {
 			const auto&bdd { nf->get_bdd() };
 
 			if(!builder->is_init_merged(nf->get_id())) {
-				builder->join_init(bdd, input_port);
+				builder->join_init(bdd);
 				builder->add_merged_nf_init(nf->get_id());
 			}
 			debug("Input port for ", nf->get_id(), ": ", input_port);

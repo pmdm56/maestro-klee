@@ -98,7 +98,8 @@ namespace Clone {
 
 					if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
 						debug("Found a init tail ", ret->get_id());
-						q.push_back(curr);
+						init_tails.push_back(curr);
+						// TODO: add all success to a queue/vector
 					}
 					break;
 				}
@@ -107,7 +108,7 @@ namespace Clone {
 
 					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
 						debug("Found a process tail ", ret->get_id());
-						q.push_back(curr);
+						// TODO: add all process to a queue/vector
 					}
 
 					break;
@@ -203,28 +204,39 @@ namespace Clone {
 		}
 	}
 
-	void Builder::join_init(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
-		auto new_init_root = other->get_init()->clone();
+	void Builder::join_init(const std::shared_ptr<const BDD::BDD> &other_bdd) {
+		auto other_init = other_bdd->get_init()->clone();
 
 		if(is_init_empty()) {
-			bdd->set_init(new_init_root);
-			assert(bdd->get_init() != nullptr);
+			bdd->set_init(other_init);
 		}
 		else {
-			trim_node(init_tail, new_init_root);
+			assert(init_tails.size() > 0);
+
+			while(!init_tails.empty()) {
+				auto tail = init_tails.front();
+				init_tails.pop_front();
+
+				trim_node(tail, other_init);
+			}
 		}
 
-		clone_node(new_init_root, input_port);
+		assert(init_tails.empty());
+		clone_node(other_init, 0); //TODO: check if this is correct
 	}
 
-	void Builder::join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
+	void Builder::join_process(const std::shared_ptr<const BDD::BDD> &other_bdd, unsigned input_port) {
 		assert(process_root != nullptr);
 
-		clone_node(other->get_process()->clone(), input_port);
+		clone_node(other_bdd->get_process()->clone(), input_port);
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {
 		return this->bdd;
+	}
+
+	BDD::BDDNode_ptr Builder::get_process_root() const {
+		return this->process_root;
 	}
 
 	void Builder::dump(std::string path) {

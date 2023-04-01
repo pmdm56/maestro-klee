@@ -16,10 +16,10 @@ namespace Clone {
 	private:
 		const std::unique_ptr<BDD::BDD> bdd;
 		std::unordered_set<std::string> merged_nf_inits;
-		std::unordered_set<BDD::BDDNode_ptr> init_tails;
-		std::unordered_set<BDD::BDDNode_ptr> process_tails;
 
-		BDD::BDDNode_ptr init_tail = nullptr;
+		std::deque<BDD::BDDNode_ptr> init_tails;
+		std::deque<BDD::BDDNode_ptr> process_tails;
+
 		BDD::BDDNode_ptr process_root = nullptr;
 
 		uint64_t counter = 1;
@@ -42,8 +42,10 @@ namespace Clone {
 		void initialise_init(const std::shared_ptr<const BDD::BDD> &bdd);
 		void initialise_process(const std::shared_ptr<const BDD::BDD> &bdd);
 
-		void join_init(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
-		void join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port);
+		void join_init(const std::shared_ptr<const BDD::BDD> &other_bdd);
+		void join_process(const std::shared_ptr<const BDD::BDD> &other_bdd, unsigned input_port);
+
+		BDD::BDDNode_ptr get_process_root() const;
 		
 		const std::unique_ptr<BDD::BDD>& get_bdd() const;
 		void dump(std::string path);
