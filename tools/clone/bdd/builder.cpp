@@ -21,12 +21,12 @@ namespace Clone {
 
 	/* Private methods */
 
-	void Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
+	std::deque<BDD::BDDNode_ptr> & Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
 		assert(root);
 
-		deque<BDDNode_ptr> q;
 		stack<BDDNode_ptr> s;
 
+		deque<BDDNode_ptr> q_tails;
 		s.push(root);
 
 		while(!s.empty()) {
@@ -98,8 +98,7 @@ namespace Clone {
 
 					if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
 						debug("Found a init tail ", ret->get_id());
-						init_tails.push_back(curr);
-						// TODO: add all success to a queue/vector
+						q_tails.push_back(curr);
 					}
 					break;
 				}
@@ -108,7 +107,7 @@ namespace Clone {
 
 					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
 						debug("Found a process tail ", ret->get_id());
-						// TODO: add all process to a queue/vector
+						q_tails.push_back(curr);
 					}
 
 					break;
@@ -120,6 +119,8 @@ namespace Clone {
 				}
 			}
 		}
+
+		return q_tails;
 
 		//root->recursive_update_ids(++counter);
 	}

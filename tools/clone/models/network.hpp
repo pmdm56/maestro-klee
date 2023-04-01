@@ -5,6 +5,7 @@
 #include <memory>
 #include <unordered_set>
 #include <unordered_map>
+#include "../bdd/builder.hpp"
 
 namespace BDD {
 	class BDD;
@@ -15,8 +16,6 @@ namespace Clone {
 	class Link;
 	class Device;
 	class Node;
-
-	class Builder;
 
 	/** Typedefs **/
 
@@ -62,13 +61,15 @@ namespace Clone {
 		NodeSet sinks;
 
 		NodeSet visited;
+
+		const std::unique_ptr<Builder> builder = Builder::create();
+
 	
 		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
 		
 		void build_graph();
-		void traverse_all_flows();
-		void explore(const std::unique_ptr<Builder> &builder, const std::shared_ptr<Node> &origin);
-		void explore_node(const std::shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, unsigned input_port);
+		void explore_all_sources(const std::shared_ptr<Node> &origin);
+		void traverse(unsigned input_port, std::shared_ptr<Node> source);
 		void print_graph() const;
 	public:
 		~Network();

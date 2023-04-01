@@ -25,8 +25,8 @@ namespace Clone {
 		uint64_t counter = 1;
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
-		void clone_node(BDD::BDDNode_ptr node, unsigned input_port);
 		void trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
+		std::deque<BDD::BDDNode_ptr> &clone_node(BDD::BDDNode_ptr node, unsigned input_port);
 	public:
 		~Builder();
 

@@ -64,99 +64,32 @@ namespace Clone {
 		}
 	}
 
-	void Network::traverse_all_flows() {
-		const unique_ptr<Builder> builder { Builder::create() };
-		
-		info("Total of ", sources.size(), " sources");
-		for(auto &source: sources) {			
-			assert(source.first->get_node_type() == NodeType::DEVICE);
-			info("Traversing source: ", source.first->get_name(), " port: ", source.second);
-			explore_node(source.first, builder, 0);
+	void Network::explore_all_sources(const shared_ptr<Node> &origin) {
+		assert(origin->get_node_type() == NodeType::DEVICE);
 
-			visited.clear();
+		for(auto &child: origin->get_children()) {
+			traverse(child.second.first, child.second.second);
 		}
-
-		const auto &bdd { builder->get_bdd().get() };
 	}
 
-	void Network::explore(const std::unique_ptr<Builder> &builder, const shared_ptr<Node> &first_source) {
-		assert(first_source->get_node_type() == NodeType::DEVICE);
-
+	void Network::traverse(unsigned input_port, std::shared_ptr<Node> source) {
 		/* Input port | Node */
-		deque<pair<unsigned, shared_ptr<Node>>> q_sources;
+		assert(nfs.find(source->get_name()) != nfs.end());
+		const auto &nf = nfs.at(source->get_name());
+		assert(nf->get_bdd() != nullptr);
+		const auto &bdd = nf->get_bdd();
 
-		for(auto &child: first_source->get_children()) {
-			q_sources.push_back(make_pair(child.second.first, child.second.second));
+		builder->add_process_branch(input_port);
+
+		deque<pair<unsigned, BDD::BDDNode_ptr>> q_roots;
+
+		q_roots.push_back(make_pair(input_port, builder->get_process_root()));
+
+		while(!q_roots.empty()) {
+			const unsigned port = q_roots.front().first;
+			const auto &root = q_roots.front().second;
+			q_roots.pop_front();
 		}
-
-		/* Explore each "flow" starting from a source | Begin with source and append other NFs in tails	*/
-		while(!q_sources.empty()) {
-			const unsigned &input_port = q_sources.front().first;
-			const auto &node = q_sources.front().second;
-			q_sources.pop_front();
-
-			assert(nfs.find(node->get_name()) != nfs.end());
-			const auto &nf { nfs.at(node->get_name()) };
-			assert(nf->get_bdd() != nullptr);
-			const auto &bdd { nf->get_bdd() };
-
-			builder->add_process_branch(input_port);
-
-			/* Input port | root */
-			deque<pair<unsigned, BDD::BDDNode_ptr>> q_roots;
-
-			q_roots.push_back(make_pair(input_port, builder->get_process_root()));
-
-			/* TODO: Another loop ? */
-			while(!q_roots.empty()) {
-				unsigned input_port = q_roots.front().first;
-				const auto &root = q_roots.front().second;
-				q_roots.pop_front();
-
-				if(!builder->is_init_merged(nf->get_id())) {
-					builder->join_init(bdd);
-					builder->add_merged_nf_init(nf->get_id());
-				}
-
-				debug("Input port for ", nf->get_id(), ": ", input_port);
-				builder->join_process(bdd, input_port);
-			}
-
-		}
-	}
-
-	void Network::explore_node(const shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, unsigned input_port) {
-		switch(node->get_node_type()) {
-		case NodeType::DEVICE: {
-			for(auto &p: node->get_children()) {
-				const unsigned port_src { p.first };
-				const unsigned port_dst { p.second.first };
-				const auto& child { p.second.second };
-
-				explore_node(child, builder, port_dst);
-			}
-			break;
-		}
-		case NodeType::NF: {
-			assert(nfs.find(node->get_name()) != nfs.end());
-			const auto& nf { nfs.at(node->get_name()) };
-
-			assert(nf->get_bdd() != nullptr);
-			const auto&bdd { nf->get_bdd() };
-
-			if(!builder->is_init_merged(nf->get_id())) {
-				builder->join_init(bdd);
-				builder->add_merged_nf_init(nf->get_id());
-			}
-			debug("Input port for ", nf->get_id(), ": ", input_port);
-			builder->join_process(bdd, input_port);
-
-			BDD::GraphvizGenerator::visualize( *builder->get_bdd(), true, false);
-			exit(0);
-			break;
-		}
-		}
-		visited.insert(node);
 	}
 
 	void Network::print_graph() const {
@@ -202,7 +135,16 @@ namespace Clone {
 	/* Public methods */
 	void Network::consolidate() {
 		build_graph();
-		traverse_all_flows();
+				
+		info("Total of ", sources.size(), " sources");
+		for(auto &source: sources) {			
+			assert(source.first->get_node_type() == NodeType::DEVICE);
+			info("Traversing source: ", source.first->get_name(), " port: ", source.second);
+			explore_all_sources(source.first);
+			visited.clear();
+		}
+
+		const auto &bdd { builder->get_bdd().get() };
 	}
 
 	void Network::print() const {
