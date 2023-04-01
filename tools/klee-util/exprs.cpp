@@ -1,6 +1,7 @@
 #include "exprs.h"
 #include "retrieve_symbols.h"
 #include "solver_toolbox.h"
+#include "printer.h"
 
 namespace kutil {
 
@@ -109,6 +110,10 @@ std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
 }
 
 bool is_constant(klee::ref<klee::Expr> expr) {
+  if (expr->getWidth() > 64) {
+    return false;
+  }
+
   if (expr->getKind() == klee::Expr::Kind::Constant) {
     return true;
   }
@@ -122,15 +127,16 @@ bool is_constant(klee::ref<klee::Expr> expr) {
 }
 
 bool is_constant_signed(klee::ref<klee::Expr> expr) {
+  auto size = expr->getWidth();
+
   if (!is_constant(expr)) {
     return false;
   }
 
-  auto constant = static_cast<klee::ConstantExpr *>(expr.get());
-  assert(constant->getWidth() <= 64);
+  assert(size <= 64);
 
-  auto value = constant->getZExtValue(constant->getWidth());
-  auto sign_bit = value >> (constant->getWidth() - 1);
+  auto value = solver_toolbox.value_from_expr(expr);
+  auto sign_bit = value >> (size - 1);
 
   return sign_bit == 1;
 }

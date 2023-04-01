@@ -64,7 +64,11 @@ llvm::cl::opt<int> MaxReordered(
     "max-reordered",
     llvm::cl::desc(
         "Maximum number of reordenations on the BDD (-1 for unlimited)."),
-    llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
+    llvm::cl::Optional, llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
+
+llvm::cl::opt<bool> Verbose("v", llvm::cl::desc("Verbose mode."),
+                            llvm::cl::ValueDisallowed, llvm::cl::init(false),
+                            llvm::cl::cat(SyNAPSE));
 } // namespace
 
 BDD::BDD build_bdd() {
@@ -90,11 +94,11 @@ BDD::BDD build_bdd() {
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
-#ifndef NDEBUG
-  synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::DEBUG;
-#else
-  synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::LOG;
-#endif
+  if (Verbose) {
+    synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::DEBUG;
+  } else {
+    synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::LOG;
+  }
 
   BDD::BDD bdd = build_bdd();
 
