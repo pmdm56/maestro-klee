@@ -78,6 +78,44 @@ namespace Clone {
 		const auto &bdd { builder->get_bdd().get() };
 	}
 
+	void Network::explore(const std::unique_ptr<Builder> &builder, const shared_ptr<Node> &source) {
+		assert(source->get_node_type() == NodeType::DEVICE);
+
+		deque<pair<unsigned, shared_ptr<Node>>> q;
+
+		for(auto &child: source->get_children()) {
+			q.push_back(make_pair(child.second.first, child.second.second));
+		}
+
+		/** Explore each "flow" starting from a source
+			Begin with source and append other NFs in tails
+		*/
+		while(!q.empty()) {
+			const unsigned &input_port = q.front().first;
+			const auto &node = q.front().second;
+			q.pop_front();
+
+			assert(nfs.find(node->get_name()) != nfs.end());
+			const auto &nf { nfs.at(node->get_name()) };
+			assert(nf->get_bdd() != nullptr);
+			const auto &bdd { nf->get_bdd() };
+
+			builder->add_process_branch(input_port);
+
+			/*
+				Another loop ?
+			*/
+
+			if(!builder->is_init_merged(nf->get_id())) {
+				builder->join_init(bdd, input_port);
+				builder->add_merged_nf_init(nf->get_id());
+			}
+
+			// TODO: another queue 
+			debug("Input port for ", nf->get_id(), ": ", input_port);
+			builder->join_process(bdd, input_port);
+		}
+	}
 
 	void Network::explore_node(const shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, unsigned input_port) {
 		switch(node->get_node_type()) {

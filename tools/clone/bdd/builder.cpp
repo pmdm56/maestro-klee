@@ -4,6 +4,7 @@
 
 #include "bdd/nodes/node.h"
 #include "bdd/nodes/return_init.h"
+#include "bdd/nodes/symbol.h"
 #include "klee/Constraints.h"
 #include "solver_toolbox.h"
 
@@ -61,12 +62,12 @@ namespace Clone {
 					
 					if(!maybe_true) {
 						info("Trimming branch ", curr->get_id(), " to false branch");
-						trim_branch(curr, next_false);
+						trim_node(curr, next_false);
 						s.push(next_false);
 					}
 					else if(!maybe_false) {
 						info("Trimming branch ", curr->get_id(), " to true branch");
-						trim_branch(curr, next_true);
+						trim_node(curr, next_true);
 						s.push(next_true);
 					}
 					else {
@@ -122,7 +123,7 @@ namespace Clone {
 		//root->recursive_update_ids(++counter);
 	}
 
-	void Builder::trim_branch(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
+	void Builder::trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
 		auto prev = curr->get_prev();
 
 		if(prev->get_type() == Node::NodeType::BRANCH) {
@@ -174,26 +175,52 @@ namespace Clone {
 		merged_nf_inits.insert(nf_id);
 	}
 
-	void Builder::join_init(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
-		auto initRoot = other->get_init()->clone();
+	void Builder::add_process_branch(unsigned input_port) {
+		klee::ConstraintManager cm {};
+		auto vigor_device = kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
+		auto port = kutil::solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) ;
+		auto eq = kutil::solver_toolbox.exprBuilder->Eq(vigor_device, port) ;
+		auto node = BDD::BDDNode_ptr(new BDD::Branch(counter++, cm, eq));
+		auto return_drop = BDD::BDDNode_ptr(new BDD::ReturnProcess(counter++, node, {}, 0, BDD::ReturnProcess::Operation::DROP));
+		auto return_fwd = BDD::BDDNode_ptr(new BDD::ReturnProcess(counter++, node, {}, 0, BDD::ReturnProcess::Operation::FWD));
+		auto branch { static_cast<Branch*>(node.get()) };
 
-		if(is_init_empty()) {
-			bdd->set_init(initRoot);
-			assert(bdd->get_init() != nullptr);
+		branch->add_on_false(return_drop);
+		branch->add_on_true(return_fwd);
+
+		if(process_root != nullptr) {
+			assert(process_root->get_type() == Node::NodeType::BRANCH);
+			auto root_branch { static_cast<Branch*>(process_root.get()) };
+			root_branch->replace_on_false(node);
 		}
 
-		clone_node(initRoot, input_port);
+		process_root = node;
+		assert(process_root != nullptr);
+
+		if(is_process_empty()) {
+			bdd->set_process(process_root);
+			assert(bdd->get_process() != nullptr);
+		}
+	}
+
+	void Builder::join_init(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
+		auto new_init_root = other->get_init()->clone();
+
+		if(is_init_empty()) {
+			bdd->set_init(new_init_root);
+			assert(bdd->get_init() != nullptr);
+		}
+		else {
+			trim_node(init_tail, new_init_root);
+		}
+
+		clone_node(new_init_root, input_port);
 	}
 
 	void Builder::join_process(const std::shared_ptr<const BDD::BDD> &other, unsigned input_port) {
-		auto processRoot = other->get_process()->clone();
+		assert(process_root != nullptr);
 
-		if(is_process_empty()) {
-			bdd->set_process(processRoot);
-			assert(bdd->get_process() != nullptr);
-		}
-
-		clone_node(processRoot, input_port);
+		clone_node(other->get_process()->clone(), input_port);
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {

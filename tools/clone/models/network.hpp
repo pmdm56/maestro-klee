@@ -67,6 +67,7 @@ namespace Clone {
 		
 		void build_graph();
 		void traverse_all_flows();
+		void explore(const std::unique_ptr<Builder> &builder, const std::shared_ptr<Node> &origin);
 		void explore_node(const std::shared_ptr<Node> &node, const std::unique_ptr<Builder> &builder, unsigned input_port);
 		void print_graph() const;
 	public:
