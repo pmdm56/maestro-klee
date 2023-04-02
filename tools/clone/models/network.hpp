@@ -23,7 +23,7 @@ namespace Clone {
 	typedef std::vector<std::unique_ptr<const Link>> Links;
 	
 	/* Key: NF name/identifier; Value: NF */
-	typedef std::unordered_map<std::string, std::unique_ptr<NF>> NFs;
+	typedef std::unordered_map<std::string, std::shared_ptr<NF>> NFs;
 
 	/* Key: Device name/identifier; Value: Device */
 	typedef std::unordered_map<std::string, std::unique_ptr<const Device>> Devices;
@@ -69,7 +69,7 @@ namespace Clone {
 		
 		void build_graph();
 		void explore_all_sources(const std::shared_ptr<Node> &origin);
-		void traverse(unsigned input_port, std::shared_ptr<Node> source);
+		void traverse(unsigned input_port, const std::shared_ptr<Node> &origin);
 		void print_graph() const;
 	public:
 		~Network();

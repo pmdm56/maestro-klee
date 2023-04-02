@@ -33,7 +33,7 @@ namespace Clone {
 		return unique_ptr<Device>(new Device(id));
 	}
 
-	unique_ptr<NF> parse_nf(const vector<string> &words) {
+	shared_ptr<NF> parse_nf(const vector<string> &words) {
 		if(words.size() != LENGTH_NF_INPUT) {
 			throw runtime_error("Invalid network function at line ");
 		}
@@ -41,7 +41,7 @@ namespace Clone {
 		const string id { words[1] };
 		const string path { words[2] };
 
-		return unique_ptr<NF>(new NF(id, path));;
+		return shared_ptr<NF>(new NF(id, path));;
 	}
 
 	unique_ptr<Link> parse_link(const vector<string> &words, const Devices &devices, const NFs &nfs) {

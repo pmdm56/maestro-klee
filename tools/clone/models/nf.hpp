@@ -28,5 +28,5 @@ namespace Clone {
 		void print() const;
 	};
 
-	typedef std::unordered_map<std::string, std::unique_ptr<NF>> NFs;
+	typedef std::unordered_map<std::string, std::shared_ptr<NF>> NFs;
 }

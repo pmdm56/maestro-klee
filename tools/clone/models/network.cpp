@@ -72,23 +72,28 @@ namespace Clone {
 		}
 	}
 
-	void Network::traverse(unsigned input_port, std::shared_ptr<Node> source) {
+	void Network::traverse(unsigned input_port, const std::shared_ptr<Node> &origin) {
 		/* Input port | Node */
-		assert(nfs.find(source->get_name()) != nfs.end());
-		const auto &nf = nfs.at(source->get_name());
+		assert(nfs.find(origin->get_name()) != nfs.end());
+		const auto &nf = nfs.at(origin->get_name());
 		assert(nf->get_bdd() != nullptr);
 		const auto &bdd = nf->get_bdd();
 
 		builder->add_process_branch(input_port);
 
-		deque<pair<unsigned, BDD::BDDNode_ptr>> q_roots;
+		deque<pair<pair<unsigned, const shared_ptr<NF> &>, BDD::BDDNode_ptr>> q_roots;
 
-		q_roots.push_back(make_pair(input_port, builder->get_process_root()));
+		auto p = make_pair(input_port, nf);
+		q_roots.push_back(make_pair(p, builder->get_process_root()));
 
 		while(!q_roots.empty()) {
-			const unsigned port = q_roots.front().first;
+			const unsigned port = q_roots.front().first.first;
+			const auto &nf = q_roots.front().first.second;
 			const auto &root = q_roots.front().second;
 			q_roots.pop_front();
+
+
+
 		}
 	}
 
@@ -117,7 +122,7 @@ namespace Clone {
 		BDDs bdds;
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
-			auto & nf { it->second };
+			auto &nf { it->second };
 
 			const string &path { nf->get_path() };
 

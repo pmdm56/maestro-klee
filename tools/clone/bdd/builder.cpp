@@ -98,7 +98,7 @@ namespace Clone {
 
 					if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
 						debug("Found a init tail ", ret->get_id());
-						q_tails.push_back(curr);
+						init_root = curr;
 					}
 					break;
 				}
@@ -121,8 +121,6 @@ namespace Clone {
 		}
 
 		return q_tails;
-
-		//root->recursive_update_ids(++counter);
 	}
 
 	void Builder::trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
@@ -155,9 +153,9 @@ namespace Clone {
 
 	/* Static methods */
 
-	std::unique_ptr<Builder> Builder::create() {
+	unique_ptr<Builder> Builder::create() {
 		auto builder { new Builder(unique_ptr<BDD::BDD>(new BDD::BDD())) };
-		return std::unique_ptr<Builder>(move(builder));
+		return unique_ptr<Builder>(move(builder));
 	}
 
 	/* Public methods */
@@ -167,14 +165,6 @@ namespace Clone {
 
 	bool Builder::is_process_empty() const {
 		return bdd->get_process() == nullptr;
-	}
-
-	bool Builder::is_init_merged(const std::string &nf_id) const {
-		return merged_nf_inits.find(nf_id) != merged_nf_inits.end();
-	}
-
-	void Builder::add_merged_nf_init(const std::string &nf_id) {
-		merged_nf_inits.insert(nf_id);
 	}
 
 	void Builder::add_process_branch(unsigned input_port) {
@@ -205,25 +195,24 @@ namespace Clone {
 		}
 	}
 
-	void Builder::join_init(const std::shared_ptr<const BDD::BDD> &other_bdd) {
-		auto other_init = other_bdd->get_init()->clone();
+	void Builder::join_init(const unique_ptr<NF> &nf) {
+		if(merged_inits.find(nf->get_id()) != merged_inits.end()) {
+			return;
+		}
+
+		auto other_init = nf->get_bdd()->get_init()->clone();
 
 		if(is_init_empty()) {
 			bdd->set_init(other_init);
 		}
 		else {
-			assert(init_tails.size() > 0);
+			assert(init_root != nullptr);
 
-			while(!init_tails.empty()) {
-				auto tail = init_tails.front();
-				init_tails.pop_front();
-
-				trim_node(tail, other_init);
-			}
+			trim_node(init_root, other_init);
 		}
 
-		assert(init_tails.empty());
-		clone_node(other_init, 0); //TODO: check if this is correct
+ 		clone_node(other_init, 0); //TODO: check if this is correct		
+		merged_inits.insert(nf->get_id());
 	}
 
 	void Builder::join_process(const std::shared_ptr<const BDD::BDD> &other_bdd, unsigned input_port) {
