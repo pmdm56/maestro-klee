@@ -21,7 +21,7 @@ namespace Clone {
 
 	/* Private methods */
 
-	std::deque<BDD::BDDNode_ptr> & Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
+	const Tails& Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
 		assert(root);
 
 		stack<BDDNode_ptr> s;
@@ -98,12 +98,12 @@ namespace Clone {
 
 					if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
 						debug("Found a init tail ", ret->get_id());
-						init_root = curr;
+						init_tail = curr;
 					}
 					break;
 				}
 				case Node::NodeType::RETURN_PROCESS: {
-					auto ret { static_cast<ReturnProcess*>(curr.get()) };
+					auto ret = static_cast<ReturnProcess*>(curr.get()) ;
 
 					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
 						debug("Found a process tail ", ret->get_id());
@@ -186,39 +186,49 @@ namespace Clone {
 			root_branch->replace_on_false(node);
 		}
 
-		process_root = node;
+		process_root = branch->get_on_true();
 		assert(process_root != nullptr);
 
 		if(is_process_empty()) {
-			bdd->set_process(process_root);
+			bdd->set_process(node);
 			assert(bdd->get_process() != nullptr);
 		}
 	}
 
-	void Builder::join_init(const unique_ptr<NF> &nf) {
+	void Builder::join_init(const shared_ptr<NF> &nf) {
 		if(merged_inits.find(nf->get_id()) != merged_inits.end()) {
 			return;
 		}
 
-		auto other_init = nf->get_bdd()->get_init()->clone();
+		auto init_new = nf->get_bdd()->get_init()->clone();
 
 		if(is_init_empty()) {
-			bdd->set_init(other_init);
+			bdd->set_init(init_new);
 		}
 		else {
-			assert(init_root != nullptr);
+			assert(init_tail != nullptr);
 
-			trim_node(init_root, other_init);
+			trim_node(init_tail, init_new);
 		}
 
- 		clone_node(other_init, 0); //TODO: check if this is correct		
+ 		clone_node(init_new, 0); //TODO: check if this is correct		
 		merged_inits.insert(nf->get_id());
 	}
 
-	void Builder::join_process(const std::shared_ptr<const BDD::BDD> &other_bdd, unsigned input_port) {
+	const Tails& Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const Tails &process_tails) {
 		assert(process_root != nullptr);
 
-		clone_node(other_bdd->get_process()->clone(), input_port);
+		Tails tails_all;
+
+		for(auto &tail: process_tails) {
+			auto root = nf->get_bdd()->get_process()->clone();
+			trim_node(tail, root);
+
+			const Tails &tails = clone_node(root, port);
+			tails_all.insert(tails_all.end(), tails.begin(), tails.end());
+		}
+
+		return tails_all;
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {

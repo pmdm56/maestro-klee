@@ -81,19 +81,31 @@ namespace Clone {
 
 		builder->add_process_branch(input_port);
 
-		deque<pair<pair<unsigned, const shared_ptr<NF> &>, BDD::BDDNode_ptr>> q_roots;
+		deque<pair<pair<unsigned, const shared_ptr<NF> &>, Tails>> q_roots;
 
 		auto p = make_pair(input_port, nf);
-		q_roots.push_back(make_pair(p, builder->get_process_root()));
+
+		Tails tails;
+		tails.push_front(builder->get_process_root());
+		q_roots.push_back(make_pair(p, tails));
 
 		while(!q_roots.empty()) {
 			const unsigned port = q_roots.front().first.first;
 			const auto &nf = q_roots.front().first.second;
-			const auto &root = q_roots.front().second;
+			const auto &roots = q_roots.front().second;
 			q_roots.pop_front();
 
+			builder->join_init(nf);
+			Tails tails = builder->join_process(nf, port, roots);
 
+			while(!tails.empty()) {
+				auto &tail = tails.front();
+				tails.pop_front();
+				auto return_process = static_cast<BDD::ReturnProcess*>(tail.get());
+				unsigned port_next = return_process->get_return_value();
 
+				
+			}
 		}
 	}
 
