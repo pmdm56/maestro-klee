@@ -2,7 +2,7 @@
 
 #include "../module.h"
 #include "ignore.h"
-
+#include "../../visitors/graphviz/graphviz.h"
 namespace synapse {
 namespace targets {
 namespace x86_tofino {
@@ -48,12 +48,16 @@ private:
     }
 
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
+        get_all_prev_functions(ep, symbex::FN_BORROW_CHUNK);
+
+    if (all_prev_packet_borrow_next_chunk.size() == 0) {
+      Graphviz::visualize(ep, true);
+    }
 
     assert(all_prev_packet_borrow_next_chunk.size());
 
     auto all_prev_packet_return_chunk =
-        get_all_prev_functions(casted, symbex::FN_RETURN_CHUNK);
+        get_all_prev_functions(ep, symbex::FN_RETURN_CHUNK);
 
     if (all_prev_packet_return_chunk.size() !=
         all_prev_packet_borrow_next_chunk.size() - 1) {

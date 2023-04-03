@@ -32,7 +32,7 @@ private:
     }
 
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
+        get_all_prev_functions(ep, symbex::FN_BORROW_CHUNK);
 
     if (all_prev_packet_borrow_next_chunk.size() != 0) {
       return result;

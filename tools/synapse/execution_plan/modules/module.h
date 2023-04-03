@@ -213,8 +213,8 @@ protected:
   get_past_node_that_generates_symbol(const BDD::Node *current_node,
                                       const std::string &symbol) const;
   std::vector<BDD::BDDNode_ptr>
-  get_all_prev_functions(const BDD::Node *node,
-                         const std::string &function_name);
+  get_all_prev_functions(const ExecutionPlan &ep,
+                         const std::string &function_name) const;
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;

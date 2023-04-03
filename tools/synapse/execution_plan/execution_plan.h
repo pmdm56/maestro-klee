@@ -68,6 +68,10 @@ public:
   const BDD::BDD &get_bdd() const;
   BDD::BDD &get_bdd();
   unsigned get_reordered_nodes() const;
+  
+  std::vector<ExecutionPlanNode_ptr> get_prev_nodes() const;
+  std::vector<ExecutionPlanNode_ptr> get_prev_nodes_of_current_target() const;
+
   void inc_reordered_nodes();
   const ExecutionPlanNode_ptr &get_root() const;
 

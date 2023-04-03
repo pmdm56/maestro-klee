@@ -180,15 +180,19 @@ Module::get_past_node_that_generates_symbol(const BDD::Node *current_node,
 }
 
 std::vector<BDD::BDDNode_ptr>
-Module::get_all_prev_functions(const BDD::Node *_node,
-                               const std::string &function_name) {
+Module::get_all_prev_functions(const ExecutionPlan &ep,
+                               const std::string &function_name) const {
+  auto prev = ep.get_prev_nodes_of_current_target();
   std::vector<BDD::BDDNode_ptr> prev_packet_borrow_next_chunk;
 
-  auto node = _node->get_prev();
+  for (auto ep_node : prev) {
+    auto ep_module = ep_node->get_module();
+    assert(ep_module);
 
-  while (node) {
+    auto node = ep_module->get_node();
+    assert(node);
+
     if (node->get_type() != BDD::Node::NodeType::CALL) {
-      node = node->get_prev();
       continue;
     }
 
@@ -198,8 +202,6 @@ Module::get_all_prev_functions(const BDD::Node *_node,
     if (call.function_name == function_name) {
       prev_packet_borrow_next_chunk.push_back(node);
     }
-
-    node = node->get_prev();
   }
 
   return prev_packet_borrow_next_chunk;

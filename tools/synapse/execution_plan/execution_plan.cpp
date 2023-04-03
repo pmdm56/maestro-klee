@@ -85,6 +85,45 @@ unsigned ExecutionPlan::get_reordered_nodes() const { return reordered_nodes; }
 void ExecutionPlan::inc_reordered_nodes() { reordered_nodes++; }
 const ExecutionPlanNode_ptr &ExecutionPlan::get_root() const { return root; }
 
+std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes() const {
+  std::vector<ExecutionPlanNode_ptr> prev_nodes; 
+  
+  auto current = get_active_leaf();
+
+  while (current) {
+    auto prev = current->get_prev();
+    prev_nodes.push_back(prev);
+    current = prev;
+  }
+
+  return prev_nodes;
+}
+
+std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes_of_current_target() const {
+  std::vector<ExecutionPlanNode_ptr> prev_nodes;
+  auto current_platform = get_current_platform();
+  auto current = get_active_leaf();
+
+  if (!current_platform.first) {
+    return prev_nodes;
+  }
+
+  auto target = current_platform.second;
+
+  while (current) {
+    auto m = current->get_module();
+    assert(m);
+    
+    if (m->get_target() == target) {
+      prev_nodes.push_back(current);
+    }
+
+    current = current->get_prev();
+  }
+
+  return prev_nodes;
+}
+
 void ExecutionPlan::add_target(TargetType type, MemoryBank_ptr mb) {
   assert(targets.find(type) == targets.end());
   assert(memory_banks.find(type) == memory_banks.end());
