@@ -36,7 +36,7 @@ public:
 
       defs.inc_indentation();
 
-      for (auto field : header.get_fields()) {
+      for (auto field : header.query_fields()) {
         defs.indent();
         defs.append(field.get_type());
         defs.append(" ");
@@ -72,7 +72,7 @@ public:
     decl.dump(os);
   }
 
-  variable_query_t get_hdr_field_from_chunk(klee::ref<klee::Expr> chunk) const {
+  variable_query_t query_hdr_field_from_chunk(klee::ref<klee::Expr> chunk) const {
     auto symbol = kutil::get_symbol(chunk);
 
     if (!symbol.first || symbol.second != symbex::CHUNK) {
@@ -80,7 +80,7 @@ public:
     }
 
     for (const auto &hdr : headers) {
-      auto varq = hdr.get_field(chunk);
+      auto varq = hdr.query_field(chunk);
 
       if (varq.valid) {
         return varq;

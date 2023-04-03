@@ -20,8 +20,20 @@ private:
 public:
   void add(const Header &hdr) { headers.push_back(hdr); }
 
-  variable_query_t get_hdr_field(hdr_id_t hdr_id, hdr_field_id_t field_id) const {
+  variable_query_t get_hdr(hdr_id_t hdr_id) const {
     for (auto hdr : headers) {
+      if (hdr.get_id() != hdr_id) {
+        continue;
+      }
+
+      return variable_query_t(hdr, 0);
+    }
+
+    return variable_query_t();
+  }
+
+  Variable* get_hdr_field(hdr_id_t hdr_id, hdr_field_id_t field_id) {
+    for (auto& hdr : headers) {
       if (hdr.get_id() != hdr_id) {
         continue;
       }
@@ -29,10 +41,22 @@ public:
       return hdr.get_field_var(field_id);
     }
 
+    return nullptr;
+  }
+
+  variable_query_t query_hdr_field(hdr_id_t hdr_id, hdr_field_id_t field_id) const {
+    for (auto hdr : headers) {
+      if (hdr.get_id() != hdr_id) {
+        continue;
+      }
+
+      return hdr.query_field_var(field_id);
+    }
+
     return variable_query_t();
   }
 
-  variable_query_t get_hdr_field_from_chunk(klee::ref<klee::Expr> chunk) const {
+  variable_query_t query_hdr_field_from_chunk(klee::ref<klee::Expr> chunk) const {
     auto symbol = kutil::get_symbol(chunk);
 
     if (!symbol.first || symbol.second != symbex::CHUNK) {
@@ -40,7 +64,7 @@ public:
     }
 
     for (const auto &hdr : headers) {
-      auto varq = hdr.get_field(chunk);
+      auto varq = hdr.query_field(chunk);
 
       if (varq.valid) {
         return varq;

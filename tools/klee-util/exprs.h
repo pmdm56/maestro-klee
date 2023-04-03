@@ -5,6 +5,7 @@
 #include "klee/util/ExprVisitor.h"
 
 #include <unordered_set>
+#include <iostream>
 
 namespace kutil {
 
@@ -19,6 +20,7 @@ bool manager_contains(klee::ConstraintManager constraints,
 klee::ConstraintManager join_managers(klee::ConstraintManager m1,
                                       klee::ConstraintManager m2);
 
+bool has_symbols(klee::ref<klee::Expr> expr);
 std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr);
 std::pair<bool, std::string> get_symbol(klee::ref<klee::Expr> expr);
 

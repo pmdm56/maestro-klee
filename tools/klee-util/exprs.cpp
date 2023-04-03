@@ -99,6 +99,16 @@ bool is_bool(klee::ref<klee::Expr> expr) {
          expr->getKind() == klee::Expr::Slt;
 }
 
+bool has_symbols(klee::ref<klee::Expr> expr) {
+  if (expr.isNull()) {
+    return false;
+  }
+
+  RetrieveSymbols retriever(false, true);
+  retriever.visit(expr);
+  return retriever.get_retrieved().size() > 0;
+}
+
 std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
   if (expr.isNull()) {
     return std::unordered_set<std::string>();

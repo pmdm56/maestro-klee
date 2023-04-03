@@ -89,6 +89,7 @@ public:
     x86_Tofino_PacketModifyIPv4Options,
     x86_Tofino_PacketParseTCPUDP,
     x86_Tofino_PacketModifyTCPUDP,
+    x86_Tofino_PacketModifyChecksums,
     x86_Tofino_If,
     x86_Tofino_Then,
     x86_Tofino_Else,

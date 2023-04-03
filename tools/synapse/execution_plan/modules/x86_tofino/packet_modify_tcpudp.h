@@ -9,6 +9,7 @@ namespace x86_tofino {
 
 class PacketModifyTCPUDP : public Module {
 private:
+  klee::ref<klee::Expr> tcpudp_chunk;
   std::vector<modification_t> modifications;
 
 public:
@@ -16,11 +17,11 @@ public:
       : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
                TargetType::x86_Tofino, "PacketModifyTCPUDP") {}
 
-  PacketModifyTCPUDP(BDD::BDDNode_ptr node,
+  PacketModifyTCPUDP(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _tcpudp_chunk,
                      const std::vector<modification_t> &_modifications)
       : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
                TargetType::x86_Tofino, "PacketModifyTCPUDP", node),
-        modifications(_modifications) {}
+        tcpudp_chunk(_tcpudp_chunk), modifications(_modifications) {}
 
 private:
   klee::ref<klee::Expr> get_tcpudp_chunk(const BDD::Node *node) const {
@@ -90,8 +91,8 @@ private:
       return result;
     }
 
-    auto new_module =
-        std::make_shared<PacketModifyTCPUDP>(node, _modifications);
+    auto new_module = std::make_shared<PacketModifyTCPUDP>(
+        node, prev_tcpudp_chunk, _modifications);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -106,7 +107,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new PacketModifyTCPUDP(node, modifications);
+    auto cloned = new PacketModifyTCPUDP(node, tcpudp_chunk, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -116,6 +117,11 @@ public:
     }
 
     auto other_cast = static_cast<const PacketModifyTCPUDP *>(other);
+
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            tcpudp_chunk, other_cast->tcpudp_chunk)) {
+      return false;
+    }
 
     auto other_modifications = other_cast->get_modifications();
 
@@ -139,6 +145,8 @@ public:
 
     return true;
   }
+
+  klee::ref<klee::Expr> get_tcpudp_chunk() const { return tcpudp_chunk; }
 
   const std::vector<modification_t> &get_modifications() const {
     return modifications;

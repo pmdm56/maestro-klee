@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "domain/variable.h"
+
 namespace synapse {
 namespace synthesizer {
 namespace x86_tofino {
@@ -19,7 +21,8 @@ public:
   Transpiler(x86TofinoGenerator &_tg) : tg(_tg) {}
 
   std::string transpile(const klee::ref<klee::Expr> &expr);
-  std::string size_to_type(bits_t size, bool is_signed=false) const;
+  std::string transpile_lvalue_byte(const Variable &var, bits_t offset);
+  std::string size_to_type(bits_t size, bool is_signed = false) const;
   std::string mask(std::string expr, bits_t offset, bits_t size) const;
 
 private:

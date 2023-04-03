@@ -33,7 +33,7 @@ TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
     return ingress_var;
   }
 
-  auto hdr_field = ingress.headers.get_hdr_field_from_chunk(expr);
+  auto hdr_field = ingress.headers.query_hdr_field_from_chunk(expr);
 
   if (hdr_field.valid) {
     return hdr_field;

@@ -84,6 +84,7 @@ class PacketParseIPv4Options;
 class PacketModifyIPv4Options;
 class PacketParseTCPUDP;
 class PacketModifyTCPUDP;
+class PacketModifyChecksums;
 class ForwardThroughTofino;
 class If;
 class Then;
@@ -191,6 +192,7 @@ public:
   VISIT(targets::x86_tofino::PacketModifyIPv4Options)
   VISIT(targets::x86_tofino::PacketParseTCPUDP)
   VISIT(targets::x86_tofino::PacketModifyTCPUDP)
+  VISIT(targets::x86_tofino::PacketModifyChecksums)
   VISIT(targets::x86_tofino::ForwardThroughTofino)
   VISIT(targets::x86_tofino::If)
   VISIT(targets::x86_tofino::Then)

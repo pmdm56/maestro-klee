@@ -479,6 +479,7 @@ public:
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyIPv4Options)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseTCPUDP)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyTCPUDP)
+  VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyChecksums)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::If)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Then)
   VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Else)

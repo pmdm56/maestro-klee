@@ -151,6 +151,24 @@ std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
   return code;
 }
 
+std::string Transpiler::transpile_lvalue_byte(const Variable &var,
+                                              bits_t offset) {
+  std::stringstream builder;
+
+  assert(offset % 8 == 0);
+  auto byte = offset / 8;
+
+  builder << "(";
+  builder << "(uint8_t*)";
+  builder << "&";
+  builder << var.get_label();
+  builder << ")[";
+  builder << byte;
+  builder << "]";
+
+  return builder.str();
+}
+
 std::string Transpiler::size_to_type(bits_t size, bool is_signed) const {
   assert(size > 0);
   assert(size % 8 == 0);
@@ -223,8 +241,34 @@ std::string InternalTranspiler::transpile(const klee::ref<klee::Expr> &expr) {
 klee::ExprVisitor::Action
 InternalTranspiler::visitRead(const klee::ReadExpr &e) {
   klee::ref<klee::Expr> eref = const_cast<klee::ReadExpr *>(&e);
-  std::cerr << kutil::expr_to_string(eref) << "\n";
-  assert(false && "TODO");
+  auto expr_width = eref->getWidth();
+
+  auto symbol = kutil::get_symbol(eref);
+  auto variable = tg.search_variable(symbol.second);
+
+  if (!variable.valid) {
+    Log::err() << "Unknown variable with symbol " << symbol.second << "\n";
+    exit(1);
+  }
+
+  auto var_width = variable.var->get_size_bits();
+  auto var_label = variable.var->get_label();
+
+  assert(kutil::is_constant(e.index));
+
+  auto index = kutil::solver_toolbox.value_from_expr(e.index);
+
+  if (index == 0 && var_width == expr_width) {
+    code << var_label;
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  assert(expr_width < var_width);
+
+  auto masked = t.mask(var_label, index * 8, 8);
+  code << masked;
+
+  return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action
@@ -306,11 +350,17 @@ InternalTranspiler::visitExtract(const klee::ExtractExpr &e) {
     auto lhs = expr->getKid(0);
     auto rhs = expr->getKid(1);
 
-    assert(rhs->getWidth() >= size);
+    auto lhs_size = lhs->getWidth();
+    auto rhs_size = rhs->getWidth();
 
-    if (rhs->getWidth() > size) {
+    // Either completely on the right side, or completely on the left side
+    assert(rhs_size >= offset + size ||
+           (offset >= rhs_size && lhs_size >= (offset - rhs_size) + size));
+
+    if (rhs_size >= offset + size) {
       expr = rhs;
     } else {
+      offset -= rhs_size;
       expr = lhs;
     }
   }
@@ -320,6 +370,7 @@ InternalTranspiler::visitExtract(const klee::ExtractExpr &e) {
 
   auto new_extract =
       kutil::solver_toolbox.exprBuilder->Extract(expr, offset, size);
+
   code << transpile(new_extract);
   return klee::ExprVisitor::Action::skipChildren();
 }

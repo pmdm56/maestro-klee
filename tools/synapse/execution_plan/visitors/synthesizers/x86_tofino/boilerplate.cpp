@@ -168,6 +168,10 @@ struct pkt_t {
 	}
 };
 
+void update_ipv4_tcpudp_checksums(ipv4_t* ipv4, tcpudp_t* tcpudp) {
+	// TODO:
+}
+
 unsigned ether_addr_hash(uint8_t *addr) {
 	uint8_t addr_bytes_0 = addr[0];
 	uint8_t addr_bytes_1 = addr[1];

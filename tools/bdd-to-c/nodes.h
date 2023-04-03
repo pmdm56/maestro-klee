@@ -2211,7 +2211,7 @@ private:
 
 public:
   const std::string &get_name() const override { return name; }
-  const std::vector<Variable_ptr> &get_fields() const { return fields; }
+  const std::vector<Variable_ptr> &query_fields() const { return fields; }
 
   void synthesize(std::ostream &ofs, unsigned int lvl = 0) const override {
     ofs << "struct ";
@@ -2387,7 +2387,7 @@ private:
 
     unsigned int idx_val = idx_const->get_value();
 
-    for (Variable_ptr field : s->get_fields()) {
+    for (Variable_ptr field : s->query_fields()) {
       unsigned int field_size = field->get_type()->get_size();
 
       if (idx_val >= field_size / 8) {

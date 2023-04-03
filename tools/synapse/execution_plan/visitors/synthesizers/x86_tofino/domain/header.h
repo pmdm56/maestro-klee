@@ -114,9 +114,21 @@ public:
 public:
   hdr_id_t get_id() const { return hdr_id; }
 
-  const std::vector<hdr_field_t> &get_fields() const { return fields; }
+  const std::vector<hdr_field_t> &query_fields() const { return fields; }
 
-  variable_query_t get_field_var(hdr_field_id_t hdr_field_id) const {
+  Variable* get_field_var(hdr_field_id_t hdr_field_id) {
+    for (auto &field : fields) {
+      if (field.hdr_field_id != hdr_field_id) {
+        continue;
+      }
+
+      return &field;
+    }
+
+    return nullptr;
+  }
+
+  variable_query_t query_field_var(hdr_field_id_t hdr_field_id) const {
     for (const auto &field : fields) {
       if (field.hdr_field_id != hdr_field_id) {
         continue;
@@ -145,7 +157,7 @@ public:
     return variable_query_t();
   }
 
-  variable_query_t get_field(klee::ref<klee::Expr> expr) const {
+  variable_query_t query_field(klee::ref<klee::Expr> expr) const {
     auto symbol = kutil::get_symbol(expr);
 
     if (!symbol.first || symbol.second != symbex::CHUNK) {
@@ -161,7 +173,7 @@ public:
       auto contains_result = kutil::solver_toolbox.contains(field_expr, expr);
 
       if (contains_result.contains) {
-        auto field_var = get_field_var(field.hdr_field_id);
+        auto field_var = query_field_var(field.hdr_field_id);
 
         if (expr->getWidth() == 8 && (field.hdr_field_id == ETH_DST_ADDR ||
                                       field.hdr_field_id == ETH_SRC_ADDR)) {

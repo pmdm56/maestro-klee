@@ -17,13 +17,20 @@ private:
   std::vector<klee::ref<klee::Expr>> retrieved_readLSB;
   std::unordered_set<std::string> retrieved_strings;
   bool collapse_readLSB;
+  bool stop_on_first_symbol;
 
 public:
-  RetrieveSymbols(bool _collapse_readLSB = false)
-      : ExprVisitor(true), collapse_readLSB(_collapse_readLSB) {}
+  RetrieveSymbols(bool _collapse_readLSB = false,
+                  bool _stop_on_first_symbol = false)
+      : ExprVisitor(true), collapse_readLSB(_collapse_readLSB),
+        stop_on_first_symbol(_stop_on_first_symbol) {}
 
   klee::ExprVisitor::Action visitConcat(const klee::ConcatExpr &e) {
     klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
+
+    if (stop_on_first_symbol) {
+      return klee::ExprVisitor::Action::doChildren();
+    }
 
     if (collapse_readLSB && is_readLSB(eref)) {
       retrieved_readLSB.push_back(eref);
@@ -43,6 +50,10 @@ public:
     if (root->name == "packet_chunks") {
       retrieved_reads_packet_chunks.emplace_back(
           (const_cast<klee::ReadExpr *>(&e)));
+    }
+
+    if (stop_on_first_symbol) {
+      return klee::ExprVisitor::Action::skipChildren();
     }
 
     return klee::ExprVisitor::Action::doChildren();

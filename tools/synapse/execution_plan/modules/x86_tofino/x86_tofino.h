@@ -24,6 +24,7 @@
 #include "packet_modify_ipv4_options.h"
 #include "packet_parse_tcpudp.h"
 #include "packet_modify_tcpudp.h"
+#include "packet_modify_checksums.h"
 #include "then.h"
 
 namespace synapse {
@@ -45,6 +46,7 @@ public:
                    MODULE(PacketModifyIPv4Options),
                    MODULE(PacketParseTCPUDP),
                    MODULE(PacketModifyTCPUDP),
+                   MODULE(PacketModifyChecksums),
                    MODULE(If),
                    MODULE(Then),
                    MODULE(Else),

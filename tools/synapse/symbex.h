@@ -19,6 +19,7 @@ constexpr char FN_SET_CHECKSUM[] = "nf_set_rte_ipv4_udptcp_checksum";
 constexpr char FN_SET_CHECKSUM_ARG_IP[] = "ip_header";
 constexpr char FN_SET_CHECKSUM_ARG_L4[] = "l4_header";
 constexpr char FN_SET_CHECKSUM_ARG_PACKET[] = "packet";
+constexpr char CHECKSUM[] = "checksum";
 
 constexpr char FN_BORROW_CHUNK[] = "packet_borrow_next_chunk";
 constexpr char FN_RETURN_CHUNK[] = "packet_return_chunk";
@@ -39,6 +40,7 @@ constexpr char FN_DCHAIN_ARG_INDEX[] = "index";
 constexpr char FN_DCHAIN_ARG_OUT[] = "index_out";
 constexpr char DCHAIN_OUT_OF_SPACE[] = "out_of_space";
 constexpr char DCHAIN_NEW_INDEX[] = "new_index";
+constexpr char DCHAIN_IS_INDEX_ALLOCATED[] = "dchain_is_index_allocated";
 
 constexpr char FN_MAP_GET[] = "map_get";
 constexpr char FN_MAP_PUT[] = "map_put";

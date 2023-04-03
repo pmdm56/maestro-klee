@@ -42,8 +42,12 @@ public:
   Variable(std::string _label, bits_t _size_bits)
       : label(_label), size_bits(_size_bits) {}
 
-  std::string get_label() const { return label; }
+  const std::string &get_label() const { return label; }
   bits_t get_size_bits() const { return size_bits; }
+  
+  const std::vector<std::string> &get_vigor_symbols() const {
+    return vigor_symbols;
+  }
 
   void add_expr(klee::ref<klee::Expr> expr) { exprs.push_back(expr); }
 
@@ -84,7 +88,6 @@ public:
       }
 
       // check if symbol is base for incoming s
-
       auto delim = s.find(symbol);
 
       if (delim == std::string::npos || delim > 0) {

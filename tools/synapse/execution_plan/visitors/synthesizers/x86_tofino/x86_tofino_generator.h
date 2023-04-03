@@ -74,6 +74,7 @@ public:
   void visit(const targets::x86_tofino::PacketModifyIPv4Options *node) override;
   void visit(const targets::x86_tofino::PacketParseTCPUDP *node) override;
   void visit(const targets::x86_tofino::PacketModifyTCPUDP *node) override;
+  void visit(const targets::x86_tofino::PacketModifyChecksums *node) override;
   void visit(const targets::x86_tofino::If *node) override;
   void visit(const targets::x86_tofino::Then *node) override;
   void visit(const targets::x86_tofino::Else *node) override;
