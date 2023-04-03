@@ -89,21 +89,18 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
   auto pending_packet_borrow_ep =
       pending_packet_borrow_next_chunk(ep_node, synapse::TargetType::Tofino);
 
-  auto parsing = ingress.parser.is_active();
-
-  if (parsing && !pending_packet_borrow_ep) {
+  if (!pending_packet_borrow_ep) {
     ingress.parser.transition_accept();
-    ingress.parser.deactivate();
   }
 
   mod->visit(*this);
 
+  auto is_conditional =
+      ep_node->get_module()->get_type() == Module::ModuleType::Tofino_If;
+
   for (auto branch : next) {
     auto pending_chunk_borrowing_now = pending_packet_borrow_next_chunk(
         branch.get(), synapse::TargetType::Tofino);
-
-    auto is_conditional =
-        ep_node->get_module()->get_type() == Module::ModuleType::Tofino_If;
 
     if (is_conditional && pending_packet_borrow_ep &&
         !pending_chunk_borrowing_now) {
@@ -128,10 +125,7 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
 
   ingress.apply_block_builder.inc_indentation();
 
-  if (ingress.parser.is_active()) {
-    ingress.parser.add_condition(condition_transpiled);
-  }
-
+  ingress.parser.add_condition(condition_transpiled);
   ingress.local_vars.push();
   ingress.pending_ifs.push();
 }
@@ -139,18 +133,13 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
 void TofinoGenerator::visit(const targets::tofino::Then *node) {
   assert(node);
 
-  if (ingress.parser.is_active()) {
-    ingress.parser.push_on_true();
-  }
+  ingress.parser.push_on_true();
 }
 
 void TofinoGenerator::visit(const targets::tofino::Else *node) {
   assert(node);
 
-  if (ingress.parser.is_active()) {
-    ingress.parser.push_on_false();
-  }
-
+  ingress.parser.push_on_false();
   ingress.local_vars.push();
 
   ingress.apply_block_builder.indent();

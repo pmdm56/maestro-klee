@@ -453,14 +453,9 @@ void x86TofinoGenerator::visit(
   auto ip_hdr_label = ip_hdr_var.var->get_label();
   auto checksum_ip_offset_bytes = 10;
 
-  // auto checksum_transpiled = ip_hdr_var.var->get_label() + " + " 8;
-  // auto checksum_expr = kutil::solver_toolbox.exprBuilder->Extract(
-  //     ip_hdr_var.var->get_expr(), 80, 16);
-
   auto checksum_var =
       Variable(checksum_label, 16, {checksum_symbol});
   auto checksum_type = checksum_var.get_type();
-  // checksum_var.add_expr(checksum_expr);
   vars.append(checksum_var);
 
   nf_process_builder.indent();

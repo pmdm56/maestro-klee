@@ -24,41 +24,43 @@ private:
   std::vector<std::shared_ptr<state_t>> states;
 
   int state_id;
-  std::stack<bool> active;
 
 public:
   Parser(int indentation)
       : builder(indentation), accept(new terminator_state_t("accept")),
-        reject(new terminator_state_t("reject")), state_id(0), active() {
-    active.push(true);
-
+        reject(new terminator_state_t("reject")), state_id(0) {
     auto starter = std::shared_ptr<state_t>(new initial_state_t());
     states.push_back(starter);
     states_stack.push(starter);
   }
 
-  void deactivate() {
-    assert(active.size());
-    active.top() = false;
-  }
-
   bool is_active() const {
-    assert(active.size());
-    return active.top();
+    assert(states_stack.size());
+    auto current = states_stack.top();
+    return current->type != state_t::type_t::TERMINATOR;
   }
 
   void transition_accept() {
-    assert(is_active());
+    if (!is_active()) {
+      return;
+    }
+    
     transition(accept);
   }
 
   void transition_reject() {
-    assert(is_active());
+    if (!is_active()) {
+      return;
+    }
+
     transition(reject);
   }
 
   void push_on_true() {
-    assert(is_active());
+    if (!is_active()) {
+      return;
+    }
+
     assert(states_stack.size());
     auto current = states_stack.top();
 
@@ -68,7 +70,10 @@ public:
   }
 
   void push_on_false() {
-    assert(is_active());
+    if (!is_active()) {
+      return;
+    }
+
     assert(states_stack.size());
     auto current = states_stack.top();
 
@@ -78,7 +83,10 @@ public:
   }
 
   void pop() {
-    assert(active.size());
+    if (!is_active()) {
+      return;
+    }
+
     assert(states_stack.size());
 
     if (states_stack.top()->type == state_t::type_t::CONDITIONAL) {
@@ -90,11 +98,12 @@ public:
     }
 
     states_stack.pop();
-    active.pop();
   }
 
   void add_condition(const std::string &condition) {
-    assert(is_active());
+    if (!is_active()) {
+      return;
+    }
 
     std::stringstream conditional_label;
 
@@ -107,16 +116,21 @@ public:
         new conditional_state_t(conditional_label.str(), condition));
 
     transition(new_stage);
-
     states.push_back(new_stage);
-    states_stack.push(new_stage);
-    active.push(true);
   }
 
-  void add_extractor(std::string label) { add_extractor(label, std::string()); }
+  void add_extractor(std::string label) {
+    if (!is_active()) {
+      return;
+    }
+
+    add_extractor(label, std::string());
+  }
 
   void add_extractor(std::string hdr, std::string dynamic_length) {
-    assert(is_active());
+    if (!is_active()) {
+      return;
+    }
 
     std::stringstream label_stream;
     label_stream << "parse_";
@@ -134,8 +148,6 @@ public:
     }
 
     states.push_back(new_stage);
-    states_stack.push(new_stage);
-    active.push(true);
   }
 
   void synthesize(std::ostream &os) {
@@ -243,6 +255,7 @@ private:
     assert(is_active());
     assert(states_stack.size());
     auto current = states_stack.top();
+    states_stack.push(new_state);
 
     switch (current->type) {
     case state_t::type_t::INITIAL: {
