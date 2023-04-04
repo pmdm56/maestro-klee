@@ -453,8 +453,7 @@ void x86TofinoGenerator::visit(
   auto ip_hdr_label = ip_hdr_var.var->get_label();
   auto checksum_ip_offset_bytes = 10;
 
-  auto checksum_var =
-      Variable(checksum_label, 16, {checksum_symbol});
+  auto checksum_var = Variable(checksum_label, 16, {checksum_symbol});
   auto checksum_type = checksum_var.get_type();
   vars.append(checksum_var);
 

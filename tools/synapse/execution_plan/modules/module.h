@@ -143,14 +143,7 @@ public:
   TargetType get_target() const { return target; }
   TargetType get_next_target() const { return next_target; }
 
-  BDD::BDDNode_ptr get_node() const {
-    if (!node) {
-      Log::err() << get_target_name() << "::" << get_name() << " has no node\n";
-      assert(false && "Missing node");
-      exit(1);
-    }
-
-    assert(node);
+   BDD::BDDNode_ptr get_node() const {
     return node;
   }
 

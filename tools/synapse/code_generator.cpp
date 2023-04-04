@@ -285,7 +285,8 @@ x86_tofino_roots_t get_roots(const ExecutionPlan &execution_plan) {
   auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
 
   while (nodes.size()) {
-    auto &node = nodes[0];
+    auto node = nodes[0];
+    assert(node);
     nodes.erase(nodes.begin());
 
     auto module = node->get_module();
@@ -335,6 +336,7 @@ CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
 
     auto path_id = kutil::solver_toolbox.exprBuilder->Constant(
         root.second, code_path->getWidth());
+
     auto path_eq_path_id =
         kutil::solver_toolbox.exprBuilder->Eq(code_path, path_id);
 

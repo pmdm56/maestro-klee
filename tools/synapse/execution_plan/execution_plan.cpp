@@ -46,7 +46,8 @@ ExecutionPlan::ExecutionPlan(const ExecutionPlan &ep)
 
 ExecutionPlan::ExecutionPlan(const ExecutionPlan &ep,
                              ExecutionPlanNode_ptr _root)
-    : root(_root), bdd(ep.bdd), depth(0), nodes(0), reordered_nodes(0),
+    : root(_root), bdd(ep.bdd), shared_memory_bank(ep.shared_memory_bank),
+      memory_banks(ep.memory_banks), depth(0), nodes(0), reordered_nodes(0),
       id(counter++) {
   if (!_root) {
     return;
@@ -86,8 +87,8 @@ void ExecutionPlan::inc_reordered_nodes() { reordered_nodes++; }
 const ExecutionPlanNode_ptr &ExecutionPlan::get_root() const { return root; }
 
 std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes() const {
-  std::vector<ExecutionPlanNode_ptr> prev_nodes; 
-  
+  std::vector<ExecutionPlanNode_ptr> prev_nodes;
+
   auto current = get_active_leaf();
 
   while (current) {
@@ -99,7 +100,8 @@ std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes() const {
   return prev_nodes;
 }
 
-std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes_of_current_target() const {
+std::vector<ExecutionPlanNode_ptr>
+ExecutionPlan::get_prev_nodes_of_current_target() const {
   std::vector<ExecutionPlanNode_ptr> prev_nodes;
   auto current_platform = get_current_platform();
   auto current = get_active_leaf();
@@ -113,7 +115,7 @@ std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes_of_current_targ
   while (current) {
     auto m = current->get_module();
     assert(m);
-    
+
     if (m->get_target() == target) {
       prev_nodes.push_back(current);
     }

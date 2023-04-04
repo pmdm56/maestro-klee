@@ -83,6 +83,7 @@ public:
   template <class MB> MB *get_memory_bank(TargetType type) const {
     static_assert(std::is_base_of<MemoryBank, MB>::value,
                   "MB not derived from MemoryBank");
+    assert(memory_banks.find(type) != memory_banks.end());
     return static_cast<MB *>(memory_banks.at(type).get());
   }
 
