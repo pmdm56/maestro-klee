@@ -46,8 +46,10 @@ private:
 
   unsigned depth;
   unsigned nodes;
+  TargetType initial_target;
   std::unordered_set<TargetType> targets;
-  std::unordered_map<TargetType, uint64_t> targets_bdd_starting_points;
+  std::unordered_map<TargetType, std::unordered_set<uint64_t>>
+      targets_bdd_starting_points;
   std::map<TargetType, unsigned> nodes_per_target;
   unsigned reordered_nodes;
   unsigned id;
@@ -62,7 +64,9 @@ public:
   unsigned get_depth() const;
   unsigned get_nodes() const;
 
-  const std::unordered_map<TargetType, uint64_t>& get_targets_bdd_starting_points() const;
+  const std::unordered_map<TargetType, std::unordered_set<uint64_t>> &
+  get_targets_bdd_starting_points() const;
+
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
 
   unsigned get_id() const;
@@ -70,7 +74,7 @@ public:
   const BDD::BDD &get_bdd() const;
   BDD::BDD &get_bdd();
   unsigned get_reordered_nodes() const;
-  
+
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes() const;
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes_of_current_target() const;
 
@@ -93,7 +97,7 @@ public:
 
   BDD::BDDNode_ptr get_next_node() const;
   ExecutionPlanNode_ptr get_active_leaf() const;
-  std::pair<bool, TargetType> get_current_platform() const;
+  TargetType get_current_platform() const;
 
   ExecutionPlan replace_leaf(Module_ptr new_module,
                              const BDD::BDDNode_ptr &next,
@@ -126,7 +130,7 @@ public:
   ExecutionPlan clone(bool deep = false) const;
 
 private:
-  void update_targets_starting_points();
+  void update_targets_starting_points(std::vector<leaf_t> new_leaves);
   void update_leaves(std::vector<leaf_t> _leaves, bool is_terminal);
   void update_processed_nodes();
 

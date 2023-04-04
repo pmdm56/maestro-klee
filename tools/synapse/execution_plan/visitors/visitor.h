@@ -67,6 +67,13 @@ class Else;
 class Forward;
 class EthernetConsume;
 class EthernetModify;
+class IPv4Consume;
+class IPv4Modify;
+class IPv4OptionsConsume;
+class IPv4OptionsModify;
+class TCPUDPConsume;
+class TCPUDPModify;
+class IPv4TCPUDPChecksumsUpdate;
 class TableLookup;
 class Drop;
 class SendToController;
@@ -176,6 +183,13 @@ public:
   VISIT(targets::tofino::Drop)
   VISIT(targets::tofino::SendToController)
   VISIT(targets::tofino::SetupExpirationNotifications)
+  VISIT(targets::tofino::IPv4Consume)
+  VISIT(targets::tofino::IPv4Modify)
+  VISIT(targets::tofino::IPv4OptionsConsume)
+  VISIT(targets::tofino::IPv4OptionsModify)
+  VISIT(targets::tofino::TCPUDPConsume)
+  VISIT(targets::tofino::TCPUDPModify)
+  VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
 
   /*************************************
    *

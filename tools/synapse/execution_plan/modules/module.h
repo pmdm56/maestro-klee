@@ -9,6 +9,7 @@
 #include "../memory_bank.h"
 #include "../target.h"
 #include "../visitors/visitor.h"
+#include "../visitors/graphviz/graphviz.h"
 
 #define MODULE(X) (std::make_shared<X>())
 #define UINT_16_SWAP_ENDIANNESS(p) ((((p)&0xff) << 8) | ((p) >> 8 & 0xff))
@@ -75,6 +76,13 @@ public:
     Tofino_Forward,
     Tofino_EthernetConsume,
     Tofino_EthernetModify,
+    Tofino_IPv4Consume,
+    Tofino_IPv4Modify,
+    Tofino_IPv4OptionsConsume,
+    Tofino_IPv4OptionsModify,
+    Tofino_TCPUDPConsume,
+    Tofino_TCPUDPModify,
+    Tofino_IPv4TCPUDPChecksumsUpdate,
     Tofino_TableLookup,
     Tofino_Drop,
     Tofino_SendToController,

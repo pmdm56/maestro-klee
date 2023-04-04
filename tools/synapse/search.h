@@ -116,11 +116,9 @@ public:
 
         Log::dbg() << "Node           " << next_node->dump(true) << "\n";
 
-        if (next_ep.get_current_platform().first) {
-          auto platform = next_ep.get_current_platform().second;
-          Log::dbg() << "Current target " << Module::target_to_string(platform)
-                     << "\n";
-        }
+        auto platform = next_ep.get_current_platform();
+        Log::dbg() << "Current target " << Module::target_to_string(platform)
+                   << "\n";
 
         for (unsigned i = 0; i < report.target_name.size(); i++) {
           std::stringstream exec_plans_ids;
@@ -149,11 +147,9 @@ public:
         Log::dbg() << "Available      " << available << "\n";
         Log::dbg() << "Node           " << next_node->dump(true) << "\n";
 
-        if (next_ep.get_current_platform().first) {
-          auto platform = next_ep.get_current_platform().second;
-          Log::dbg() << "Current target " << Module::target_to_string(platform)
-                     << "\n";
-        }
+        auto platform = next_ep.get_current_platform();
+        Log::dbg() << "Current target " << Module::target_to_string(platform)
+                   << "\n";
 
         Log::wrn() << "No module can handle this BDD node"
                       " in the current context.\n";

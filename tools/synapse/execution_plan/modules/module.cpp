@@ -73,8 +73,8 @@ Module::process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
 }
 
 bool can_process_platform(const ExecutionPlan &ep, TargetType target) {
-  auto current_platform = ep.get_current_platform();
-  return !current_platform.first || (current_platform.second == target);
+  auto current_target = ep.get_current_platform();
+  return current_target == target;
 }
 
 processing_result_t Module::process_node(const ExecutionPlan &ep,
@@ -184,20 +184,22 @@ Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                                const std::string &function_name) const {
   std::vector<BDD::BDDNode_ptr> prev_functions;
 
-  auto current_platform = ep.get_current_platform();
-
-  if (!current_platform.first) {
-    return prev_functions;
-  }
-
-  auto target = current_platform.second;
+  auto target = ep.get_current_platform();
+  
   auto targets_bdd_starting_points = ep.get_targets_bdd_starting_points();
   auto starting_point_it = targets_bdd_starting_points.find(target);
 
   assert(node);
+  auto proceed = true;
 
-  while (node->get_prev()) {
+  while (proceed && node->get_prev()) {
     node = node->get_prev();
+
+    if (starting_point_it != targets_bdd_starting_points.end() &&
+        starting_point_it->second.find(node->get_id()) !=
+            starting_point_it->second.end()) {
+      proceed = false;
+    }
 
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       continue;
@@ -208,11 +210,6 @@ Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
 
     if (call.function_name == function_name) {
       prev_functions.push_back(node);
-    }
-
-    if (starting_point_it != targets_bdd_starting_points.end() &&
-        starting_point_it->second == node->get_id()) {
-      break;
     }
   }
 

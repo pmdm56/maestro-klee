@@ -40,7 +40,7 @@ ExecutionPlan::ExecutionPlan(const ExecutionPlan &ep)
     : root(ep.root), leaves(ep.leaves), bdd(ep.bdd),
       shared_memory_bank(ep.shared_memory_bank), memory_banks(ep.memory_banks),
       processed_bdd_nodes(ep.processed_bdd_nodes), depth(ep.depth),
-      nodes(ep.nodes), targets(ep.targets),
+      nodes(ep.nodes), initial_target(ep.initial_target), targets(ep.targets),
       targets_bdd_starting_points(ep.targets_bdd_starting_points),
       nodes_per_target(ep.nodes_per_target),
       reordered_nodes(ep.reordered_nodes), id(ep.id) {}
@@ -75,7 +75,7 @@ ExecutionPlan::get_nodes_per_target() const {
   return nodes_per_target;
 }
 
-const std::unordered_map<TargetType, uint64_t> &
+const std::unordered_map<TargetType, std::unordered_set<uint64_t>> &
 ExecutionPlan::get_targets_bdd_starting_points() const {
   return targets_bdd_starting_points;
 }
@@ -109,14 +109,8 @@ std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes() const {
 std::vector<ExecutionPlanNode_ptr>
 ExecutionPlan::get_prev_nodes_of_current_target() const {
   std::vector<ExecutionPlanNode_ptr> prev_nodes;
-  auto current_platform = get_current_platform();
+  auto target = get_current_platform();
   auto current = get_active_leaf();
-
-  if (!current_platform.first) {
-    return prev_nodes;
-  }
-
-  auto target = current_platform.second;
 
   while (current) {
     auto m = current->get_module();
@@ -136,6 +130,10 @@ void ExecutionPlan::add_target(TargetType type, MemoryBank_ptr mb) {
   assert(targets.find(type) == targets.end());
   assert(memory_banks.find(type) == memory_banks.end());
 
+  if (targets.size() == 0) {
+    initial_target = type;
+  }
+
   targets.insert(type);
   memory_banks[type] = mb;
 }
@@ -153,8 +151,10 @@ ExecutionPlan::get_processed_bdd_nodes() const {
   return processed_bdd_nodes;
 }
 
-void ExecutionPlan::update_targets_starting_points() {
-  for (auto leaf : leaves) {
+void ExecutionPlan::update_targets_starting_points(std::vector<leaf_t> new_leaves) {
+  auto current_target = get_current_platform();
+
+  for (auto leaf : new_leaves) {
     if (!leaf.next) {
       continue;
     }
@@ -162,21 +162,23 @@ void ExecutionPlan::update_targets_starting_points() {
     assert(leaf.current_platform.first);
     auto next_target = leaf.current_platform.second;
 
-    auto found_it = targets_bdd_starting_points.find(next_target);
-
-    if (found_it == targets_bdd_starting_points.end()) {
-      targets_bdd_starting_points[next_target] = leaf.next->get_id();
+    if (current_target != next_target) {
+      auto starting_point = leaf.next->get_id();
+      targets_bdd_starting_points[next_target].insert(starting_point);
     }
   }
 }
 
 void ExecutionPlan::update_leaves(std::vector<leaf_t> _leaves,
                                   bool is_terminal) {
+  update_targets_starting_points(_leaves);
+  
   assert(leaves.size());
 
   if (leaves.size()) {
     leaves.erase(leaves.begin());
   }
+
 
   for (auto leaf : _leaves) {
     if (!leaf.next && is_terminal) {
@@ -186,7 +188,6 @@ void ExecutionPlan::update_leaves(std::vector<leaf_t> _leaves,
     leaves.insert(leaves.begin(), leaf);
   }
 
-  update_targets_starting_points();
 }
 
 ExecutionPlanNode_ptr
@@ -266,15 +267,12 @@ ExecutionPlanNode_ptr ExecutionPlan::get_active_leaf() const {
   return leaf;
 }
 
-std::pair<bool, TargetType> ExecutionPlan::get_current_platform() const {
-  std::pair<bool, TargetType> current_platform;
-  current_platform.first = false;
-
-  if (leaves.size()) {
-    current_platform = leaves[0].current_platform;
+TargetType ExecutionPlan::get_current_platform() const {
+  if (leaves.size() && leaves[0].current_platform.first) {
+    return leaves[0].current_platform.second;
   }
 
-  return current_platform;
+  return initial_target;
 }
 
 ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
@@ -315,8 +313,6 @@ ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
   new_ep.leaves[0].current_platform.first = true;
   new_ep.leaves[0].current_platform.second = next_target;
 
-  new_ep.update_targets_starting_points();
-
   return new_ep;
 }
 
@@ -336,7 +332,6 @@ ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::BDDNode_ptr &next,
   new_ep.leaves[0].current_platform.second = next_target;
 
   new_ep.nodes_per_target[next_target]++;
-  new_ep.update_targets_starting_points();
 
   return new_ep;
 }
