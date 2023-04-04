@@ -144,9 +144,7 @@ public:
   TargetType get_target() const { return target; }
   TargetType get_next_target() const { return next_target; }
 
-   BDD::BDDNode_ptr get_node() const {
-    return node;
-  }
+  BDD::BDDNode_ptr get_node() const { return node; }
 
   void replace_node(BDD::BDDNode_ptr _node) {
     node = _node;
@@ -207,7 +205,7 @@ protected:
   get_past_node_that_generates_symbol(const BDD::Node *current_node,
                                       const std::string &symbol) const;
   std::vector<BDD::BDDNode_ptr>
-  get_all_prev_functions(const ExecutionPlan &ep,
+  get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                          const std::string &function_name) const;
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,

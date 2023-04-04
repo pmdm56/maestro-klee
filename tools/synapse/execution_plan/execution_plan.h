@@ -47,6 +47,7 @@ private:
   unsigned depth;
   unsigned nodes;
   std::unordered_set<TargetType> targets;
+  std::unordered_map<TargetType, uint64_t> targets_bdd_starting_points;
   std::map<TargetType, unsigned> nodes_per_target;
   unsigned reordered_nodes;
   unsigned id;
@@ -61,6 +62,7 @@ public:
   unsigned get_depth() const;
   unsigned get_nodes() const;
 
+  const std::unordered_map<TargetType, uint64_t>& get_targets_bdd_starting_points() const;
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
 
   unsigned get_id() const;
@@ -124,6 +126,7 @@ public:
   ExecutionPlan clone(bool deep = false) const;
 
 private:
+  void update_targets_starting_points();
   void update_leaves(std::vector<leaf_t> _leaves, bool is_terminal);
   void update_processed_nodes();
 

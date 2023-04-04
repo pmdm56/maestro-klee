@@ -20,6 +20,8 @@ enum TargetType {
   BMv2,
 };
 
+std::ostream &operator<<(std::ostream &os, TargetType type);
+
 struct Target {
   const TargetType type;
   const std::vector<Module_ptr> modules;
@@ -30,4 +32,5 @@ struct Target {
 };
 
 typedef std::shared_ptr<Target> Target_ptr;
+
 } // namespace synapse

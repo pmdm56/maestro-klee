@@ -166,8 +166,8 @@ public:
       // Graphviz::visualize(next_ep);
     }
 
-    Log::log() << "solutions: " << h.get_all().size() << "\n";
-    Log::log() << "winner:    " << h.get_score(h.get()) << "\n";
+    Log::log() << "Solutions:      " << h.get_all().size() << "\n";
+    Log::log() << "Winner:         " << h.get_score(h.get()) << "\n";
 
     // Graphviz::visualize(h.get());
     // Graphviz::visualize(h.get_all().back());

@@ -180,17 +180,24 @@ Module::get_past_node_that_generates_symbol(const BDD::Node *current_node,
 }
 
 std::vector<BDD::BDDNode_ptr>
-Module::get_all_prev_functions(const ExecutionPlan &ep,
+Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                                const std::string &function_name) const {
-  auto prev = ep.get_prev_nodes_of_current_target();
-  std::vector<BDD::BDDNode_ptr> prev_packet_borrow_next_chunk;
+  std::vector<BDD::BDDNode_ptr> prev_functions;
 
-  for (auto ep_node : prev) {
-    auto ep_module = ep_node->get_module();
-    assert(ep_module);
+  auto current_platform = ep.get_current_platform();
 
-    auto node = ep_module->get_node();
-    assert(node);
+  if (!current_platform.first) {
+    return prev_functions;
+  }
+
+  auto target = current_platform.second;
+  auto targets_bdd_starting_points = ep.get_targets_bdd_starting_points();
+  auto starting_point_it = targets_bdd_starting_points.find(target);
+
+  assert(node);
+
+  while (node->get_prev()) {
+    node = node->get_prev();
 
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       continue;
@@ -200,11 +207,16 @@ Module::get_all_prev_functions(const ExecutionPlan &ep,
     auto call = call_node->get_call();
 
     if (call.function_name == function_name) {
-      prev_packet_borrow_next_chunk.push_back(node);
+      prev_functions.push_back(node);
+    }
+
+    if (starting_point_it != targets_bdd_starting_points.end() &&
+        starting_point_it->second == node->get_id()) {
+      break;
     }
   }
 
-  return prev_packet_borrow_next_chunk;
+  return prev_functions;
 }
 
 std::vector<Module::modification_t>

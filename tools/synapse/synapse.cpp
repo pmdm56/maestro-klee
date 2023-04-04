@@ -68,10 +68,9 @@ llvm::cl::opt<int> MaxReordered(
         "Maximum number of reordenations on the BDD (-1 for unlimited)."),
     llvm::cl::Optional, llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
 
-llvm::cl::opt<bool> Show("s",
-                            llvm::cl::desc("Show winner Execution Plan."),
-                            llvm::cl::ValueDisallowed, llvm::cl::init(false),
-                            llvm::cl::cat(SyNAPSE));
+llvm::cl::opt<bool> Show("s", llvm::cl::desc("Show winner Execution Plan."),
+                         llvm::cl::ValueDisallowed, llvm::cl::init(false),
+                         llvm::cl::cat(SyNAPSE));
 
 llvm::cl::opt<bool> Verbose("v", llvm::cl::desc("Verbose mode."),
                             llvm::cl::ValueDisallowed, llvm::cl::init(false),
@@ -98,6 +97,41 @@ BDD::BDD build_bdd() {
   return BDD::BDD(call_paths);
 }
 
+synapse::ExecutionPlan search(const BDD::BDD &bdd) {
+  synapse::SearchEngine search_engine(bdd, MaxReordered);
+
+  for (unsigned i = 0; i != TargetList.size(); ++i) {
+    auto target = TargetList[i];
+    search_engine.add_target(target);
+  }
+
+  synapse::Biggest biggest;
+  synapse::DFS dfs;
+  synapse::MostCompact most_compact;
+  synapse::LeastReordered least_reordered;
+  synapse::MaximizeSwitchNodes maximize_switch_nodes;
+  synapse::ExactMatch exact_match;
+
+  // auto winner = search_engine.search(biggest);
+  // auto winner = search_engine.search(least_reordered);
+  // auto winner = search_engine.search(dfs);
+  // auto winner = search_engine.search(most_compact);
+  auto winner = search_engine.search(maximize_switch_nodes);
+
+  return winner;
+}
+
+void synthesize(const synapse::ExecutionPlan &ep) {
+  synapse::CodeGenerator code_generator(Out);
+
+  for (unsigned i = 0; i != TargetList.size(); ++i) {
+    auto target = TargetList[i];
+    code_generator.add_target(target);
+  }
+
+  code_generator.generate(ep);
+}
+
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
@@ -109,47 +143,36 @@ int main(int argc, char **argv) {
 
   BDD::BDD bdd = build_bdd();
 
-  synapse::SearchEngine search_engine(bdd, MaxReordered);
-  synapse::CodeGenerator code_generator(Out);
-
-  for (unsigned i = 0; i != TargetList.size(); ++i) {
-    auto target = TargetList[i];
-    search_engine.add_target(target);
-    code_generator.add_target(target);
-  }
-
-  synapse::Biggest biggest;
-  synapse::DFS dfs;
-  synapse::MostCompact most_compact;
-  synapse::LeastReordered least_reordered;
-  synapse::MaximizeSwitchNodes maximize_switch_nodes;
-  synapse::ExactMatch exact_match;
-
   auto start_search = std::chrono::steady_clock::now();
-  // auto winner = search_engine.search(biggest);
-  // auto winner = search_engine.search(least_reordered);
-  // auto winner = search_engine.search(dfs);
-  // auto winner = search_engine.search(most_compact);
-  auto winner = search_engine.search(maximize_switch_nodes);
+  auto winner = search(bdd);
   auto end_search = std::chrono::steady_clock::now();
+
+  auto search_dt = std::chrono::duration_cast<std::chrono::seconds>(
+                       end_search - start_search)
+                       .count();
 
   if (Show) {
     synapse::Graphviz::visualize(winner);
   }
 
-  auto start_synthesis = std::chrono::steady_clock::now();
-  code_generator.generate(winner);
-  auto end_synthesis = std::chrono::steady_clock::now();
+  int64_t synthesis_dt = -1;
 
-  auto search_dt = std::chrono::duration_cast<std::chrono::seconds>(
-                       end_search - start_search)
-                       .count();
-  auto synthesis_dt = std::chrono::duration_cast<std::chrono::seconds>(
-                          end_synthesis - start_synthesis)
-                          .count();
+  if (Out.size()) {
+    auto start_synthesis = std::chrono::steady_clock::now();
+    synthesize(winner);
+    auto end_synthesis = std::chrono::steady_clock::now();
+
+    synthesis_dt = std::chrono::duration_cast<std::chrono::seconds>(
+                            end_synthesis - start_synthesis)
+                            .count();
+  }
+
 
   synapse::Log::log() << "Search time:    " << search_dt << " sec\n";
-  synapse::Log::log() << "Synthesis time: " << synthesis_dt << " sec\n";
+
+  if (synthesis_dt >= 0) {
+    synapse::Log::log() << "Synthesis time: " << synthesis_dt << " sec\n";
+  }
 
   return 0;
 }
