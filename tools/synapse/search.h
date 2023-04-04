@@ -66,12 +66,11 @@ public:
       auto next_node = next_ep.get_next_node();
       assert(next_node);
 
-      // Graphviz::visualize(next_ep);
-
       struct report_t {
         std::vector<std::string> target_name;
         std::vector<std::string> name;
         std::vector<unsigned> generated_contexts;
+        std::vector<std::vector<unsigned>> generated_exec_plans_ids;
       };
 
       report_t report;
@@ -84,6 +83,11 @@ public:
             report.target_name.push_back(module->get_target_name());
             report.name.push_back(module->get_name());
             report.generated_contexts.push_back(result.next_eps.size());
+            report.generated_exec_plans_ids.emplace_back();
+
+            for (const auto &ep : result.next_eps) {
+              report.generated_exec_plans_ids.back().push_back(ep.get_id());
+            }
 
             h.add(result.next_eps);
             search_space.add_leaves(next_ep, result.module, result.next_eps);
@@ -98,10 +102,18 @@ public:
         Log::dbg()
             << "=======================================================\n";
         Log::dbg() << "Available      " << available << "\n";
+        Log::dbg() << "Execution Plan " << next_ep.get_id() << "\n";
         Log::dbg() << "BDD progress   " << std::fixed << std::setprecision(2)
                    << 100 * next_ep.get_percentage_of_processed_bdd_nodes()
                    << " %"
                    << "\n";
+
+        auto leaf = next_ep.get_active_leaf();
+        if (leaf && leaf->get_module()) {
+          Log::dbg() << "Leaf           " << leaf->get_module()->get_name()
+                     << "\n";
+        }
+
         Log::dbg() << "Node           " << next_node->dump(true) << "\n";
 
         if (next_ep.get_current_platform().first) {
@@ -111,9 +123,20 @@ public:
         }
 
         for (unsigned i = 0; i < report.target_name.size(); i++) {
+          std::stringstream exec_plans_ids;
+          exec_plans_ids << "[";
+          for (auto j = 0u; j < report.generated_exec_plans_ids[i].size();
+               j++) {
+            if (j != 0) {
+              exec_plans_ids << ",";
+            }
+            exec_plans_ids << report.generated_exec_plans_ids[i][j];
+          }
+          exec_plans_ids << "]";
+
           Log::dbg() << "MATCH          " << report.target_name[i]
-                     << "::" << report.name[i] << " -> "
-                     << report.generated_contexts[i] << " exec plans"
+                     << "::" << report.name[i] << " -> " << exec_plans_ids.str()
+                     << " (" << report.generated_contexts[i] << ") exec plans "
                      << "\n";
         }
 
@@ -139,6 +162,8 @@ public:
         Log::dbg()
             << "=======================================================\n";
       }
+
+      // Graphviz::visualize(next_ep);
     }
 
     Log::log() << "solutions: " << h.get_all().size() << "\n";

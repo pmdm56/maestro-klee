@@ -78,6 +78,7 @@ public:
     Tofino_TableLookup,
     Tofino_Drop,
     Tofino_SendToController,
+    Tofino_SetupExpirationNotifications,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
     x86_Tofino_SendToTofino,

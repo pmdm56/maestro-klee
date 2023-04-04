@@ -18,6 +18,7 @@ public:
     functions_to_ignore = std::vector<std::string>{
         symbex::FN_CURRENT_TIME,
         symbex::FN_EXPIRE_MAP,
+        symbex::FN_ETHER_HASH,
     };
   }
 

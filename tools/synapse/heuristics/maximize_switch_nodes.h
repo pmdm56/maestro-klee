@@ -11,7 +11,8 @@ struct MaximizeSwitchNodesComparator : public HeuristicConfiguration {
 
     score.add(Score::Category::NumberOfMergedTables);
     score.add(Score::Category::NumberOfSwitchNodes);
-    score.add(Score::Category::NumberOfNodes, Score::MINIMIZE);
+    score.add(Score::Category::NumberOfSwitchLeaves);
+    // score.add(Score::Category::NumberOfNodes, Score::MINIMIZE);
 
     return score;
   }

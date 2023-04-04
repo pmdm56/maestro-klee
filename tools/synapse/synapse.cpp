@@ -4,10 +4,12 @@
 #include "klee/util/ExprSMTLIBPrinter.h"
 #include "klee/util/ExprVisitor.h"
 #include "llvm/Support/CommandLine.h"
+
 #include <klee/Constraints.h>
 #include <klee/Solver.h>
 
 #include <algorithm>
+#include <chrono>
 #include <dlfcn.h>
 #include <expr/Parser.h>
 #include <fstream>
@@ -66,6 +68,11 @@ llvm::cl::opt<int> MaxReordered(
         "Maximum number of reordenations on the BDD (-1 for unlimited)."),
     llvm::cl::Optional, llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
 
+llvm::cl::opt<bool> Show("s",
+                            llvm::cl::desc("Show winner Execution Plan."),
+                            llvm::cl::ValueDisallowed, llvm::cl::init(false),
+                            llvm::cl::cat(SyNAPSE));
+
 llvm::cl::opt<bool> Verbose("v", llvm::cl::desc("Verbose mode."),
                             llvm::cl::ValueDisallowed, llvm::cl::init(false),
                             llvm::cl::cat(SyNAPSE));
@@ -118,13 +125,31 @@ int main(int argc, char **argv) {
   synapse::MaximizeSwitchNodes maximize_switch_nodes;
   synapse::ExactMatch exact_match;
 
-  auto winner = search_engine.search(biggest);
+  auto start_search = std::chrono::steady_clock::now();
+  // auto winner = search_engine.search(biggest);
   // auto winner = search_engine.search(least_reordered);
   // auto winner = search_engine.search(dfs);
   // auto winner = search_engine.search(most_compact);
-  // auto winner = search_engine.search(maximize_switch_nodes);
+  auto winner = search_engine.search(maximize_switch_nodes);
+  auto end_search = std::chrono::steady_clock::now();
 
+  if (Show) {
+    synapse::Graphviz::visualize(winner);
+  }
+
+  auto start_synthesis = std::chrono::steady_clock::now();
   code_generator.generate(winner);
+  auto end_synthesis = std::chrono::steady_clock::now();
+
+  auto search_dt = std::chrono::duration_cast<std::chrono::seconds>(
+                       end_search - start_search)
+                       .count();
+  auto synthesis_dt = std::chrono::duration_cast<std::chrono::seconds>(
+                          end_synthesis - start_synthesis)
+                          .count();
+
+  synapse::Log::log() << "Search time:    " << search_dt << " sec\n";
+  synapse::Log::log() << "Synthesis time: " << synthesis_dt << " sec\n";
 
   return 0;
 }

@@ -12,6 +12,7 @@
 #include "ignore.h"
 #include "memory_bank.h"
 #include "send_to_controller.h"
+#include "setup_expiration_notifications.h"
 #include "table_lookup.h"
 #include "then.h"
 
@@ -34,6 +35,7 @@ public:
                    MODULE(TableLookup),
                    MODULE(Drop),
                    MODULE(SendToController),
+                   MODULE(SetupExpirationNotifications),
                },
                MemoryBank_ptr(new TofinoMemoryBank())) {}
 

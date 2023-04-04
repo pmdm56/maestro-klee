@@ -427,6 +427,7 @@ VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetModify)
 VISIT_PRINT_MODULE_NAME(targets::tofino::TableLookup)
 VISIT_PRINT_MODULE_NAME(targets::tofino::Drop)
 VISIT_PRINT_MODULE_NAME(targets::tofino::SendToController)
+VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)
 
 /********************************************
  *

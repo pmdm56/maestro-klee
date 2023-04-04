@@ -70,6 +70,7 @@ class EthernetModify;
 class TableLookup;
 class Drop;
 class SendToController;
+class SetupExpirationNotifications;
 } // namespace tofino
 
 namespace x86_tofino {
@@ -174,6 +175,7 @@ public:
   VISIT(targets::tofino::TableLookup)
   VISIT(targets::tofino::Drop)
   VISIT(targets::tofino::SendToController)
+  VISIT(targets::tofino::SetupExpirationNotifications)
 
   /*************************************
    *
