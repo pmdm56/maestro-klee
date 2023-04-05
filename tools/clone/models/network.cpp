@@ -85,15 +85,20 @@ namespace Clone {
 
 		while(!q_transitions.empty()) {
 			const unsigned port = q_transitions.front()->input_port;
-			const auto &node = q_transitions.front()->node;
-			const auto &tail = q_transitions.front()->tail;
-			const auto &nf = nfs.at(node->get_name());
+			const auto node = q_transitions.front()->node;
+			const auto tail = q_transitions.front()->tail;
+			const auto nf = nfs.at(node->get_name());
 			assert(nf != nullptr);
 
 			q_transitions.pop_front();
 
 			builder->join_init(nf);
 			Tails &tails = builder->join_process(nf, port, tail);
+			auto file = std::ofstream("graph.gv");
+			BDD::GraphvizGenerator g(file);
+			g.visualize(*builder->get_bdd(), true, false);
+			exit(0);
+			
 
 			while(!tails.empty()) {
 				auto &tail = tails.front();
@@ -108,6 +113,7 @@ namespace Clone {
 					q_transitions.push_front(make_shared<NodeTransition>(port, node, tail));
 				}
 			}
+
 		}
 	}
 
