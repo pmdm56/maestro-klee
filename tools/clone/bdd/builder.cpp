@@ -21,12 +21,12 @@ namespace Clone {
 
 	/* Private methods */
 
-	const Tails& Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
+	Tails& Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
 		assert(root);
 
 		stack<BDDNode_ptr> s;
 
-		deque<BDDNode_ptr> q_tails;
+		Tails tails;
 		s.push(root);
 
 		while(!s.empty()) {
@@ -107,7 +107,7 @@ namespace Clone {
 
 					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
 						debug("Found a process tail ", ret->get_id());
-						q_tails.push_back(curr);
+						tails.push_back(curr);
 					}
 
 					break;
@@ -120,7 +120,7 @@ namespace Clone {
 			}
 		}
 
-		return q_tails;
+		return tails;
 	}
 
 	void Builder::trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
@@ -215,20 +215,13 @@ namespace Clone {
 		merged_inits.insert(nf->get_id());
 	}
 
-	const Tails& Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const Tails &process_tails) {
+	Tails &Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const BDD::BDDNode_ptr &tail) {
 		assert(process_root != nullptr);
 
-		Tails tails_all;
+		auto root = nf->get_bdd()->get_process()->clone();
+		trim_node(tail, root);
 
-		for(auto &tail: process_tails) {
-			auto root = nf->get_bdd()->get_process()->clone();
-			trim_node(tail, root);
-
-			const Tails &tails = clone_node(root, port);
-			tails_all.insert(tails_all.end(), tails.begin(), tails.end());
-		}
-
-		return tails_all;
+		return clone_node(root, port);
 	}
 
 	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {

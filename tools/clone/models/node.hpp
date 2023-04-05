@@ -26,6 +26,8 @@ namespace Clone {
 		NodeType get_node_type() const;
 
 		std::unordered_map<unsigned, std::pair<unsigned, std::shared_ptr<Node>>> get_children() const;
+		std::pair<unsigned, std::shared_ptr<Node>> get_child(unsigned port) const;
+
 
 		void add_child(unsigned port_from, unsigned port_to, const std::shared_ptr<Node> &node);
 

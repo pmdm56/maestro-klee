@@ -76,35 +76,37 @@ namespace Clone {
 		/* Input port | Node */
 		assert(nfs.find(origin->get_name()) != nfs.end());
 		const auto &nf = nfs.at(origin->get_name());
-		assert(nf->get_bdd() != nullptr);
-		const auto &bdd = nf->get_bdd();
 
 		builder->add_process_branch(input_port);
 
-		deque<pair<pair<unsigned, const shared_ptr<NF> &>, Tails>> q_roots;
+		deque<shared_ptr<NodeTransition>> q_transitions;
 
-		auto p = make_pair(input_port, nf);
+		q_transitions.push_front(std::make_shared<NodeTransition>(input_port, origin, builder->get_process_root()));
 
-		Tails tails;
-		tails.push_front(builder->get_process_root());
-		q_roots.push_back(make_pair(p, tails));
+		while(!q_transitions.empty()) {
+			const unsigned port = q_transitions.front()->input_port;
+			const auto &node = q_transitions.front()->node;
+			const auto &tail = q_transitions.front()->tail;
+			const auto &nf = nfs.at(node->get_name());
+			assert(nf != nullptr);
 
-		while(!q_roots.empty()) {
-			const unsigned port = q_roots.front().first.first;
-			const auto &nf = q_roots.front().first.second;
-			const auto &roots = q_roots.front().second;
-			q_roots.pop_front();
+			q_transitions.pop_front();
 
 			builder->join_init(nf);
-			Tails tails = builder->join_process(nf, port, roots);
+			Tails &tails = builder->join_process(nf, port, tail);
 
 			while(!tails.empty()) {
 				auto &tail = tails.front();
 				tails.pop_front();
 				auto return_process = static_cast<BDD::ReturnProcess*>(tail.get());
 				unsigned port_next = return_process->get_return_value();
+				const auto &p = node->get_child(port_next);
 
-				
+				if(p.second != nullptr) {
+					const unsigned port = p.first;
+					const auto &node = p.second;
+					q_transitions.push_front(make_shared<NodeTransition>(port, node, tail));
+				}
 			}
 		}
 	}

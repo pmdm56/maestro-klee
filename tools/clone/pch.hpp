@@ -33,6 +33,7 @@ using std::make_pair;
 using std::move;
 using std::unique_ptr;
 using std::shared_ptr;
+using std::make_shared;
 
 using std::stoi;
 using std::stoul;

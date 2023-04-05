@@ -39,6 +39,15 @@ namespace Clone {
 
 	typedef std::shared_ptr<Node> NodePtr;
 
+	struct NodeTransition {
+		unsigned input_port;
+		std::shared_ptr<Node> node;
+		BDD::BDDNode_ptr tail;
+
+		NodeTransition(unsigned input_port, std::shared_ptr<Node> node, BDD::BDDNode_ptr tail)
+			: input_port(input_port), node(node), tail(tail) {}
+	};
+
 	/**
 	 * This class represents a network.
 	 * 
