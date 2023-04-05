@@ -93,7 +93,8 @@ namespace Clone {
 			q_transitions.pop_front();
 
 			builder->join_init(nf);
-			Tails &tails = builder->join_process(nf, port, tail);
+			Tails tails = builder->join_process(nf, port, tail);
+			debug(tails.size());
 			auto file = std::ofstream("graph.gv");
 			BDD::GraphvizGenerator g(file);
 			g.visualize(*builder->get_bdd(), true, false);

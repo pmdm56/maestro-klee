@@ -21,7 +21,7 @@ namespace Clone {
 
 	/* Private methods */
 
-	Tails& Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
+	Tails Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
 		assert(root);
 
 		stack<BDDNode_ptr> s;
@@ -215,7 +215,7 @@ namespace Clone {
 		merged_inits.insert(nf->get_id());
 	}
 
-	Tails &Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const BDD::BDDNode_ptr &tail) {
+	Tails Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const BDD::BDDNode_ptr &tail) {
 		assert(process_root != nullptr);
 
 		auto root = nf->get_bdd()->get_process()->clone();

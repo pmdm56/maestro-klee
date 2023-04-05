@@ -27,7 +27,7 @@ namespace Clone {
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
 		void trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
-		Tails &clone_node(BDD::BDDNode_ptr node, unsigned input_port);
+		Tails clone_node(BDD::BDDNode_ptr node, unsigned input_port);
 	public:
 		~Builder();
 
@@ -42,7 +42,7 @@ namespace Clone {
 		void initialise_process(const std::shared_ptr<const BDD::BDD> &bdd);
 
 		void join_init(const std::shared_ptr<NF> &nf);
-		Tails &join_process(const std::shared_ptr<NF> &nf, unsigned input_port, const BDD::BDDNode_ptr &tail);
+		Tails join_process(const std::shared_ptr<NF> &nf, unsigned input_port, const BDD::BDDNode_ptr &tail);
 
 		BDD::BDDNode_ptr get_process_root() const;
 		
