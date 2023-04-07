@@ -8,8 +8,8 @@
 #include "../execution_plan_node.h"
 #include "../memory_bank.h"
 #include "../target.h"
-#include "../visitors/visitor.h"
 #include "../visitors/graphviz/graphviz.h"
+#include "../visitors/visitor.h"
 
 #define MODULE(X) (std::make_shared<X>())
 #define UINT_16_SWAP_ENDIANNESS(p) ((((p)&0xff) << 8) | ((p) >> 8 & 0xff))
@@ -209,6 +209,7 @@ protected:
 protected:
   // General useful queries
   bool query_contains_map_has_key(const BDD::Branch *node) const;
+
   BDD::BDDNode_ptr
   get_past_node_that_generates_symbol(const BDD::Node *current_node,
                                       const std::string &symbol) const;

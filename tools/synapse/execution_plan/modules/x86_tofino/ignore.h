@@ -39,7 +39,7 @@ private:
     auto time_symbol = *_generated_symbols.begin();
 
     auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
-    mb->set_time(time_symbol);
+    mb->add_time(time_symbol);
   }
 
   void process_expire_items_single_map(const ExecutionPlan &ep,

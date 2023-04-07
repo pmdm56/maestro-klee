@@ -185,7 +185,7 @@ Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
   std::vector<BDD::BDDNode_ptr> prev_functions;
 
   auto target = ep.get_current_platform();
-  
+
   auto targets_bdd_starting_points = ep.get_targets_bdd_starting_points();
   auto starting_point_it = targets_bdd_starting_points.find(target);
 

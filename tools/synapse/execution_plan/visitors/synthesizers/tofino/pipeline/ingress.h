@@ -11,7 +11,6 @@
 #include "domain/variable.h"
 
 #include "headers.h"
-#include "parser.h"
 
 namespace synapse {
 namespace synthesizer {
@@ -30,16 +29,13 @@ public:
   CodeBuilder user_metadata_builder;
 
   Headers headers;
-  Parser parser;
 
   stack_t local_vars;
   PendingIfs pending_ifs;
 
-  Ingress(int state_ind, int apply_block_ind, int user_meta_ind,
-          int headers_defs_ind, int headers_decl_ind, int parser_ind)
+  Ingress(int state_ind, int apply_block_ind, int user_meta_ind)
       : state_builder(state_ind), apply_block_builder(apply_block_ind),
         user_metadata_builder(user_meta_ind),
-        headers(headers_defs_ind, headers_decl_ind), parser(parser_ind),
         pending_ifs(apply_block_builder) {
     intrinsic_metadata = std::vector<Variable>{
         {
@@ -63,8 +59,6 @@ public:
             INGRESS_INTRINSIC_META_TIMESTAMP_SIZE_BITS,
         },
     };
-    
-    
   }
 
   variable_query_t search_variable(std::string symbol) const {

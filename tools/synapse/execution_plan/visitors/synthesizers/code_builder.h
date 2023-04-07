@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../../log.h"
+
 #include <assert.h>
 #include <sstream>
 #include <unordered_map>

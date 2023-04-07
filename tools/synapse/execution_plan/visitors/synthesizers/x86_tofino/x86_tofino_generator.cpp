@@ -78,6 +78,20 @@ x86TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   return variable_query_t();
 }
 
+bool get_dataplane_table_name(const ExecutionPlan &ep,
+                              klee::ref<klee::Expr> obj,
+                              std::string &table_name) {
+  auto mb = ep.get_memory_bank();
+
+  if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
+    auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
+    table_name = tmb->get_obj_addr_to_table_name(obj);
+    return true;
+  }
+
+  return false;
+}
+
 void x86TofinoGenerator::init_state(ExecutionPlan ep) {
   auto mb = ep.get_memory_bank<target::x86TofinoMemoryBank>(x86_Tofino);
   auto data_structures = mb->get_data_structures();
@@ -103,7 +117,20 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
       state_init_builder.append(label);
       state_init_builder.append(" = Map<");
       state_init_builder.append(value_type);
-      state_init_builder.append(">::build();");
+      state_init_builder.append(">::build(");
+
+      std::string table_name;
+
+      auto has_dataplane =
+          get_dataplane_table_name(ep, map_ds->addr, table_name);
+
+      if (has_dataplane) {
+        state_init_builder.append("\"");
+        state_init_builder.append(table_name);
+        state_init_builder.append("\"");
+      }
+
+      state_init_builder.append(");");
       state_init_builder.append_new_line();
 
       vars.append(map_var);
@@ -134,12 +161,15 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
     }
   }
 
-  auto time = mb->get_time();
-  assert(!time.expr.isNull());
-
-  auto time_var = Variable(TIME_VAR_LABEL, time.expr->getWidth(), {time.label});
-  time_var.add_expr(time.expr);
-  vars.append(time_var);
+  // For multiple SendToController operations, we have multiple next_time
+  // symbols
+  for (auto time : mb->get_time()) {
+    assert(!time.expr.isNull());
+    auto time_var =
+        Variable(TIME_VAR_LABEL, time.expr->getWidth(), {time.label});
+    time_var.add_expr(time.expr);
+    vars.append(time_var);
+  }
 
   auto packet_len_var =
       Variable(PACKET_LENGTH_VAR_LABEL, 32, {symbex::PACKET_LENGTH});

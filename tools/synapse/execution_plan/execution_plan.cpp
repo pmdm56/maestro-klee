@@ -187,7 +187,6 @@ void ExecutionPlan::update_leaves(std::vector<leaf_t> _leaves,
 
     leaves.insert(leaves.begin(), leaf);
   }
-
 }
 
 ExecutionPlanNode_ptr

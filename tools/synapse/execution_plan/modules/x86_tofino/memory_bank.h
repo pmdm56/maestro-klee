@@ -73,7 +73,7 @@ public:
   };
 
 private:
-  BDD::symbol_t time;
+  std::vector<BDD::symbol_t> time;
   expiration_t expiration;
   std::vector<vector_borrow_t> vector_borrows;
   std::vector<std::shared_ptr<ds_t>> data_structures;
@@ -86,8 +86,8 @@ public:
         vector_borrows(mb.vector_borrows), data_structures(mb.data_structures) {
   }
 
-  void set_time(BDD::symbol_t _time) { time = _time; }
-  BDD::symbol_t get_time() const { return time; }
+  void add_time(BDD::symbol_t _time) { time.push_back(_time); }
+  const std::vector<BDD::symbol_t> &get_time() const { return time; }
 
   void set_expiration(const expiration_t &_expiration) {
     expiration = _expiration;

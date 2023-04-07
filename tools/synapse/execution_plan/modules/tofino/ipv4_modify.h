@@ -9,6 +9,7 @@ namespace tofino {
 
 class IPv4Modify : public Module {
 private:
+  klee::ref<klee::Expr> ipv4_chunk;
   std::vector<modification_t> modifications;
 
 public:
@@ -16,11 +17,11 @@ public:
       : Module(ModuleType::Tofino_IPv4Modify, TargetType::Tofino,
                "IPv4Modify") {}
 
-  IPv4Modify(BDD::BDDNode_ptr node,
+  IPv4Modify(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _ipv4_chunk,
              const std::vector<modification_t> &_modifications)
       : Module(ModuleType::Tofino_IPv4Modify, TargetType::Tofino, "IPv4Modify",
                node),
-        modifications(_modifications) {}
+        ipv4_chunk(_ipv4_chunk), modifications(_modifications) {}
 
 private:
   klee::ref<klee::Expr> get_ipv4_chunk(const BDD::Node *node) const {
@@ -80,7 +81,8 @@ private:
       return result;
     }
 
-    auto new_module = std::make_shared<IPv4Modify>(node, _modifications);
+    auto new_module =
+        std::make_shared<IPv4Modify>(node, prev_ipv4_chunk, _modifications);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -95,7 +97,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new IPv4Modify(node, modifications);
+    auto cloned = new IPv4Modify(node, ipv4_chunk, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -128,6 +130,8 @@ public:
 
     return true;
   }
+
+  const klee::ref<klee::Expr> &get_ipv4_chunk() const { return ipv4_chunk; }
 
   const std::vector<modification_t> &get_modifications() const {
     return modifications;

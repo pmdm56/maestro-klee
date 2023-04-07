@@ -41,15 +41,46 @@ header cpu_h {
   port_t out_port;
 }
 
-/*@{HEADERS DEFINITIONS}@*/
+header ethernet_h {
+  mac_addr_t   dst_addr;
+  mac_addr_t   src_addr;
+  ether_type_t ether_type;
+}
+
+header ipv4_h {
+  bit<4>        version;
+  bit<4>        ihl;
+  bit<8>        dscp;
+  bit<16>       total_len;
+  bit<16>       identification;
+  bit<3>        flags;
+  bit<13>       frag_offset;
+  bit<8>        ttl;
+  ip_protocol_t protocol;
+  bit<16>       hdr_checksum;
+  ipv4_addr_t   src_addr;
+  ipv4_addr_t   dst_addr;
+}
+
+header ipv4_options_h {
+  varbit<320> options;
+}
+
+header tcpudp_h {
+  bit<16> src_port;
+  bit<16> dst_port;
+}
 
 struct my_ingress_metadata_t {
   /*@{INGRESS METADATA}@*/
 }
 
 struct my_ingress_headers_t {
-  cpu_h cpu;
-  /*@{INGRESS HEADERS}@*/
+  cpu_h          cpu;
+  ethernet_h     ethernet;
+  ipv4_h         ipv4;
+  ipv4_options_h ipv4_options;
+  tcpudp_h       tcpudp;
 }
 
 struct my_egress_metadata_t {
@@ -57,7 +88,11 @@ struct my_egress_metadata_t {
 }
 
 struct my_egress_headers_t {
-  /*@{EGRESS HEADERS}@*/
+  cpu_h          cpu;
+  ethernet_h     ethernet;
+  ipv4_h         ipv4;
+  ipv4_options_h ipv4_options;
+  tcpudp_h       tcpudp;
 }
 
 parser TofinoIngressParser(
@@ -85,9 +120,13 @@ parser TofinoIngressParser(
 
 parser IngressParser(
   packet_in pkt,
+
+  /* User */    
   out my_ingress_headers_t  hdr,
   out my_ingress_metadata_t meta,
-  out ingress_intrinsic_metadata_t ig_intr_md)
+
+  /* Intrinsic */
+  out ingress_intrinsic_metadata_t  ig_intr_md)
 {
   TofinoIngressParser() tofino_parser;
   
@@ -97,16 +136,51 @@ parser IngressParser(
 
     transition select(ig_intr_md.ingress_port) {
       CPU_PCIE_PORT: parse_cpu;
-      default: parse_headers;
+      default: parse_ethernet;
     }
   }
 
   state parse_cpu {
     pkt.extract(hdr.cpu);
-    transition parse_headers;
+    transition parse_ethernet;
   }
 
-  /*@{INGRESS PARSE HEADERS}@*/ 
+  state parse_ethernet {
+    pkt.extract(hdr.ethernet);
+
+    transition select(hdr.ethernet.ether_type) {
+      ETHERTYPE_IPV4: parse_ipv4;
+      default: reject;
+    }
+  }
+
+  state parse_ipv4 {
+    pkt.extract(hdr.ipv4);
+
+    transition select (hdr.ipv4.ihl) {
+      0x5: parse_after_ipv4; 
+      0x6 &&& 0xe: parse_ipv4_options; // 6..7
+      0x8 &&& 0x8: parse_ipv4_options; // 8..15
+      /* Omit the default case to drop packets 0..4 */
+    }
+  }
+
+  state parse_ipv4_options {
+    pkt.extract(hdr.ipv4_options, ((bit<32>)hdr.ipv4.ihl - 5) * 32);
+    transition parse_after_ipv4;
+  }
+
+  state parse_after_ipv4 {
+    transition select (hdr.ipv4.protocol) {
+        IP_PROTOCOLS_TCP: parse_tcpudp;
+        default: accept;
+    }
+  }
+
+  state parse_tcpudp {
+    pkt.extract(hdr.tcpudp);
+    transition accept;
+  }
 }
 
 control Ingress(
@@ -178,10 +252,10 @@ parser EgressParser(
   TofinoEgressParser() tofino_parser;
 
   /* This is a mandatory state, required by Tofino Architecture */
-	state start {
-		tofino_parser.apply(pkt, eg_intr_md);
+  state start {
+    tofino_parser.apply(pkt, eg_intr_md);
     transition accept;
-	}
+  }
 }
 
 control Egress(

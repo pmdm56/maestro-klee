@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../module.h"
+#include "../tofino/memory_bank.h"
 #include "memory_bank.h"
 
 namespace synapse {
@@ -13,7 +14,6 @@ private:
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> map_has_this_key;
   klee::ref<klee::Expr> value_out;
-
   BDD::symbols_t generated_symbols;
 
 public:
@@ -30,6 +30,21 @@ public:
         value_out(_value_out), generated_symbols(_generated_symbols) {}
 
 private:
+  bool check_compatible_placements_decisions(const ExecutionPlan &ep,
+                                             klee::ref<klee::Expr> obj) const {
+    auto mb = ep.get_memory_bank();
+
+    if (!mb->has_placement_decision(obj)) {
+      return true;
+    }
+
+    if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
+      return true;
+    }
+
+    return false;
+  }
+
   processing_result_t process_map_get(const ExecutionPlan &ep,
                                       BDD::BDDNode_ptr node,
                                       const BDD::Call *casted) {
@@ -48,6 +63,10 @@ private:
     auto _value_out = call.args[symbex::FN_MAP_ARG_OUT].out;
 
     auto _generated_symbols = casted->get_local_generated_symbols();
+
+    if (!check_compatible_placements_decisions(ep, _map_addr)) {
+      return result;
+    }
 
     auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
     auto saved = mb->has_data_structure(_map_addr);
@@ -87,6 +106,10 @@ private:
     auto _borrowed_cell = call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
 
     auto _generated_symbols = casted->get_local_generated_symbols();
+
+    if (!check_compatible_placements_decisions(ep, _vector_addr)) {
+      return result;
+    }
 
     auto vector_borrow_data =
         x86TofinoMemoryBank::vector_borrow_t{_vector_addr, _borrowed_cell};

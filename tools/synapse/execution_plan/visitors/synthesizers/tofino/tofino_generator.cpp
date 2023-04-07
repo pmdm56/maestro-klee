@@ -12,7 +12,8 @@ namespace synthesizer {
 namespace tofino {
 
 std::string TofinoGenerator::transpile(klee::ref<klee::Expr> expr) {
-  return transpiler.transpile(expr);
+  auto code = transpiler.transpile(expr);
+  return code;
 }
 
 variable_query_t TofinoGenerator::search_variable(std::string symbol) const {
@@ -54,28 +55,17 @@ TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
 void TofinoGenerator::visit(ExecutionPlan ep) {
   ExecutionPlanVisitor::visit(ep);
 
-  std::stringstream headers_definitions_code;
-  std::stringstream ingress_headers_code;
   std::stringstream ingress_metadata_code;
-  std::stringstream egress_headers_code;
   std::stringstream egress_metadata_code;
-  std::stringstream ingress_parse_headers_code;
   std::stringstream ingress_state_code;
   std::stringstream ingress_apply_code;
 
-  ingress.headers.synthesize_defs(headers_definitions_code);
-  ingress.headers.synthesize_decl(ingress_headers_code);
-  ingress.parser.synthesize(ingress_parse_headers_code);
   ingress.synthesize_user_metadata(ingress_metadata_code);
   ingress.synthesize_state(ingress_state_code);
   ingress.synthesize_apply_block(ingress_apply_code);
 
-  fill_mark(MARKER_HEADERS_DEFINITIONS, headers_definitions_code.str());
-  fill_mark(MARKER_INGRESS_HEADERS, ingress_headers_code.str());
   fill_mark(MARKER_INGRESS_METADATA, ingress_metadata_code.str());
-  fill_mark(MARKER_EGRESS_METADATA, egress_headers_code.str());
-  fill_mark(MARKER_EGRESS_HEADERS, egress_metadata_code.str());
-  fill_mark(MARKER_INGRESS_PARSE_HEADERS, ingress_parse_headers_code.str());
+  fill_mark(MARKER_EGRESS_METADATA, egress_metadata_code.str());
   fill_mark(MARKER_INGRESS_STATE, ingress_state_code.str());
   fill_mark(MARKER_INGRESS_APPLY, ingress_apply_code.str());
 }
@@ -86,27 +76,9 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 
   log(ep_node);
 
-  auto pending_packet_borrow_ep =
-      pending_packet_borrow_next_chunk(ep_node, synapse::TargetType::Tofino);
-
-  if (!pending_packet_borrow_ep) {
-    ingress.parser.transition_accept();
-  }
-
   mod->visit(*this);
 
-  auto is_conditional =
-      ep_node->get_module()->get_type() == Module::ModuleType::Tofino_If;
-
   for (auto branch : next) {
-    auto pending_chunk_borrowing_now = pending_packet_borrow_next_chunk(
-        branch.get(), synapse::TargetType::Tofino);
-
-    if (is_conditional && pending_packet_borrow_ep &&
-        !pending_chunk_borrowing_now) {
-      ingress.parser.transition_reject();
-    }
-
     branch->visit(*this);
   }
 }
@@ -115,31 +87,55 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
   assert(node);
 
   auto condition = node->get_condition();
-  auto condition_transpiled = transpile(condition);
+  auto header = node->get_header();
+
+  std::stringstream ingress_condition_builder;
+
+  if (header.first) {
+    variable_query_t vq;
+
+    ingress_condition_builder << INGRESS_PACKET_HEADER_VARIABLE;
+    ingress_condition_builder << ".";
+
+    switch (header.second) {
+    case targets::tofino::If::PacketHeader::ETHERNET: {
+      ingress_condition_builder << HDR_ETH;
+    } break;
+    case targets::tofino::If::PacketHeader::IPV4: {
+      ingress_condition_builder << HDR_IPV4;
+    } break;
+    case targets::tofino::If::PacketHeader::IPV4_OPTIONS: {
+      ingress_condition_builder << HDR_IPV4_OPTIONS;
+    } break;
+    case targets::tofino::If::PacketHeader::TCPUDP: {
+      ingress_condition_builder << HDR_TCPUDP;
+    } break;
+    default:
+      assert(false && "Should not be here.");
+    }
+
+    ingress_condition_builder << ".isValid()";
+  } else {
+    ingress_condition_builder << transpile(condition);
+  }
 
   ingress.apply_block_builder.indent();
   ingress.apply_block_builder.append("if (");
-  ingress.apply_block_builder.append(condition_transpiled);
+  ingress.apply_block_builder.append(ingress_condition_builder.str());
   ingress.apply_block_builder.append(") {");
   ingress.apply_block_builder.append_new_line();
 
   ingress.apply_block_builder.inc_indentation();
 
-  ingress.parser.add_condition(condition_transpiled);
   ingress.local_vars.push();
   ingress.pending_ifs.push();
 }
 
-void TofinoGenerator::visit(const targets::tofino::Then *node) {
-  assert(node);
-
-  ingress.parser.push_on_true();
-}
+void TofinoGenerator::visit(const targets::tofino::Then *node) { assert(node); }
 
 void TofinoGenerator::visit(const targets::tofino::Else *node) {
   assert(node);
 
-  ingress.parser.push_on_false();
   ingress.local_vars.push();
 
   ingress.apply_block_builder.indent();
@@ -162,18 +158,17 @@ void TofinoGenerator::visit(const targets::tofino::Forward *node) {
   auto closed = ingress.pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
-    ingress.parser.pop();
     ingress.local_vars.pop();
   }
 }
 
 void TofinoGenerator::visit(const targets::tofino::EthernetConsume *node) {
   assert(node);
-  assert(ingress.parser.is_active());
 
-  const hdr_field_t eth_dst_addr{DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
-  const hdr_field_t eth_src_addr{SRC_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
-  const hdr_field_t eth_ether_type{ETHER_TYPE, HDR_ETH_ETHER_TYPE_FIELD, 16};
+  const hdr_field_t eth_dst_addr{ETH_DST_ADDR, HDR_ETH_DST_ADDR_FIELD, 48};
+  const hdr_field_t eth_src_addr{ETH_SRC_ADDR, HDR_ETH_SRC_ADDR_FIELD, 48};
+  const hdr_field_t eth_ether_type{ETH_ETHER_TYPE, HDR_ETH_ETHER_TYPE_FIELD,
+                                   16};
 
   std::vector<hdr_field_t> fields = {eth_dst_addr, eth_src_addr,
                                      eth_ether_type};
@@ -183,7 +178,6 @@ void TofinoGenerator::visit(const targets::tofino::EthernetConsume *node) {
   auto header = Header(ETHERNET, label, chunk, fields);
 
   ingress.headers.add(header);
-  ingress.parser.add_extractor(label);
 }
 
 void TofinoGenerator::visit(const targets::tofino::EthernetModify *node) {
@@ -211,24 +205,135 @@ void TofinoGenerator::visit(const targets::tofino::EthernetModify *node) {
   }
 }
 
+void TofinoGenerator::visit(const targets::tofino::IPv4Consume *node) {
+  assert(node);
+
+  const hdr_field_t ver_ihl{IPV4_VERSION_IHL, HDR_IPV4_VERSION_IHL_FIELD, 8};
+  const hdr_field_t ecn_dscp{IPV4_ECN_DSCP, HDR_IPV4_ECN_DSCP_FIELD, 8};
+  const hdr_field_t tot_len{IPV4_TOT_LEN, HDR_IPV4_TOT_LEN_FIELD, 16};
+  const hdr_field_t id{IPV4_ID, HDR_IPV4_ID_FIELD, 16};
+  const hdr_field_t frag_off{IPV4_FRAG_OFF, HDR_IPV4_FRAG_OFF_FIELD, 16};
+  const hdr_field_t ttl{IPV4_TTL, HDR_IPV4_TTL_FIELD, 8};
+  const hdr_field_t protocol{IPV4_PROTOCOL, HDR_IPV4_PROTOCOL_FIELD, 8};
+  const hdr_field_t check{IPV4_CHECK, HDR_IPV4_CHECK_FIELD, 16};
+  const hdr_field_t src_ip{IPV4_SRC_IP, HDR_IPV4_SRC_ADDR_FIELD, 32};
+  const hdr_field_t dst_ip{IPV4_DST_IP, HDR_IPV4_DST_ADDR_FIELD, 32};
+
+  std::vector<hdr_field_t> fields = {
+      ver_ihl, ecn_dscp, tot_len, id,     frag_off,
+      ttl,     protocol, check,   src_ip, dst_ip,
+  };
+
+  auto chunk = node->get_chunk();
+  auto label = HDR_IPV4;
+  auto header = Header(IPV4, label, chunk, fields);
+
+  ingress.headers.add(header);
+}
+
+void TofinoGenerator::visit(const targets::tofino::IPv4Modify *node) {
+  assert(node);
+
+  auto ipv4_chunk = node->get_ipv4_chunk();
+  auto modifications = node->get_modifications();
+
+  for (auto mod : modifications) {
+    auto byte = mod.byte;
+    auto expr = mod.expr;
+
+    if (byte >= 10 && byte <= 11) {
+      // We don't care about changes to the checksum here
+      continue;
+    }
+
+    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
+        ipv4_chunk, byte * 8, klee::Expr::Int8);
+
+    auto transpiled_byte = transpile(modified_byte);
+    auto transpiled_expr = transpile(expr);
+
+    ingress.apply_block_builder.indent();
+    ingress.apply_block_builder.append(transpiled_byte);
+    ingress.apply_block_builder.append(" = ");
+    ingress.apply_block_builder.append(transpiled_expr);
+    ingress.apply_block_builder.append(";");
+    ingress.apply_block_builder.append_new_line();
+  }
+}
+
+void TofinoGenerator::visit(const targets::tofino::IPv4OptionsConsume *node) {
+  assert(node);
+
+  auto length = node->get_length();
+
+  const hdr_field_t value{IPV4_OPTIONS_VALUE, HDR_IPV4_OPTIONS_VALUE_FIELD, 320,
+                          length};
+  std::vector<hdr_field_t> fields = {value};
+
+  auto chunk = node->get_chunk();
+  auto label = HDR_IPV4_OPTIONS;
+  auto header = Header(IPV4_OPTIONS, label, chunk, fields);
+
+  auto transpiled_length = transpile(length);
+
+  ingress.headers.add(header);
+}
+
+void TofinoGenerator::visit(const targets::tofino::TCPUDPConsume *node) {
+  const hdr_field_t src_port{TCPUDP_SRC_PORT, HDR_TCPUDP_SRC_PORT_FIELD, 16};
+  const hdr_field_t dst_port{TCPUDP_DST_PORT, HDR_TCPUDP_DST_PORT_FIELD, 16};
+
+  std::vector<hdr_field_t> fields = {
+      src_port,
+      dst_port,
+  };
+
+  auto chunk = node->get_chunk();
+  auto label = HDR_TCPUDP;
+  auto header = Header(TCPUDP, label, chunk, fields);
+
+  ingress.headers.add(header);
+}
+
+void TofinoGenerator::visit(const targets::tofino::TCPUDPModify *node) {
+  assert(node);
+
+  auto tcpudp_chunk = node->get_tcpudp_chunk();
+  auto modifications = node->get_modifications();
+
+  for (auto mod : modifications) {
+    auto byte = mod.byte;
+    auto expr = mod.expr;
+
+    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
+        tcpudp_chunk, byte * 8, klee::Expr::Int8);
+
+    auto transpiled_byte = transpile(modified_byte);
+    auto transpiled_expr = transpile(expr);
+
+    ingress.apply_block_builder.indent();
+    ingress.apply_block_builder.append(transpiled_byte);
+    ingress.apply_block_builder.append(" = ");
+    ingress.apply_block_builder.append(transpiled_expr);
+    ingress.apply_block_builder.append(";");
+    ingress.apply_block_builder.append_new_line();
+  }
+}
+
+void TofinoGenerator::visit(
+    const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) {
+  // TODO: implement
+}
+
 void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   assert(node);
 
+  auto table_name = node->get_table_name();
   auto keys = node->get_keys();
   auto params = node->get_params();
-  auto bdd_function = node->get_bdd_function();
   auto contains_symbol = node->get_contains_symbol();
-  auto table_id = node->get_table_id();
 
   assert(keys.size());
-
-  std::stringstream table_label_builder;
-
-  table_label_builder << bdd_function;
-  table_label_builder << "_";
-  table_label_builder << table_id;
-
-  auto table_label = table_label_builder.str();
 
   std::vector<std::string> key_labels;
 
@@ -250,11 +355,11 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   std::vector<Variable> meta_params;
 
   for (auto i = 0u; i < params.size(); i++) {
-    auto meta_param = ingress.allocate_meta_param(table_label, i, params[i]);
+    auto meta_param = ingress.allocate_meta_param(table_name, i, params[i]);
     meta_params.push_back(meta_param);
   }
 
-  table_t table(table_label, key_labels, meta_params);
+  table_t table(table_name, key_labels, meta_params);
   ingress.add_table(table);
 
   assert(keys.size() == assignments.size());
@@ -296,9 +401,8 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   }
 
   if (contains_symbol) {
-    auto symbol_size = contains_symbol->expr->getWidth();
     auto symbol_label = contains_symbol->label;
-    auto hit_var = Variable(table_label + "_hit", symbol_size, {symbol_label});
+    auto hit_var = Variable(table_name + "_hit", 1, {symbol_label});
 
     ingress.local_vars.append(hit_var);
 
@@ -325,7 +429,6 @@ void TofinoGenerator::visit(const targets::tofino::Drop *node) {
   auto closed = ingress.pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
-    ingress.parser.pop();
     ingress.local_vars.pop();
   }
 }
@@ -347,7 +450,6 @@ void TofinoGenerator::visit(const targets::tofino::SendToController *node) {
   auto closed = ingress.pending_ifs.close();
 
   for (auto i = 0; i < closed; i++) {
-    ingress.parser.pop();
     ingress.local_vars.pop();
   }
 }

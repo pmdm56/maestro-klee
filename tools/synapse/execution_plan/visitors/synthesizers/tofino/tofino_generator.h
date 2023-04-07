@@ -23,10 +23,7 @@ public:
       : Synthesizer(GET_BOILERPLATE_PATH(TOFINO_BOILERPLATE_FILE)),
         ingress(get_indentation_level(MARKER_INGRESS_STATE),
                 get_indentation_level(MARKER_INGRESS_APPLY),
-                get_indentation_level(MARKER_INGRESS_METADATA),
-                get_indentation_level(MARKER_HEADERS_DEFINITIONS),
-                get_indentation_level(MARKER_INGRESS_HEADERS),
-                get_indentation_level(MARKER_INGRESS_PARSE_HEADERS)),
+                get_indentation_level(MARKER_INGRESS_METADATA)),
         transpiler(*this) {}
 
   virtual void generate(ExecutionPlan &target_ep) override { visit(target_ep); }
@@ -40,6 +37,12 @@ public:
   void visit(const targets::tofino::Forward *node) override;
   void visit(const targets::tofino::EthernetConsume *node) override;
   void visit(const targets::tofino::EthernetModify *node) override;
+  void visit(const targets::tofino::IPv4Consume *node) override;
+  void visit(const targets::tofino::IPv4Modify *node) override;
+  void visit(const targets::tofino::IPv4OptionsConsume *node) override;
+  void visit(const targets::tofino::TCPUDPConsume *node) override;
+  void visit(const targets::tofino::TCPUDPModify *node) override;
+  void visit(const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) override;
   void visit(const targets::tofino::TableLookup *node) override;
   void visit(const targets::tofino::Drop *node) override;
   void visit(const targets::tofino::Ignore *node) override;

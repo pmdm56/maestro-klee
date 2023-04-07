@@ -42,7 +42,7 @@ constexpr char HDR_IPV4_CHECK_FIELD[] = "check";
 constexpr char HDR_IPV4_SRC_IP_FIELD[] = "src_ip";
 constexpr char HDR_IPV4_DST_IP_FIELD[] = "dst_ip";
 
-constexpr char HDR_IPV4_OPTIONS_VALUE_FIELD[] = "dst_ip";
+constexpr char HDR_IPV4_OPTIONS_VALUE_FIELD[] = "value";
 
 constexpr char HDR_TCPUDP_SRC_PORT_FIELD[] = "src_port";
 constexpr char HDR_TCPUDP_DST_PORT_FIELD[] = "dst_port";

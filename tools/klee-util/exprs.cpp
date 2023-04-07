@@ -1,7 +1,7 @@
 #include "exprs.h"
+#include "printer.h"
 #include "retrieve_symbols.h"
 #include "solver_toolbox.h"
-#include "printer.h"
 
 namespace kutil {
 
@@ -69,6 +69,37 @@ bool is_readLSB(klee::ref<klee::Expr> expr) {
 
     expected_byte -= 1;
   }
+
+  return true;
+}
+
+bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset,
+                       int &n_bytes) {
+  RetrieveSymbols retriever;
+  retriever.visit(expr);
+
+  auto symbols = retriever.get_retrieved_strings();
+
+  if (symbols.size() != 1 || *symbols.begin() != "packet_chunks") {
+    return false;
+  }
+
+  std::vector<unsigned> bytes_read;
+  if (!get_bytes_read(expr, bytes_read) || bytes_read.size() == 0) {
+    return false;
+  }
+
+  auto expected_byte = bytes_read[0];
+  for (const auto &byte : bytes_read) {
+    if (byte != expected_byte) {
+      return false;
+    }
+
+    expected_byte -= 1;
+  }
+
+  offset = bytes_read.back();
+  n_bytes = bytes_read.size();
 
   return true;
 }

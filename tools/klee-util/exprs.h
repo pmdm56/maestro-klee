@@ -4,13 +4,17 @@
 #include "klee/util/ExprSMTLIBPrinter.h"
 #include "klee/util/ExprVisitor.h"
 
-#include <unordered_set>
 #include <iostream>
+#include <unordered_set>
+
+typedef uint32_t bytes_t;
 
 namespace kutil {
 
 bool get_bytes_read(klee::ref<klee::Expr> expr, std::vector<unsigned> &bytes);
 bool is_readLSB(klee::ref<klee::Expr> expr);
+bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset,
+                       int &n_bytes);
 bool is_bool(klee::ref<klee::Expr> expr);
 bool is_constant(klee::ref<klee::Expr> expr);
 bool is_constant_signed(klee::ref<klee::Expr> expr);

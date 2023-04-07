@@ -15,9 +15,22 @@ namespace synthesizer {
 namespace tofino {
 
 enum hdr_field_id_t {
-  DST_ADDR,
-  SRC_ADDR,
-  ETHER_TYPE,
+  ETH_DST_ADDR,
+  ETH_SRC_ADDR,
+  ETH_ETHER_TYPE,
+  IPV4_VERSION_IHL,
+  IPV4_ECN_DSCP,
+  IPV4_TOT_LEN,
+  IPV4_ID,
+  IPV4_FRAG_OFF,
+  IPV4_TTL,
+  IPV4_PROTOCOL,
+  IPV4_CHECK,
+  IPV4_SRC_IP,
+  IPV4_DST_IP,
+  IPV4_OPTIONS_VALUE,
+  TCPUDP_SRC_PORT,
+  TCPUDP_DST_PORT,
 };
 
 struct hdr_field_t : public Variable {
@@ -50,6 +63,9 @@ struct hdr_field_t : public Variable {
 
 enum hdr_id_t {
   ETHERNET,
+  IPV4,
+  IPV4_OPTIONS,
+  TCPUDP,
 };
 
 class Header : public Variable {
@@ -68,6 +84,11 @@ public:
     bool size_check = true;
     unsigned total_size_bits = 0;
     auto offset = 0u;
+
+    if (fields.size() == 1 && !fields[0].var_length.isNull()) {
+      fields[0].set_expr(_chunk);
+      return;
+    }
 
     for (auto &field : fields) {
       auto field_size_bits = field.get_size_bits();

@@ -20,27 +20,24 @@ public:
   typedef klee::ref<klee::Expr> param_t;
 
 private:
-  uint64_t table_id;
+  std::string table_name;
   klee::ref<klee::Expr> obj;
   std::vector<key_t> keys;
   std::vector<param_t> params;
   std::unique_ptr<BDD::symbol_t> contains_symbol;
-  std::string bdd_function;
 
 public:
   TableLookup()
       : Module(ModuleType::Tofino_TableLookup, TargetType::Tofino,
                "TableLookup") {}
 
-  TableLookup(BDD::BDDNode_ptr node, uint64_t _table_id,
+  TableLookup(BDD::BDDNode_ptr node, std::string _table_name,
               klee::ref<klee::Expr> _obj, const std::vector<key_t> &_keys,
               const std::vector<param_t> &_params,
-              const BDD::symbol_t *_contains_symbol,
-              const std::string &_bdd_function)
+              const BDD::symbol_t *_contains_symbol)
       : Module(ModuleType::Tofino_TableLookup, TargetType::Tofino,
                "TableLookup", node),
-        table_id(_table_id), obj(_obj), keys(_keys), params(_params),
-        bdd_function(_bdd_function) {
+        table_name(_table_name), obj(_obj), keys(_keys), params(_params) {
     if (_contains_symbol) {
       contains_symbol =
           std::unique_ptr<BDD::symbol_t>(new BDD::symbol_t(*_contains_symbol));
@@ -49,7 +46,7 @@ public:
 
 private:
   bool multiple_queries_to_this_table(BDD::BDDNode_ptr current_node,
-                                      uint64_t _table_id) const {
+                                      uint64_t _table_name) const {
     assert(current_node);
     auto node = current_node->get_prev();
 
@@ -71,19 +68,19 @@ private:
         continue;
       }
 
-      uint64_t this_table_id = 0;
+      uint64_t this_table_name = 0;
       if (call.function_name == symbex::FN_MAP_GET ||
           call.function_name == symbex::FN_MAP_PUT) {
         assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
-        this_table_id = kutil::solver_toolbox.value_from_expr(
+        this_table_name = kutil::solver_toolbox.value_from_expr(
             call.args[symbex::FN_MAP_ARG_MAP].expr);
       } else if (call.function_name == symbex::FN_VECTOR_BORROW) {
         assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
-        this_table_id = kutil::solver_toolbox.value_from_expr(
+        this_table_name = kutil::solver_toolbox.value_from_expr(
             call.args[symbex::FN_VECTOR_ARG_VECTOR].expr);
       }
 
-      if (this_table_id == _table_id) {
+      if (this_table_name == _table_name) {
         counter++;
       }
 
@@ -176,6 +173,32 @@ private:
     return data;
   }
 
+  bool check_compatible_placements_decisions(const ExecutionPlan &ep,
+                                             klee::ref<klee::Expr> obj) const {
+    auto mb = ep.get_memory_bank();
+    return !mb->has_placement_decision(obj);
+  }
+
+  void save_decision(const ExecutionPlan &ep, klee::ref<klee::Expr> obj,
+                     const std::string &table_name) {
+    auto mb = ep.get_memory_bank();
+    mb->save_placement_decision(obj, PlacementDecision::TofinoTable);
+
+    auto tmb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
+    tmb->save_obj_addr_to_table_name(obj, table_name);
+  }
+
+  std::string build_table_name(const extracted_data_t &data,
+                               BDD::BDDNode_ptr node) const {
+    std::stringstream table_label_builder;
+
+    table_label_builder << data.fname;
+    table_label_builder << "_";
+    table_label_builder << node->get_id();
+
+    return table_label_builder.str();
+  }
+
   bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                const BDD::Call *casted, processing_result_t &result) {
     auto data = extract_from_map(ep, node, casted);
@@ -188,6 +211,10 @@ private:
       }
     }
 
+    if (!check_compatible_placements_decisions(ep, data.obj)) {
+      return false;
+    }
+
     assert(data.obj->getKind() == klee::Expr::Kind::Constant);
     auto _obj_value = kutil::solver_toolbox.value_from_expr(data.obj);
 
@@ -195,9 +222,11 @@ private:
       return false;
     }
 
-    auto _table_id = node->get_id();
+    auto _table_name = build_table_name(data, node);
     auto _keys = std::vector<key_t>();
     auto _key = key_t(data.key);
+
+    save_decision(ep, data.obj, _table_name);
 
     auto mb = ep.get_memory_bank();
     auto reorder_data = mb->get_reorder_data(node->get_id());
@@ -217,9 +246,8 @@ private:
     auto _contains_symbol =
         data.contains_symbol.first ? &data.contains_symbol.second : nullptr;
 
-    auto new_module =
-        std::make_shared<TableLookup>(node, _table_id, data.obj, _keys, _params,
-                                      _contains_symbol, data.fname);
+    auto new_module = std::make_shared<TableLookup>(
+        node, _table_name, data.obj, _keys, _params, _contains_symbol);
 
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
@@ -243,8 +271,8 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new TableLookup(node, table_id, obj, keys, params,
-                                  contains_symbol.get(), bdd_function);
+    auto cloned = new TableLookup(node, table_name, obj, keys, params,
+                                  contains_symbol.get());
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -255,7 +283,7 @@ public:
 
     auto other_cast = static_cast<const TableLookup *>(other);
 
-    if (table_id != other_cast->get_table_id()) {
+    if (table_name != other_cast->get_table_name()) {
       return false;
     }
 
@@ -303,21 +331,16 @@ public:
       return false;
     }
 
-    if (bdd_function != other_cast->get_bdd_function()) {
-      return false;
-    }
-
     return true;
   }
 
-  uint64_t get_table_id() const { return table_id; }
+  const std::string &get_table_name() const { return table_name; }
   const klee::ref<klee::Expr> &get_obj() const { return obj; }
   const std::vector<key_t> &get_keys() const { return keys; }
   const std::vector<param_t> &get_params() const { return params; }
   const BDD::symbol_t *get_contains_symbol() const {
     return contains_symbol.get();
   }
-  const std::string &get_bdd_function() const { return bdd_function; }
 };
 } // namespace tofino
 } // namespace targets
