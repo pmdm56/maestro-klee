@@ -65,12 +65,12 @@ namespace Clone {
 					bool maybe_false = kutil::solver_toolbox.is_expr_maybe_false(branch->get_constraints(), branch->get_condition()) ;
 					
 					if(!maybe_true) {
-						debug("Trimming branch ", curr->get_id(), " to false branch");
+						//debug("Trimming branch ", curr->get_id(), " to false branch");
 						trim_node(curr, next_false);
 						s.push(next_false);
 					}
 					else if(!maybe_false) {
-						info("Trimming branch ", curr->get_id(), " to true branch");
+						//info("Trimming branch ", curr->get_id(), " to true branch");
 						trim_node(curr, next_true);
 						s.push(next_true);
 					}

@@ -84,38 +84,48 @@ namespace Clone {
 
 		q_transitions.push_front(std::make_shared<NodeTransition>(input_port, origin, builder->get_process_root()));
 
-		int i = 0;
-
 		while(!q_transitions.empty()) {
+			debug("Queue size: ", q_transitions.size());
 			const unsigned port = q_transitions.front()->input_port;
 			const auto node = q_transitions.front()->node;
 			const auto tail = q_transitions.front()->tail;
+			//();
+			assert(nfs.find(node->get_name()) != nfs.end());
 			const auto nf = nfs.at(node->get_name());
 			assert(nf != nullptr);
 
 			q_transitions.pop_front();
 
 			builder->join_init(nf);
-			auto file = std::ofstream("graph.gv");
-			BDD::GraphvizGenerator g(file);
-			g.visualize(*builder->get_bdd(), true, false);
-			if(++i == 2) exit(0);
 			Tails tails = builder->join_process(nf, port, tail);
-			
+
 			while(!tails.empty()) {
 				auto &tail = tails.front();
 				tails.pop_front();
 				auto return_process = static_cast<BDD::ReturnProcess*>(tail.get());
 				unsigned port_next = return_process->get_return_value();
-				const auto &p = node->get_child(port_next);
+				const auto &child = node->get_child(port_next);
 
-				if(p.second != nullptr) {
-					const unsigned port = p.first;
-					const auto &node = p.second;
-					q_transitions.push_front(make_shared<NodeTransition>(port, node, tail));
+				if(child.second != nullptr) {
+					const unsigned port = child.first;
+					const auto &node = child.second;
+
+					if(node->get_node_type() == NodeType::NF) {
+						q_transitions.push_front(make_shared<NodeTransition>(port, node, tail));
+					} 
+					else {
+						// then the packet just returns ?
+					}
+				} 
+				else {
+					// replace with drop
 				}
 			}
 
+			auto file = std::ofstream("graph.gv");
+			BDD::GraphvizGenerator g(file);
+			g.visualize(*builder->get_bdd(), true, false);
+			//if(++i == 3) exit(0);
 		}
 	}
 
