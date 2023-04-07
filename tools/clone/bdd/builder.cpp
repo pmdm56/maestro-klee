@@ -169,6 +169,11 @@ namespace Clone {
 		return bdd->get_process() == nullptr;
 	}
 
+	void Builder::replace_with_drop(BDD::BDDNode_ptr node) {
+		auto return_drop = BDD::BDDNode_ptr(new BDD::ReturnProcess(counter++, node, {}, 0, BDD::ReturnProcess::Operation::DROP));
+		trim_node(node, return_drop);
+	}
+
 	void Builder::add_process_branch(unsigned input_port) {
 		klee::ConstraintManager cm {};
 		auto vigor_device = kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);

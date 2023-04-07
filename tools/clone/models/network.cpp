@@ -65,7 +65,7 @@ namespace Clone {
 		}
 	}
 
-	void Network::explore_all_sources(const shared_ptr<Node> &origin) {
+	void Network::explore_source(const shared_ptr<Node> &origin) {
 		assert(origin->get_node_type() == NodeType::DEVICE);
 
 		for(auto &child: origin->get_children()) {
@@ -120,14 +120,14 @@ namespace Clone {
 					}
 				} 
 				else {
+					builder->replace_with_drop(tail);
 					// replace with drop
 				}
 			}
 
 			auto file = std::ofstream("graph.gv");
 			BDD::GraphvizGenerator g(file);
-			g.visualize(*builder->get_bdd(), true, false);
-			//if(++i == 3) exit(0);
+			g.visualize(*builder->get_bdd(), false, false);
 		}
 	}
 
@@ -179,7 +179,7 @@ namespace Clone {
 		for(auto &source: sources) {			
 			assert(source->get_node_type() == NodeType::DEVICE);
 			info("Traversing source: ", source->get_name());
-			explore_all_sources(source);
+			explore_source(source);
 			visited.clear();
 		}
 

@@ -26,8 +26,8 @@ namespace Clone {
 		uint64_t counter = 100;
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
-		void trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
 		Tails clone_node(BDD::BDDNode_ptr node, unsigned input_port);
+		void trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);
 	public:
 		~Builder();
 
@@ -35,6 +35,8 @@ namespace Clone {
 
 		bool is_init_empty() const;
 		bool is_process_empty() const;
+
+		void replace_with_drop(BDD::BDDNode_ptr node);
 
 		void add_process_branch(unsigned input_port);
 
