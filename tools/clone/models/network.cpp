@@ -81,8 +81,9 @@ namespace Clone {
 		builder->add_process_branch(input_port);
 
 		deque<shared_ptr<NodeTransition>> q_transitions;
-
-		q_transitions.push_front(std::make_shared<NodeTransition>(input_port, origin, builder->get_process_root()));
+		const auto &root = builder->get_process_root();
+		const auto &branch = static_cast<BDD::Branch*>(root.get());
+		q_transitions.push_front(std::make_shared<NodeTransition>(input_port, origin, branch->get_on_true()));
 
 		while(!q_transitions.empty()) {
 			debug("Queue size: ", q_transitions.size());

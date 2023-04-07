@@ -186,9 +186,10 @@ namespace Clone {
 			assert(process_root->get_type() == Node::NodeType::BRANCH);
 			auto root_branch { static_cast<Branch*>(process_root.get()) };
 			root_branch->replace_on_false(node);
+			node->add_prev(process_root);
 		}
 
-		process_root = branch->get_on_true();
+		process_root = node;
 		assert(process_root != nullptr);
 
 		if(is_process_empty()) {
