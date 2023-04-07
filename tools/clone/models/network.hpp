@@ -19,6 +19,7 @@ namespace Clone {
 
 	/** Typedefs **/
 
+	typedef std::shared_ptr<Node> NodePtr;
 	/* Value: Link */
 	typedef std::vector<std::unique_ptr<const Link>> Links;
 	
@@ -32,16 +33,14 @@ namespace Clone {
 	typedef std::unordered_map<std::string, std::shared_ptr<const BDD::BDD>> BDDs;
 
 	/* Key: Node name/identifier; Value: Node */
-	typedef std::unordered_map<std::string, std::shared_ptr<Node>> Nodes;
+	typedef std::unordered_map<std::string, NodePtr> Nodes;
 
-	/* Set of nodes */
-	typedef std::unordered_set<std::shared_ptr<Node>> NodeSet;
+	typedef std::unordered_set<NodePtr> NodeSet;
 
-	typedef std::shared_ptr<Node> NodePtr;
 
 	struct NodeTransition {
 		unsigned input_port;
-		std::shared_ptr<Node> node;
+		NodePtr node;
 		BDD::BDDNode_ptr tail;
 
 		NodeTransition(unsigned input_port, std::shared_ptr<Node> node, BDD::BDDNode_ptr tail)
@@ -64,7 +63,7 @@ namespace Clone {
 		Nodes nodes;
 
 		/* Nodes where traffic can start */
-		std::vector<std::pair<NodePtr, unsigned>> sources;
+		NodeSet sources;
 
 		/* Nodes where traffic can end */
 		NodeSet sinks;

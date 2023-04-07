@@ -48,7 +48,7 @@ namespace Clone {
 			node1->add_child(port1, port2, node2);
 			
 			if(node1_type == NodeType::DEVICE) {
-				sources.push_back(make_pair(node1, port1));
+				sources.insert(node1);
 			}
 
 			if(node2_type == NodeType::DEVICE) {
@@ -137,7 +137,7 @@ namespace Clone {
 
 		debug("Sources: ");
 		for(auto &source: sources) {
-			debug(source.first->get_name());
+			debug(source->get_name());
 		}
 
 		debug("Sinks: ");
@@ -176,9 +176,9 @@ namespace Clone {
 				
 		info("Total of ", sources.size(), " sources");
 		for(auto &source: sources) {			
-			assert(source.first->get_node_type() == NodeType::DEVICE);
-			info("Traversing source: ", source.first->get_name(), " port: ", source.second);
-			explore_all_sources(source.first);
+			assert(source->get_node_type() == NodeType::DEVICE);
+			info("Traversing source: ", source->get_name());
+			explore_all_sources(source);
 			visited.clear();
 		}
 
