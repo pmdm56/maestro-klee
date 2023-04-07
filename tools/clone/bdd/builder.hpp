@@ -23,7 +23,7 @@ namespace Clone {
 		BDD::BDDNode_ptr init_tail = nullptr;
 		BDD::BDDNode_ptr process_root = nullptr;
 
-		uint64_t counter = 1;
+		uint64_t counter = 100;
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
 		void trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next);

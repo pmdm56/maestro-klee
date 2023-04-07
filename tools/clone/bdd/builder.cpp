@@ -6,6 +6,7 @@
 #include "bdd/nodes/return_init.h"
 #include "bdd/nodes/symbol.h"
 #include "klee/Constraints.h"
+#include "retrieve_symbols.h"
 #include "solver_toolbox.h"
 
 using namespace BDD;
@@ -33,7 +34,7 @@ namespace Clone {
 			auto curr = s.top();
 			s.pop();
 
-			curr->update_id(counter++);
+			//curr->update_id(counter++);
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -57,11 +58,14 @@ namespace Clone {
 						cm.addConstraint(eq);
 						branch->set_constraints(cm);
 					}
+
+					auto condition = branch->get_condition();
+
 					bool maybe_true = kutil::solver_toolbox.is_expr_maybe_true(branch->get_constraints(), branch->get_condition()) ;
 					bool maybe_false = kutil::solver_toolbox.is_expr_maybe_false(branch->get_constraints(), branch->get_condition()) ;
 					
 					if(!maybe_true) {
-						info("Trimming branch ", curr->get_id(), " to false branch");
+						debug("Trimming branch ", curr->get_id(), " to false branch");
 						trim_node(curr, next_false);
 						s.push(next_false);
 					}
@@ -97,7 +101,6 @@ namespace Clone {
 					auto ret { static_cast<ReturnInit*>(curr.get()) };
 
 					if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
-						debug("Found a init tail ", ret->get_id());
 						init_tail = curr;
 					}
 					break;
@@ -106,7 +109,6 @@ namespace Clone {
 					auto ret = static_cast<ReturnProcess*>(curr.get()) ;
 
 					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
-						debug("Found a process tail ", ret->get_id());
 						tails.push_back(curr);
 					}
 
@@ -200,7 +202,8 @@ namespace Clone {
 			return;
 		}
 
-		auto init_new = nf->get_bdd()->get_init()->clone();
+		auto init_new = nf->get_bdd()->get_init()->clone(true);
+		init_new->recursive_update_ids(counter);
 
 		if(is_init_empty()) {
 			bdd->set_init(init_new);
@@ -218,7 +221,8 @@ namespace Clone {
 	Tails Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const BDD::BDDNode_ptr &tail) {
 		assert(process_root != nullptr);
 
-		auto root = nf->get_bdd()->get_process()->clone();
+		auto root = nf->get_bdd()->get_process()->clone(true);
+		root->recursive_update_ids(counter);
 		trim_node(tail, root);
 
 		return clone_node(root, port);

@@ -3,6 +3,7 @@
 #include "../util/logger.hpp"
 
 #include "bdd/nodes/node.h"
+#include "bdd/nodes/symbol.h"
 #include "bdd/visitors/graphviz-generator.h"
 #include "call-paths-to-bdd.h"
 
@@ -83,6 +84,8 @@ namespace Clone {
 
 		q_transitions.push_front(std::make_shared<NodeTransition>(input_port, origin, builder->get_process_root()));
 
+		int i = 0;
+
 		while(!q_transitions.empty()) {
 			const unsigned port = q_transitions.front()->input_port;
 			const auto node = q_transitions.front()->node;
@@ -93,14 +96,12 @@ namespace Clone {
 			q_transitions.pop_front();
 
 			builder->join_init(nf);
-			Tails tails = builder->join_process(nf, port, tail);
-			debug(tails.size());
 			auto file = std::ofstream("graph.gv");
 			BDD::GraphvizGenerator g(file);
 			g.visualize(*builder->get_bdd(), true, false);
-			exit(0);
+			if(++i == 2) exit(0);
+			Tails tails = builder->join_process(nf, port, tail);
 			
-
 			while(!tails.empty()) {
 				auto &tail = tails.front();
 				tails.pop_front();
