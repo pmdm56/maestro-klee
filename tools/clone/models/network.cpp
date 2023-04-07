@@ -69,6 +69,7 @@ namespace Clone {
 		assert(origin->get_node_type() == NodeType::DEVICE);
 
 		for(auto &child: origin->get_children()) {
+			info("Traversing from ", origin->get_name(), " port ", child.first);
 			traverse(child.second.first, child.second.second);
 		}
 	}
