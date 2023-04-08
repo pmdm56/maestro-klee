@@ -50,20 +50,24 @@ namespace Clone {
 
 					const auto &condition_symbols { kutil::get_symbols(branch->get_condition()) };
 
+					bool maybe_true = false;
+					bool maybe_false = false;
+
 					if (condition_symbols.size() == 1 && *condition_symbols.begin() == "VIGOR_DEVICE") {
 						auto vigor_device { kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
 						auto port { kutil::solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) };
 						auto eq { kutil::solver_toolbox.exprBuilder->Eq(vigor_device, port) };
-						auto cm = branch->get_constraints();
+						auto cm = branch->get_node_constraints();
+
 						cm.addConstraint(eq);
-						branch->set_constraints(cm);
+						maybe_true = kutil::solver_toolbox.is_expr_maybe_true(cm, branch->get_condition()) ;
+						maybe_false = kutil::solver_toolbox.is_expr_maybe_false(cm, branch->get_condition()) ;
+					}
+					else {
+						maybe_true = kutil::solver_toolbox.is_expr_maybe_true(branch->get_constraints(), branch->get_condition()) ;
+						maybe_false = kutil::solver_toolbox.is_expr_maybe_false(branch->get_constraints(), branch->get_condition()) ;
 					}
 
-					auto condition = branch->get_condition();
-
-					bool maybe_true = kutil::solver_toolbox.is_expr_maybe_true(branch->get_constraints(), branch->get_condition()) ;
-					bool maybe_false = kutil::solver_toolbox.is_expr_maybe_false(branch->get_constraints(), branch->get_condition()) ;
-					
 					if(!maybe_true) {
 						//debug("Trimming branch ", curr->get_id(), " to false branch");
 						trim_node(curr, next_false);
