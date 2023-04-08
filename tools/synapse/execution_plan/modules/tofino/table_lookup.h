@@ -176,7 +176,16 @@ private:
   bool check_compatible_placements_decisions(const ExecutionPlan &ep,
                                              klee::ref<klee::Expr> obj) const {
     auto mb = ep.get_memory_bank();
-    return !mb->has_placement_decision(obj);
+
+    if (!mb->has_placement_decision(obj)) {
+      return true;
+    }
+
+    if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
+      return true;
+    }
+
+    return false;
   }
 
   void save_decision(const ExecutionPlan &ep, klee::ref<klee::Expr> obj,
@@ -185,7 +194,7 @@ private:
     mb->save_placement_decision(obj, PlacementDecision::TofinoTable);
 
     auto tmb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
-    tmb->save_obj_addr_to_table_name(obj, table_name);
+    tmb->save_obj_addr_table_name(obj, table_name);
   }
 
   std::string build_table_name(const extracted_data_t &data,

@@ -18,10 +18,10 @@ namespace tofino {
 
 class Ingress {
 private:
-  std::vector<Variable> intrinsic_metadata;
-  std::vector<Variable> user_metadata;
-  std::vector<Variable> key_bytes;
-  std::vector<table_t> tables;
+  Variables intrinsic_metadata;
+  Variables user_metadata;
+  Variables key_bytes;
+  tables_t tables;
 
 public:
   CodeBuilder state_builder;
@@ -35,8 +35,7 @@ public:
 
   Ingress(int state_ind, int apply_block_ind, int user_meta_ind)
       : state_builder(state_ind), apply_block_builder(apply_block_ind),
-        user_metadata_builder(user_meta_ind),
-        pending_ifs(apply_block_builder) {
+        user_metadata_builder(user_meta_ind), pending_ifs(apply_block_builder) {
     intrinsic_metadata = std::vector<Variable>{
         {
             INGRESS_INTRINSIC_META_RESUBMIT_FLAG,
@@ -152,28 +151,41 @@ public:
     auto size_bits = meta_param->getWidth();
 
     auto meta_param_var = Variable(label, size_bits);
+
+    auto found_it =
+        std::find(user_metadata.begin(), user_metadata.end(), meta_param_var);
+
+    if (found_it != user_metadata.end()) {
+      found_it->add_expr(meta_param);
+      return *found_it;
+    }
+
     meta_param_var.set_prefix(INGRESS_USER_METADATA_VARIABLE);
     meta_param_var.add_expr(meta_param);
-
-    meta_param_var.synthesize(user_metadata_builder);
-
     user_metadata.push_back(meta_param_var);
 
     return meta_param_var;
   }
 
-  void add_table(const table_t &table) {
-    tables.push_back(table);
-    table.synthesize(state_builder);
+  void add_table(const table_t &table) { tables.insert(table); }
+
+  void synthesize_state(std::ostream &os) {
+    for (const auto &table : tables) {
+      table.synthesize(state_builder);
+    }
+
+    state_builder.dump(os);
   }
 
-  void synthesize_state(std::ostream &os) const { state_builder.dump(os); }
-
-  void synthesize_apply_block(std::ostream &os) const {
+  void synthesize_apply_block(std::ostream &os) {
     apply_block_builder.dump(os);
   }
 
-  void synthesize_user_metadata(std::ostream &os) const {
+  void synthesize_user_metadata(std::ostream &os) {
+    for (const auto &meta : user_metadata) {
+      meta.synthesize(user_metadata_builder);
+    }
+
     user_metadata_builder.dump(os);
   }
 }; // namespace tofino

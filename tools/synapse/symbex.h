@@ -73,7 +73,7 @@ constexpr char KLEE_EXPR_IPV4_CONDITION[] =
     "packet_chunks)))) (ZExt w32 (Ult (ZExt w64 (Extract w16 0 (Add w32 (w32 "
     "4294967282) (ZExt w32 (ReadLSB w16 (w32 0) pkt_len))))) (w64 20)))))";
 
-constexpr char KLEE_EXPR_IPV4_OPTIONS_CONDITION[] =
+constexpr char KLEE_EXPR_IPV4_OPTIONS_CONDITION_TO_IGNORE[] =
     "(Eq (w32 0) (Or w32 (ZExt w32 (Slt (ZExt w32 (Extract w8 0 (And w32 (ZExt "
     "w32 (Read w8 (w32 41) packet_chunks)) (w32 15)))) (w32 5))) (ZExt w32 "
     "(Slt (ZExt w32 (Extract w16 0 (Add w32 (w32 4294967282) (ZExt w32 "
@@ -81,7 +81,16 @@ constexpr char KLEE_EXPR_IPV4_OPTIONS_CONDITION[] =
     "w32 (And w32 N0:(ZExt w32 (ReadLSB w16 (w32 43) packet_chunks)) (w32 "
     "255)) (w32 8)) (AShr w32 (And w32 N0 (w32 65280)) (w32 8)))))))))";
 
-constexpr char KLEE_EXPR_IPV4_OPTIONS_CONDITION_2[] =
+constexpr char KLEE_EXPR_IPV4_OPTIONS_CONDITION[] =
+    "(Eq (w32 0) (And w32 (ZExt w32 (Eq false (Eq (w16 0) N0:(Extract w16 0 "
+    "(Extract w32 0 (Mul w64 (w64 4) (SExt w64 (Extract w32 0 (Add w64 (w64 "
+    "18446744073709551611) (SExt w64 (ZExt w32 (Extract w8 0 (And w32 (ZExt "
+    "w32 (Read w8 (w32 41) packet_chunks)) (w32 15)))))))))))))) (ZExt w32 "
+    "(Ule (ZExt w64 N0) (Add w64 (w64 18446744073709551596) (ZExt w64 (Extract "
+    "w16 0 (Add w32 (w32 4294967282) (ZExt w32 (ReadLSB w16 (w32 0) "
+    "pkt_len))))))))))";
+
+constexpr char KLEE_EXPR_TCPUDP_AFTER_IPV4_OPTIONS_CONDITION[] =
     "(Eq (w32 0) (Or w32 (ZExt w32 (Eq (w32 0) (Or w32 (ZExt w32 (Eq (w8 6) "
     "N0:(Read w8 (w32 50) packet_chunks))) (ZExt w32 (Eq (w8 17) N0))))) (ZExt "
     "w32 (Ult (ZExt w64 (Sub w32 (ZExt w32 (ReadLSB w16 (w32 0) pkt_len)) "
@@ -96,14 +105,6 @@ constexpr char KLEE_EXPR_TCPUDP_CONDITION[] =
     "w32 (Ult (ZExt w64 (Add w32 (w32 4294967262) (ZExt w32 (ReadLSB w16 (w32 "
     "0) pkt_len)))) (w64 4)))))";
 
-constexpr char KLEE_EXPR_TCPUDP_AFTER_IPV4_OPTIONS_CONDITION[] =
-    "(Eq (w32 0) (And w32 (ZExt w32 (Eq false (Eq (w16 0) N0:(Extract w16 0 "
-    "(Extract w32 0 (Mul w64 (w64 4) (SExt w64 (Extract w32 0 (Add w64 (w64 "
-    "18446744073709551611) (SExt w64 (ZExt w32 (Extract w8 0 (And w32 (ZExt "
-    "w32 (Read w8 (w32 41) packet_chunks)) (w32 15)))))))))))))) (ZExt w32 "
-    "(Ule (ZExt w64 N0) (Add w64 (w64 18446744073709551596) (ZExt w64 (Extract "
-    "w16 0 (Add w32 (w32 4294967282) (ZExt w32 (ReadLSB w16 (w32 0) "
-    "pkt_len))))))))))";
 
 } // namespace symbex
 } // namespace synapse

@@ -90,6 +90,7 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
   auto header = node->get_header();
 
   std::stringstream ingress_condition_builder;
+  bool negate = false;
 
   if (header.first) {
     variable_query_t vq;
@@ -104,7 +105,8 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
     case targets::tofino::If::PacketHeader::IPV4: {
       ingress_condition_builder << HDR_IPV4;
     } break;
-    case targets::tofino::If::PacketHeader::IPV4_OPTIONS: {
+    case targets::tofino::If::PacketHeader::NOT_IPV4_OPTIONS: {
+      negate = true;
       ingress_condition_builder << HDR_IPV4_OPTIONS;
     } break;
     case targets::tofino::If::PacketHeader::TCPUDP: {
@@ -121,6 +123,7 @@ void TofinoGenerator::visit(const targets::tofino::If *node) {
 
   ingress.apply_block_builder.indent();
   ingress.apply_block_builder.append("if (");
+  ingress.apply_block_builder.append(negate ? "!" : "");
   ingress.apply_block_builder.append(ingress_condition_builder.str());
   ingress.apply_block_builder.append(") {");
   ingress.apply_block_builder.append_new_line();
@@ -352,7 +355,7 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
     assignments.push_back(key_assignments);
   }
 
-  std::vector<Variable> meta_params;
+  Variables meta_params;
 
   for (auto i = 0u; i < params.size(); i++) {
     auto meta_param = ingress.allocate_meta_param(table_name, i, params[i]);
@@ -410,12 +413,12 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
     ingress.apply_block_builder.append("bool ");
     ingress.apply_block_builder.append(hit_var.get_label());
     ingress.apply_block_builder.append(" = ");
-    ingress.apply_block_builder.append(table.label);
+    ingress.apply_block_builder.append(table_name);
     ingress.apply_block_builder.append(".apply().hit;");
     ingress.apply_block_builder.append_new_line();
   } else {
     ingress.apply_block_builder.indent();
-    ingress.apply_block_builder.append(table.label);
+    ingress.apply_block_builder.append(table_name);
     ingress.apply_block_builder.append(".apply();");
     ingress.apply_block_builder.append_new_line();
   }

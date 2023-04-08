@@ -14,7 +14,7 @@ public:
   enum PacketHeader {
     ETHERNET,
     IPV4,
-    IPV4_OPTIONS,
+    NOT_IPV4_OPTIONS,
     TCPUDP,
     IGNORE,
   };
@@ -69,7 +69,7 @@ private:
 
   bool is_conditional_ipv4_options_to_ignore(klee::ref<klee::Expr> expr) const {
     auto stringified = kutil::expr_to_string(expr, true);
-    return stringified == symbex::KLEE_EXPR_IPV4_OPTIONS_CONDITION_2;
+    return stringified == symbex::KLEE_EXPR_IPV4_OPTIONS_CONDITION_TO_IGNORE;
   }
 
   bool is_conditional_tcpudp(klee::ref<klee::Expr> expr) const {
@@ -98,7 +98,7 @@ private:
 
     if (is_conditional_ipv4_options(expr)) {
       result.first = true;
-      result.second = IPV4_OPTIONS;
+      result.second = NOT_IPV4_OPTIONS;
       return result;
     }
 

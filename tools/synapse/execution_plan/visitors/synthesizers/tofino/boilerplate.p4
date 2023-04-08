@@ -63,8 +63,10 @@ header ipv4_h {
 }
 
 header ipv4_options_h {
-  varbit<320> options;
+  bit<32> data;
 }
+
+typedef ipv4_options_h[10] ipv4_options_t;
 
 header tcpudp_h {
   bit<16> src_port;
@@ -79,7 +81,7 @@ struct my_ingress_headers_t {
   cpu_h          cpu;
   ethernet_h     ethernet;
   ipv4_h         ipv4;
-  ipv4_options_h ipv4_options;
+  ipv4_options_t ipv4_options;
   tcpudp_h       tcpudp;
 }
 
@@ -158,19 +160,117 @@ parser IngressParser(
     pkt.extract(hdr.ipv4);
 
     transition select (hdr.ipv4.ihl) {
-      0x5: parse_after_ipv4; 
-      0x6 &&& 0xe: parse_ipv4_options; // 6..7
-      0x8 &&& 0x8: parse_ipv4_options; // 8..15
+      0x5: parse_ipv4_no_options; 
+      0x6: parse_ipv4_options_1;
+      0x7: parse_ipv4_options_2;
+      0x8: parse_ipv4_options_3;
+      0x9: parse_ipv4_options_4;
+      0xa: parse_ipv4_options_5;
+      0xb: parse_ipv4_options_6;
+      0xc: parse_ipv4_options_7;
+      0xd: parse_ipv4_options_8;
+      0xe: parse_ipv4_options_9;
+      0xf: parse_ipv4_options_10;
       /* Omit the default case to drop packets 0..4 */
     }
   }
 
-  state parse_ipv4_options {
-    pkt.extract(hdr.ipv4_options, ((bit<32>)hdr.ipv4.ihl - 5) * 32);
-    transition parse_after_ipv4;
+  state parse_ipv4_options_1 {
+    pkt.extract(hdr.ipv4_options[0]);
+    transition parse_ipv4_no_options;
   }
 
-  state parse_after_ipv4 {
+  state parse_ipv4_options_2 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_3 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_4 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    pkt.extract(hdr.ipv4_options[3]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_5 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    pkt.extract(hdr.ipv4_options[3]);
+    pkt.extract(hdr.ipv4_options[4]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_6 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    pkt.extract(hdr.ipv4_options[3]);
+    pkt.extract(hdr.ipv4_options[4]);
+    pkt.extract(hdr.ipv4_options[5]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_7 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    pkt.extract(hdr.ipv4_options[3]);
+    pkt.extract(hdr.ipv4_options[4]);
+    pkt.extract(hdr.ipv4_options[5]);
+    pkt.extract(hdr.ipv4_options[6]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_8 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    pkt.extract(hdr.ipv4_options[3]);
+    pkt.extract(hdr.ipv4_options[4]);
+    pkt.extract(hdr.ipv4_options[5]);
+    pkt.extract(hdr.ipv4_options[6]);
+    pkt.extract(hdr.ipv4_options[7]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_9 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    pkt.extract(hdr.ipv4_options[3]);
+    pkt.extract(hdr.ipv4_options[4]);
+    pkt.extract(hdr.ipv4_options[5]);
+    pkt.extract(hdr.ipv4_options[6]);
+    pkt.extract(hdr.ipv4_options[7]);
+    pkt.extract(hdr.ipv4_options[8]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_options_10 {
+    pkt.extract(hdr.ipv4_options[0]);
+    pkt.extract(hdr.ipv4_options[1]);
+    pkt.extract(hdr.ipv4_options[2]);
+    pkt.extract(hdr.ipv4_options[3]);
+    pkt.extract(hdr.ipv4_options[4]);
+    pkt.extract(hdr.ipv4_options[5]);
+    pkt.extract(hdr.ipv4_options[6]);
+    pkt.extract(hdr.ipv4_options[7]);
+    pkt.extract(hdr.ipv4_options[8]);
+    pkt.extract(hdr.ipv4_options[9]);
+    transition parse_ipv4_no_options;
+  }
+
+  state parse_ipv4_no_options {
     transition select (hdr.ipv4.protocol) {
         IP_PROTOCOLS_TCP: parse_tcpudp;
         default: accept;

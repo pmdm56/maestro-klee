@@ -1275,16 +1275,20 @@ private:
   }
 };
 
-template <typename T> class Map {
+template <typename T>
+class Map {
 private:
   std::unordered_map<bytes_t, T, bytes_t::hash> data;
-  std::unique_ptr<Table> dataplane_table;
+  std::vector<std::unique_ptr<Table>> dataplane_tables;
 
 public:
   Map() {}
 
-  Map(const std::string &dataplane_table_name)
-      : dataplane_table(Table::build(dataplane_table_name)) {}
+  Map(const std::vector<std::string> &dataplane_table_names) {
+    for (const auto &table_name : dataplane_table_names) {
+      dataplane_tables.push_back(Table::build(table_name));
+    }
+  }
 
   bool get(bytes_t key, T &value) const {
     if (contains(key)) {
@@ -1300,8 +1304,8 @@ public:
   void put(bytes_t key, T value) {
     data[key] = value;
 
-    if (dataplane_table) {
-      auto value_bytes = to_bytes(value);
+    auto value_bytes = to_bytes(value);
+    for (auto &dataplane_table : dataplane_tables) {
       dataplane_table->set(key, value_bytes);
     }
   }
@@ -1310,8 +1314,9 @@ public:
     return std::unique_ptr<Map>(new Map());
   }
 
-  static std::unique_ptr<Map> build(const std::string &dataplane_table_name) {
-    return std::unique_ptr<Map>(new Map(dataplane_table_name));
+  static std::unique_ptr<Map> build(
+    const std::vector<std::string> &dataplane_table_names) {
+    return std::unique_ptr<Map>(new Map(dataplane_table_names));
   }
 
 private:

@@ -78,14 +78,14 @@ x86TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   return variable_query_t();
 }
 
-bool get_dataplane_table_name(const ExecutionPlan &ep,
-                              klee::ref<klee::Expr> obj,
-                              std::string &table_name) {
+bool get_dataplane_table_names(const ExecutionPlan &ep,
+                               klee::ref<klee::Expr> obj,
+                               std::unordered_set<std::string> &table_names) {
   auto mb = ep.get_memory_bank();
 
   if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
     auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
-    table_name = tmb->get_obj_addr_to_table_name(obj);
+    table_names = tmb->get_table_names_of_obj(obj);
     return true;
   }
 
@@ -119,15 +119,20 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
       state_init_builder.append(value_type);
       state_init_builder.append(">::build(");
 
-      std::string table_name;
+      std::unordered_set<std::string> table_names;
 
       auto has_dataplane =
-          get_dataplane_table_name(ep, map_ds->addr, table_name);
+          get_dataplane_table_names(ep, map_ds->addr, table_names);
 
       if (has_dataplane) {
-        state_init_builder.append("\"");
-        state_init_builder.append(table_name);
-        state_init_builder.append("\"");
+        state_init_builder.append("{");
+        for (const auto &table_name : table_names) {
+          state_init_builder.append("\"");
+          state_init_builder.append(table_name);
+          state_init_builder.append("\"");
+          state_init_builder.append(",");
+        }
+        state_init_builder.append("}");
       }
 
       state_init_builder.append(");");

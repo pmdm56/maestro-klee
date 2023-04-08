@@ -58,10 +58,6 @@ public:
   void save_placement_decision(klee::ref<klee::Expr> obj_addr,
                                PlacementDecision decision) {
     auto obj_addr_value = expr_addr_to_obj_addr(obj_addr);
-
-    assert(placement_decisions.find(obj_addr_value) ==
-           placement_decisions.end());
-
     placement_decisions[obj_addr_value] = decision;
   }
 
