@@ -69,25 +69,25 @@ namespace Clone {
 		assert(origin->get_node_type() == NodeType::DEVICE);
 
 		for(auto &child: origin->get_children()) {
-			info("Traversing from ", origin->get_name(), " port ", child.first);
-			traverse(child.second.first, child.second.second);
+			info("Traversing from ", origin->get_name(), " port ", child.first, " to ", child.second.second->get_name(), " port ", child.second.first);
+			traverse(child.first, child.second.second, child.second.first);
 		}
 	}
 
-	void Network::traverse(unsigned input_port, const std::shared_ptr<Node> &origin) {
+	void Network::traverse(unsigned device_port, const std::shared_ptr<Node> &origin, unsigned nf_port) {
 		/* Input port | Node */
 		assert(nfs.find(origin->get_name()) != nfs.end());
 		const auto &nf = nfs.at(origin->get_name());
 
-		builder->add_process_branch(input_port);
+		builder->add_process_branch(device_port);
 
 		deque<shared_ptr<NodeTransition>> q_transitions;
 		const auto &root = builder->get_process_root();
 		const auto &branch = static_cast<BDD::Branch*>(root.get());
-		q_transitions.push_front(std::make_shared<NodeTransition>(input_port, origin, branch->get_on_true()));
+		q_transitions.push_front(std::make_shared<NodeTransition>(nf_port, origin, branch->get_on_true()));
 
 		while(!q_transitions.empty()) {
-			debug("Queue size: ", q_transitions.size());
+			//debug("Queue size: ", q_transitions.size());
 			const unsigned port = q_transitions.front()->input_port;
 			const auto node = q_transitions.front()->node;
 			const auto tail = q_transitions.front()->tail;
@@ -125,10 +125,10 @@ namespace Clone {
 				}
 			}
 
-			auto file = std::ofstream("graph.gv");
-			BDD::GraphvizGenerator g(file);
-			g.visualize(*builder->get_bdd(), false, false);
 		}
+		auto file = std::ofstream("graph.gv");
+		BDD::GraphvizGenerator g(file);
+		g.visualize(*builder->get_bdd(), false, false);
 	}
 
 	void Network::print_graph() const {

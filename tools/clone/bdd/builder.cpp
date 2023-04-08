@@ -35,6 +35,8 @@ namespace Clone {
 			s.pop();
 
 			//curr->update_id(counter++);
+			//debug(curr->dump());
+			//curr->get_constraints().dump();
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -64,8 +66,9 @@ namespace Clone {
 						maybe_false = kutil::solver_toolbox.is_expr_maybe_false(cm, branch->get_condition()) ;
 					}
 					else {
-						maybe_true = kutil::solver_toolbox.is_expr_maybe_true(branch->get_constraints(), branch->get_condition()) ;
-						maybe_false = kutil::solver_toolbox.is_expr_maybe_false(branch->get_constraints(), branch->get_condition()) ;
+						const auto &cm = branch->get_constraints();
+						maybe_true = kutil::solver_toolbox.is_expr_maybe_true(cm, branch->get_condition()) ;
+						maybe_false = kutil::solver_toolbox.is_expr_maybe_false(cm, branch->get_condition()) ;
 					}
 
 					if(!maybe_true) {
@@ -224,7 +227,7 @@ namespace Clone {
 			trim_node(init_tail, init_new);
 		}
 
- 		clone_node(init_new, 0); //TODO: check if this is correct		
+ 		clone_node(init_new, 0);
 		merged_inits.insert(nf->get_id());
 	}
 
@@ -235,6 +238,7 @@ namespace Clone {
 		root->recursive_update_ids(counter);
 		trim_node(tail, root);
 
+		//info("Merging nf ", nf->get_id(), " with root ", root->get_id(), " and input port ", port, " at tail ", tail->get_id());
 		return clone_node(root, port);
 	}
 

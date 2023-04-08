@@ -77,7 +77,7 @@ namespace Clone {
 		
 		void build_graph();
 		void explore_source(const std::shared_ptr<Node> &origin);
-		void traverse(unsigned input_port, const std::shared_ptr<Node> &origin);
+		void traverse(unsigned device_port, const std::shared_ptr<Node> &origin, unsigned nf_port);
 		void print_graph() const;
 	public:
 		~Network();
