@@ -44,4 +44,4 @@ using std::range_error;
 using std::out_of_range;
 using std::exception;
 
-constexpr int NO_CONSTRAINT = -1;
+#include "util/logger.hpp"
