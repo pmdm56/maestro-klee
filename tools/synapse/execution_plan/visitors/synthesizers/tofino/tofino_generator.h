@@ -52,6 +52,11 @@ public:
 
   variable_query_t search_variable(std::string symbol) const;
   variable_query_t search_variable(klee::ref<klee::Expr> expr) const;
+
+private:
+  void visit_if_header_validator(const targets::tofino::If *node);
+  void visit_if_break_condition(klee::ref<klee::Expr> condition);
+  void visit_if_simple_condition(klee::ref<klee::Expr> condition);
 };
 
 } // namespace tofino

@@ -66,9 +66,13 @@ public:
   virtual std::string get_type() const {
     std::stringstream type;
 
-    type << "bit<";
-    type << size_bits;
-    type << ">";
+    if (size_bits == 1) {
+      type << "bool";
+    } else {
+      type << "bit<";
+      type << size_bits;
+      type << ">";
+    }
 
     return type.str();
   }

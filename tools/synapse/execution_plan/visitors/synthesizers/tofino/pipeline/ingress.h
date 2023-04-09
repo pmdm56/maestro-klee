@@ -167,6 +167,31 @@ public:
     return meta_param_var;
   }
 
+  Variable allocate_local_auxiliary(const std::string &base_label,
+                                    bits_t size) {
+    variable_query_t local_var_query;
+    std::stringstream label_builder;
+    int counter = -1;
+
+    do {
+      counter++;
+      label_builder.clear();
+
+      label_builder << base_label;
+      label_builder << "_";
+      label_builder << counter;
+
+      local_var_query = local_vars.get_by_label(label_builder.str());
+    } while (local_var_query.valid);
+
+    auto label = label_builder.str();
+    auto var = Variable(label, size);
+
+    local_vars.append(var);
+
+    return var;
+  }
+
   void add_table(const table_t &table) { tables.insert(table); }
 
   void synthesize_state(std::ostream &os) {

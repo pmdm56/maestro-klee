@@ -47,8 +47,9 @@ constexpr char HDR_ETH_SRC_ADDR_FIELD[] = "src_addr";
 constexpr char HDR_ETH_DST_ADDR_FIELD[] = "dst_addr";
 constexpr char HDR_ETH_ETHER_TYPE_FIELD[] = "ether_type";
 
-constexpr char HDR_IPV4_VERSION_IHL_FIELD[] = "version_ihl";
-constexpr char HDR_IPV4_ECN_DSCP_FIELD[] = "ecn_dscp";
+constexpr char HDR_IPV4_VERSION_FIELD[] = "version";
+constexpr char HDR_IPV4_IHL_FIELD[] = "ihl";
+constexpr char HDR_IPV4_DSCP_FIELD[] = "dscp";
 constexpr char HDR_IPV4_TOT_LEN_FIELD[] = "tot_len";
 constexpr char HDR_IPV4_ID_FIELD[] = "id";
 constexpr char HDR_IPV4_FRAG_OFF_FIELD[] = "frag_off";

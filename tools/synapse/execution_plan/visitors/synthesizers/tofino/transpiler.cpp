@@ -376,10 +376,14 @@ InternalTranspiler::visitZExt(const klee::ZExtExpr &e) {
 
   auto eref = const_cast<klee::ZExtExpr *>(&e);
 
-  code << "(";
-  code << "(" << get_p4_type(eref) << ") ";
-  code << "(" << tg.transpile(expr) << ")";
-  code << ")";
+  if (kutil::is_bool(eref)) {
+    code << tg.transpile(expr);
+  } else {
+    code << "(";
+    code << "(" << get_p4_type(eref) << ") ";
+    code << "(" << tg.transpile(expr) << ")";
+    code << ")";
+  }
 
   return klee::ExprVisitor::Action::skipChildren();
 }
@@ -392,10 +396,14 @@ InternalTranspiler::visitSExt(const klee::SExtExpr &e) {
 
   auto eref = const_cast<klee::SExtExpr *>(&e);
 
-  code << "(";
-  code << "(" << get_p4_type(eref) << ") ";
-  code << "(" << tg.transpile(expr) << ")";
-  code << ")";
+  if (kutil::is_bool(eref)) {
+    code << tg.transpile(expr);
+  } else {
+    code << "(";
+    code << "(" << get_p4_type(eref) << ") ";
+    code << "(" << tg.transpile(expr) << ")";
+    code << ")";
+  }
 
   return klee::ExprVisitor::Action::skipChildren();
 }
@@ -483,16 +491,13 @@ klee::ExprVisitor::Action InternalTranspiler::visitAnd(const klee::AndExpr &e) {
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  if (detect_packet_length_conditions(rhs)) {
-    code << tg.transpile(lhs);
-    return klee::ExprVisitor::Action::skipChildren();
-  }
-
   auto lhs_parsed = tg.transpile(lhs);
   auto rhs_parsed = tg.transpile(rhs);
 
+  auto isBool = kutil::is_bool(lhs) || kutil::is_bool(rhs);
+
   code << "(" << lhs_parsed << ")";
-  code << " & ";
+  code << (isBool ? " && " : " & ");
   code << "(" << rhs_parsed << ")";
 
   return klee::ExprVisitor::Action::skipChildren();
@@ -515,16 +520,13 @@ w16 (w32 0) pkt_len))))) (w64 20)))))
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  if (detect_packet_length_conditions(rhs)) {
-    code << tg.transpile(lhs);
-    return klee::ExprVisitor::Action::skipChildren();
-  }
-
   auto lhs_parsed = tg.transpile(lhs);
   auto rhs_parsed = tg.transpile(rhs);
 
+  auto isBool = kutil::is_bool(lhs) || kutil::is_bool(rhs);
+
   code << "(" << lhs_parsed << ")";
-  code << " | ";
+  code << (isBool ? " || " : " | ");
   code << "(" << rhs_parsed << ")";
 
   return klee::ExprVisitor::Action::skipChildren();
@@ -564,28 +566,58 @@ klee::ExprVisitor::Action InternalTranspiler::visitEq(const klee::EqExpr &e) {
     return klee::ExprVisitor::Action::skipChildren();
   }
 
-  auto lhs_code = tg.transpile(lhs);
-  auto rhs_code = tg.transpile(rhs);
+  auto isBool = kutil::is_bool(lhs) || kutil::is_bool(rhs);
 
-  code << "(" << lhs_code << ")";
+  if (isBool && lhs->getKind() == klee::Expr::Constant) {
+    auto constant = static_cast<klee::ConstantExpr *>(lhs.get());
+    assert(constant->getWidth() <= 64);
+    auto value = constant->getZExtValue();
+
+    code << (value == 0 ? "false" : "true");
+  } else {
+    auto lhs_code = tg.transpile(lhs);
+    code << "(" << lhs_code << ")";
+  }
+  
   code << " == ";
+
+  auto rhs_code = tg.transpile(rhs);
   code << "(" << rhs_code << ")";
 
   return klee::ExprVisitor::Action::skipChildren();
 }
 
 klee::ExprVisitor::Action InternalTranspiler::visitNe(const klee::NeExpr &e) {
-  assert(e.getNumKids() == 2);
-
   auto lhs = e.getKid(0);
   auto rhs = e.getKid(1);
 
-  auto lhs_parsed = tg.transpile(lhs);
-  auto rhs_parsed = tg.transpile(rhs);
+  auto transpile_var_comparison_result = transpile_var_comparison(tg, lhs, rhs);
 
-  code << "(" << lhs_parsed << ")";
+  if (transpile_var_comparison_result.valid) {
+    code << transpile_var_comparison_result.lhs;
+    code << " != ";
+    code << transpile_var_comparison_result.rhs;
+
+    return klee::ExprVisitor::Action::skipChildren();
+  }
+
+  auto isBool = kutil::is_bool(lhs) || kutil::is_bool(rhs);
+
+  if (isBool && lhs->getKind() == klee::Expr::Constant) {
+    auto constant = static_cast<klee::ConstantExpr *>(lhs.get());
+    assert(constant->getWidth() <= 64);
+    auto value = constant->getZExtValue();
+
+    code << (value == 0 ? "false" : "true");
+  } else {
+    auto lhs_code = tg.transpile(lhs);
+    code << "(" << lhs_code << ")";
+  }
+  
   code << " != ";
-  code << "(" << rhs_parsed << ")";
+
+  auto rhs_code = tg.transpile(rhs);
+  code << "(" << rhs_code << ")";
 
   return klee::ExprVisitor::Action::skipChildren();
 }

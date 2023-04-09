@@ -103,8 +103,43 @@ private:
     std::vector<meta_t> key_meta;
     std::pair<bool, BDD::symbol_t> contains_symbol;
 
+    extracted_data_t() : valid(false) {}
     extracted_data_t(const std::string &_fname) : valid(false), fname(_fname) {}
   };
+
+  extracted_data_t extract_from_dchain(const ExecutionPlan &ep,
+                                       BDD::BDDNode_ptr node,
+                                       const BDD::Call *casted) {
+    auto call = casted->get_call();
+    extracted_data_t data(call.function_name);
+
+    if (call.function_name != symbex::FN_DCHAIN_IS_ALLOCATED) {
+      return data;
+    }
+
+    assert(!call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr.isNull());
+    assert(!call.args[symbex::FN_DCHAIN_ARG_INDEX].expr.isNull());
+    assert(!call.ret.isNull());
+
+    auto _dchain = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
+    auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
+    auto _is_allocated = call.ret;
+
+    auto symbols = casted->get_local_generated_symbols();
+    assert(symbols.size() == 1);
+    auto contains_symbol = *symbols.begin();
+
+    data.valid = true;
+    data.obj = _dchain;
+    data.key = _index;
+
+    data.contains_symbol.first = true;
+    data.contains_symbol.second = contains_symbol;
+
+    assert(data.value.isNull());
+
+    return data;
+  }
 
   extracted_data_t extract_from_map(const ExecutionPlan &ep,
                                     BDD::BDDNode_ptr node,
@@ -210,14 +245,23 @@ private:
 
   bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                const BDD::Call *casted, processing_result_t &result) {
-    auto data = extract_from_map(ep, node, casted);
+    auto extractors = {
+        &TableLookup::extract_from_map,
+        &TableLookup::extract_from_vector,
+        &TableLookup::extract_from_dchain,
+    };
+
+    extracted_data_t data;
+
+    for (auto &extractor : extractors) {
+      data = (this->*extractor)(ep, node, casted);
+
+      if (data.valid)
+        break;
+    }
 
     if (!data.valid) {
-      data = extract_from_vector(ep, node, casted);
-
-      if (!data.valid) {
-        return false;
-      }
+      return false;
     }
 
     if (!check_compatible_placements_decisions(ep, data.obj)) {
@@ -251,7 +295,12 @@ private:
 
     _keys.push_back(_key);
 
-    auto _params = std::vector<param_t>{data.value};
+    auto _params = std::vector<param_t>();
+
+    if (!data.value.isNull()) {
+      _params.push_back(data.value);
+    }
+
     auto _contains_symbol =
         data.contains_symbol.first ? &data.contains_symbol.second : nullptr;
 

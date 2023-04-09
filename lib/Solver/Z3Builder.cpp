@@ -843,14 +843,45 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     return sbvLeExpr(left, right);
   }
 
-// unused due to canonicalization
-#if 0
-  case Expr::Ne:
-  case Expr::Ugt:
-  case Expr::Uge:
-  case Expr::Sgt:
-  case Expr::Sge:
-#endif
+  case Expr::Ne: {
+    NeExpr *ee = cast<NeExpr>(e);
+    Z3ASTHandle left = construct(ee->left, width_out);
+    Z3ASTHandle right = construct(ee->right, width_out);
+    *width_out = 1;
+    return notExpr(eqExpr(left, right));
+  }
+
+  case Expr::Ugt: {
+    UgtExpr *ee = cast<UgtExpr>(e);
+    Z3ASTHandle left = construct(ee->left, width_out);
+    Z3ASTHandle right = construct(ee->right, width_out);
+    *width_out = 1;
+    return notExpr(bvLeExpr(left, right));
+  }
+  
+  case Expr::Uge: {
+    UgeExpr *ee = cast<UgeExpr>(e);
+    Z3ASTHandle left = construct(ee->left, width_out);
+    Z3ASTHandle right = construct(ee->right, width_out);
+    *width_out = 1;
+    return notExpr(bvLtExpr(left, right));
+  }
+
+  case Expr::Sgt: {
+    SgtExpr *ee = cast<SgtExpr>(e);
+    Z3ASTHandle left = construct(ee->left, width_out);
+    Z3ASTHandle right = construct(ee->right, width_out);
+    *width_out = 1;
+    return notExpr(sbvLeExpr(left, right));
+  }
+
+  case Expr::Sge: {
+    SgeExpr *ee = cast<SgeExpr>(e);
+    Z3ASTHandle left = construct(ee->left, width_out);
+    Z3ASTHandle right = construct(ee->right, width_out);
+    *width_out = 1;
+    return notExpr(sbvLtExpr(left, right));
+  }
 
   default:
     assert(0 && "unhandled Expr type");

@@ -33,6 +33,18 @@ struct stack_t {
     return vars;
   }
 
+  variable_query_t get_by_label(const std::string& label) const {
+    for (const auto &frame : stack) {
+      for (const auto &variable : frame) {
+        if (variable.get_label() == label) {
+          return variable_query_t(variable, 0);
+        }
+      }
+    }
+
+    return variable_query_t();
+  }
+
   variable_query_t get(std::string symbol) const {
     for (const auto &frame : stack) {
       for (const auto &variable : frame) {
