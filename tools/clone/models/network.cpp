@@ -1,6 +1,5 @@
 #include "network.hpp"
 #include "../pch.hpp"
-#include "../util/logger.hpp"
 
 //#include "call-paths-to-bdd.h"
 

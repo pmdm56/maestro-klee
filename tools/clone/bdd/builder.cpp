@@ -1,14 +1,12 @@
 #include "builder.hpp"
 #include "../pch.hpp"
-#include "../util/logger.hpp"
-#include "exprs.h"
-#include "klee/Constraints.h"
-#include "solver_toolbox.h"
+
 
 using namespace BDD;
 using klee::ConstraintManager;
 using kutil::solver_toolbox;
 using kutil::get_symbols;
+
 
 namespace Clone {
 
@@ -21,7 +19,7 @@ namespace Clone {
 
 	/* Private methods */
 
-	Tails Builder::clone_node(BDDNode_ptr root, unsigned input_port) {
+	Tails Builder::clone_node(BDDNode_ptr root, uint32_t input_port) {
 		assert(root);
 
 		stack<BDDNode_ptr> s;
@@ -179,10 +177,10 @@ namespace Clone {
 		auto vigor_device = solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
 		auto port = solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) ;
 		auto eq = solver_toolbox.exprBuilder->Eq(vigor_device, port) ;
-		auto node = BDDNode_ptr(new Branch(counter++, cm, eq));
-		auto return_drop = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
-		auto return_fwd = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::FWD));
-		auto branch { static_cast<Branch*>(node.get()) };
+		BDDNode_ptr node = BDDNode_ptr(new Branch(counter++, cm, eq));
+		BDDNode_ptr return_drop = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
+		BDDNode_ptr return_fwd = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::FWD));
+		Branch* branch { static_cast<Branch*>(node.get()) };
 
 		branch->add_on_false(return_drop);
 		branch->add_on_true(return_fwd);
