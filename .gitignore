@@ -42,3 +42,4 @@ input/
 *.gv
 .cache/
 CMakePresets.json
+.clangd

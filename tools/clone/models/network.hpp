@@ -17,25 +17,15 @@ namespace Clone {
 	class Device;
 	class Node;
 
-	/** Typedefs **/
-
-	typedef std::shared_ptr<Node> NodePtr;
-	/* Value: Link */
 	typedef std::vector<std::unique_ptr<const Link>> Links;
-	
-	/* Key: NF name/identifier; Value: NF */
 	typedef std::unordered_map<std::string, std::shared_ptr<NF>> NFs;
-
-	/* Key: Device name/identifier; Value: Device */
 	typedef std::unordered_map<std::string, std::unique_ptr<const Device>> Devices;
 
-	/* Key: path; Value: BDD */
 	typedef std::unordered_map<std::string, std::shared_ptr<const BDD::BDD>> BDDs;
 
-	/* Key: Node name/identifier; Value: Node */
-	typedef std::unordered_map<std::string, NodePtr> Nodes;
-
+	typedef std::shared_ptr<Node> NodePtr;
 	typedef std::unordered_set<NodePtr> NodeSet;
+	typedef std::unordered_map<std::string, NodePtr> NodeMap;
 
 
 	struct NodeTransition {
@@ -47,33 +37,18 @@ namespace Clone {
 			: input_port(input_port), node(node), tail(tail) {}
 	};
 
-	/**
-	 * This class represents a network.
-	 * 
-	 * It contains all the devices, NFs and links.
-	*/
 	class Network {
 	private:
 		const NFs nfs;
 		const Links links;
 		const Devices devices;
-		const BDDs bdds;
 
-		/* All the nodes in the network */
-		Nodes nodes;
-
-		/* Nodes where traffic can start */
+		NodeMap nodes;
 		NodeSet sources;
-
-		/* Nodes where traffic can end */
-		NodeSet sinks;
-
-		NodeSet visited;
 
 		const std::unique_ptr<Builder> builder = Builder::create();
 
-	
-		Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds);
+		Network(Devices &&devices, NFs &&nfs, Links &&links);
 		
 		void build_graph();
 		void explore_source(const std::shared_ptr<Node> &origin);

@@ -2,23 +2,18 @@
 #include "../pch.hpp"
 #include "../util/logger.hpp"
 
-#include "bdd/nodes/node.h"
-#include "bdd/nodes/symbol.h"
-#include "bdd/visitors/graphviz-generator.h"
-#include "call-paths-to-bdd.h"
+//#include "call-paths-to-bdd.h"
 
 #include "device.hpp"
 #include "nf.hpp"
 #include "link.hpp"
 #include "node.hpp"
 #include "../bdd/builder.hpp"
-#include <cstdlib>
 
 namespace Clone {
-
 	/* Constructors and destructors */
-	Network::Network(Devices &&devices, NFs &&nfs, Links &&links, BDDs &&bdds): 
-						devices(move(devices)), nfs(move(nfs)), links(move(links)), bdds(move(bdds)) {}
+	Network::Network(Devices &&devices, NFs &&nfs, Links &&links): 
+						devices(move(devices)), nfs(move(nfs)), links(move(links)) {}
 	
 	Network::~Network() = default;
 
@@ -50,18 +45,10 @@ namespace Clone {
 			if(node1_type == NodeType::DEVICE) {
 				sources.insert(node1);
 			}
-
-			if(node2_type == NodeType::DEVICE) {
-				sinks.insert(node2);
-			}
 		}
 
 		if(sources.size() == 0) {
 			danger("No sources found");
-		}
-
-		if(sinks.size() == 0) {
-			danger("No sinks found");
 		}
 	}
 
@@ -140,11 +127,6 @@ namespace Clone {
 		for(auto &source: sources) {
 			debug(source->get_name());
 		}
-
-		debug("Sinks: ");
-		for(auto &sink: sinks) {
-			debug(sink->get_name());
-		}
 	}
 
 	/* Static methods */
@@ -153,7 +135,7 @@ namespace Clone {
 		if(nfs.size() == 0)	danger("No NFs found");
 		if(links.size() == 0) danger("No links found");
 		
-		BDDs bdds;
+		unordered_map<string, shared_ptr<const BDD::BDD>> bdds;
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
 			auto &nf { it->second };
@@ -167,7 +149,7 @@ namespace Clone {
 			nf->set_bdd(bdds.at(path));
 		}
 		
-		return unique_ptr<Network>(new Network(move(devices), move(nfs), move(links), move(bdds)));
+		return unique_ptr<Network>(new Network(move(devices), move(nfs), move(links)));
 	}
 
 
@@ -175,15 +157,11 @@ namespace Clone {
 	void Network::consolidate() {
 		build_graph();
 				
-		info("Total of ", sources.size(), " sources");
 		for(auto &source: sources) {			
 			assert(source->get_node_type() == NodeType::DEVICE);
 			info("Traversing source: ", source->get_name());
 			explore_source(source);
-			visited.clear();
 		}
-
-		const auto &bdd { builder->get_bdd().get() };
 	}
 
 	void Network::print() const {

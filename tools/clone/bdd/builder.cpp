@@ -1,15 +1,14 @@
 #include "builder.hpp"
 #include "../pch.hpp"
 #include "../util/logger.hpp"
-
-#include "bdd/nodes/node.h"
-#include "bdd/nodes/return_init.h"
-#include "bdd/nodes/symbol.h"
+#include "exprs.h"
 #include "klee/Constraints.h"
-#include "retrieve_symbols.h"
 #include "solver_toolbox.h"
 
 using namespace BDD;
+using klee::ConstraintManager;
+using kutil::solver_toolbox;
+using kutil::get_symbols;
 
 namespace Clone {
 
@@ -22,7 +21,7 @@ namespace Clone {
 
 	/* Private methods */
 
-	Tails Builder::clone_node(BDD::BDDNode_ptr root, unsigned input_port) {
+	Tails Builder::clone_node(BDDNode_ptr root, unsigned input_port) {
 		assert(root);
 
 		stack<BDDNode_ptr> s;
@@ -33,10 +32,6 @@ namespace Clone {
 		while(!s.empty()) {
 			auto curr = s.top();
 			s.pop();
-
-			//curr->update_id(counter++);
-			//debug(curr->dump());
-			//curr->get_constraints().dump();
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -50,34 +45,32 @@ namespace Clone {
 					branch->disconnect();
 					branch->add_prev(prev);
 
-					const auto &condition_symbols { kutil::get_symbols(branch->get_condition()) };
+					const auto &condition_symbols { get_symbols(branch->get_condition()) };
 
 					bool maybe_true = false;
 					bool maybe_false = false;
 
 					if (condition_symbols.size() == 1 && *condition_symbols.begin() == "VIGOR_DEVICE") {
-						auto vigor_device { kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
-						auto port { kutil::solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) };
-						auto eq { kutil::solver_toolbox.exprBuilder->Eq(vigor_device, port) };
+						auto vigor_device { solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
+						auto port { solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) };
+						auto eq { solver_toolbox.exprBuilder->Eq(vigor_device, port) };
 						auto cm = branch->get_node_constraints();
 
 						cm.addConstraint(eq);
-						maybe_true = kutil::solver_toolbox.is_expr_maybe_true(cm, branch->get_condition()) ;
-						maybe_false = kutil::solver_toolbox.is_expr_maybe_false(cm, branch->get_condition()) ;
+						maybe_true = solver_toolbox.is_expr_maybe_true(cm, branch->get_condition()) ;
+						maybe_false = solver_toolbox.is_expr_maybe_false(cm, branch->get_condition()) ;
 					}
 					else {
 						const auto &cm = branch->get_constraints();
-						maybe_true = kutil::solver_toolbox.is_expr_maybe_true(cm, branch->get_condition()) ;
-						maybe_false = kutil::solver_toolbox.is_expr_maybe_false(cm, branch->get_condition()) ;
+						maybe_true = solver_toolbox.is_expr_maybe_true(cm, branch->get_condition()) ;
+						maybe_false = solver_toolbox.is_expr_maybe_false(cm, branch->get_condition()) ;
 					}
 
 					if(!maybe_true) {
-						//debug("Trimming branch ", curr->get_id(), " to false branch");
 						trim_node(curr, next_false);
 						s.push(next_false);
 					}
 					else if(!maybe_false) {
-						//info("Trimming branch ", curr->get_id(), " to true branch");
 						trim_node(curr, next_true);
 						s.push(next_true);
 					}
@@ -132,7 +125,7 @@ namespace Clone {
 		return tails;
 	}
 
-	void Builder::trim_node(BDD::BDDNode_ptr curr, BDD::BDDNode_ptr next) {
+	void Builder::trim_node(BDDNode_ptr curr, BDDNode_ptr next) {
 		auto prev = curr->get_prev();
 
 		if(prev->get_type() == Node::NodeType::BRANCH) {
@@ -176,19 +169,19 @@ namespace Clone {
 		return bdd->get_process() == nullptr;
 	}
 
-	void Builder::replace_with_drop(BDD::BDDNode_ptr node) {
-		auto return_drop = BDD::BDDNode_ptr(new BDD::ReturnProcess(counter++, node, {}, 0, BDD::ReturnProcess::Operation::DROP));
+	void Builder::replace_with_drop(BDDNode_ptr node) {
+		auto return_drop = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
 		trim_node(node, return_drop);
 	}
 
 	void Builder::add_process_branch(unsigned input_port) {
-		klee::ConstraintManager cm {};
-		auto vigor_device = kutil::solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
-		auto port = kutil::solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) ;
-		auto eq = kutil::solver_toolbox.exprBuilder->Eq(vigor_device, port) ;
-		auto node = BDD::BDDNode_ptr(new BDD::Branch(counter++, cm, eq));
-		auto return_drop = BDD::BDDNode_ptr(new BDD::ReturnProcess(counter++, node, {}, 0, BDD::ReturnProcess::Operation::DROP));
-		auto return_fwd = BDD::BDDNode_ptr(new BDD::ReturnProcess(counter++, node, {}, 0, BDD::ReturnProcess::Operation::FWD));
+		ConstraintManager cm {};
+		auto vigor_device = solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
+		auto port = solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) ;
+		auto eq = solver_toolbox.exprBuilder->Eq(vigor_device, port) ;
+		auto node = BDDNode_ptr(new Branch(counter++, cm, eq));
+		auto return_drop = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
+		auto return_fwd = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::FWD));
 		auto branch { static_cast<Branch*>(node.get()) };
 
 		branch->add_on_false(return_drop);
@@ -231,26 +224,25 @@ namespace Clone {
 		merged_inits.insert(nf->get_id());
 	}
 
-	Tails Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const BDD::BDDNode_ptr &tail) {
+	Tails Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const BDDNode_ptr &tail) {
 		assert(process_root != nullptr);
 
 		auto root = nf->get_bdd()->get_process()->clone(true);
 		root->recursive_update_ids(counter);
 		trim_node(tail, root);
 
-		//info("Merging nf ", nf->get_id(), " with root ", root->get_id(), " and input port ", port, " at tail ", tail->get_id());
 		return clone_node(root, port);
 	}
 
-	const std::unique_ptr<BDD::BDD>& Builder::get_bdd() const {
+	const unique_ptr<BDD::BDD>& Builder::get_bdd() const {
 		return this->bdd;
 	}
 
-	BDD::BDDNode_ptr Builder::get_process_root() const {
+	BDDNode_ptr Builder::get_process_root() const {
 		return this->process_root;
 	}
 
-	void Builder::dump(std::string path) {
+	void Builder::dump(string path) {
 		debug("Dumping BDD to file");
 		this->bdd->serialize(path);
 	}

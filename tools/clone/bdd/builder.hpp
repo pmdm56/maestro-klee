@@ -6,8 +6,6 @@
 #include <deque>
 #include <unordered_set>
 
-#include "bdd/bdd.h"
-#include "bdd/nodes/node.h"
 #include "call-paths-to-bdd.h"
 
 #include "../models/nf.hpp"
