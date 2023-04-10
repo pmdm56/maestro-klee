@@ -35,9 +35,9 @@ public:
   struct ds_t {
     ds_type_t type;
     klee::ref<klee::Expr> addr;
-    uint64_t node_id;
+    BDD::node_id_t node_id;
 
-    ds_t(ds_type_t _type, klee::ref<klee::Expr> _addr, uint64_t _node_id)
+    ds_t(ds_type_t _type, klee::ref<klee::Expr> _addr, BDD::node_id_t _node_id)
         : type(_type), addr(_addr), node_id(_node_id) {}
 
     bool matches(ds_type_t _type, klee::ref<klee::Expr> _addr) const {
@@ -60,20 +60,20 @@ public:
   struct map_t : ds_t {
     bits_t value_size;
 
-    map_t(klee::ref<klee::Expr> _addr, bits_t _value_size, uint64_t _node_id)
+    map_t(klee::ref<klee::Expr> _addr, bits_t _value_size, BDD::node_id_t _node_id)
         : ds_t(ds_type_t::MAP, _addr, _node_id), value_size(_value_size) {}
   };
 
   struct dchain_t : ds_t {
     uint64_t index_range;
 
-    dchain_t(klee::ref<klee::Expr> _addr, uint64_t _node_id,
+    dchain_t(klee::ref<klee::Expr> _addr, BDD::node_id_t _node_id,
              uint64_t _index_range)
         : ds_t(ds_type_t::DCHAIN, _addr, _node_id), index_range(_index_range) {}
   };
 
 private:
-  BDD::symbol_t time;
+  std::vector<BDD::symbol_t> time;
   expiration_t expiration;
   std::vector<vector_borrow_t> vector_borrows;
   std::vector<std::shared_ptr<ds_t>> data_structures;
@@ -86,8 +86,8 @@ public:
         vector_borrows(mb.vector_borrows), data_structures(mb.data_structures) {
   }
 
-  void set_time(BDD::symbol_t _time) { time = _time; }
-  BDD::symbol_t get_time() const { return time; }
+  void add_time(BDD::symbol_t _time) { time.push_back(_time); }
+  const std::vector<BDD::symbol_t> &get_time() const { return time; }
 
   void set_expiration(const expiration_t &_expiration) {
     expiration = _expiration;

@@ -32,7 +32,7 @@ private:
     }
 
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(casted, symbex::FN_BORROW_CHUNK);
+        get_all_prev_functions(ep, node, symbex::FN_BORROW_CHUNK);
 
     if (all_prev_packet_borrow_next_chunk.size() != 0) {
       return result;
@@ -47,6 +47,12 @@ private:
     // Make sure that packet_borrow_next_chunk borrows the
     // 14 ethernet bytes
     assert(_length->getKind() == klee::Expr::Kind::Constant);
+    {
+      if (kutil::solver_toolbox.value_from_expr(_length) != 14) {
+        // FIXME: remove this
+        Graphviz::visualize(ep);
+      }
+    }
     assert(kutil::solver_toolbox.value_from_expr(_length) == 14);
 
     auto new_module = std::make_shared<PacketParseEthernet>(node, _chunk);

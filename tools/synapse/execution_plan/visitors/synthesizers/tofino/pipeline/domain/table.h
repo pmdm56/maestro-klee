@@ -14,12 +14,12 @@ namespace tofino {
 struct table_t {
   std::string label;
   std::vector<std::string> keys_labels;
-  std::vector<Variable> meta_params;
+  Variables meta_params;
 
   uint64_t size;
 
   table_t(std::string _label, std::vector<std::string> _keys_labels,
-          std::vector<Variable> _meta_params)
+          Variables _meta_params)
       : label(_label), keys_labels(_keys_labels), meta_params(_meta_params),
         size(1024) {}
 
@@ -165,7 +165,7 @@ struct table_t {
 
     builder.indent();
 
-    builder.append("idle_timout = true;");
+    builder.append("idle_timeout = true;");
     builder.append_new_line();
 
     // ================= End Table =================
@@ -177,7 +177,17 @@ struct table_t {
     builder.append("}");
     builder.append_new_line();
   }
+
+  bool operator==(const table_t &other) const { return label == other.label; }
+
+  struct TableHashing {
+    size_t operator()(const table_t &table) const {
+      return std::hash<std::string>()(table.label);
+    }
+  };
 };
+
+typedef std::unordered_set<table_t, table_t::TableHashing> tables_t;
 
 } // namespace tofino
 } // namespace synthesizer

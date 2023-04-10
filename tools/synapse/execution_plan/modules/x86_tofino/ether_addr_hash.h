@@ -27,6 +27,7 @@ private:
                                    BDD::BDDNode_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
+    return result;
 
     auto call = casted->get_call();
 

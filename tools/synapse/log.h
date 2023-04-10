@@ -3,6 +3,12 @@
 #include <iostream>
 #include <sstream>
 
+#define DEBUG_PAUSE                                                            \
+  {                                                                            \
+    std::cout << "Press Enter to continue ";                                   \
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');        \
+  }
+
 namespace synapse {
 
 namespace Colors {
@@ -24,12 +30,7 @@ const Color BOLD = "\033[1m";
 class Log {
 
 public:
-  enum Level {
-    DEBUG,
-    LOG,
-    WARNING,
-    ERROR
-  };
+  enum Level { DEBUG, LOG, WARNING, ERROR };
 
   std::ostream stream;
 

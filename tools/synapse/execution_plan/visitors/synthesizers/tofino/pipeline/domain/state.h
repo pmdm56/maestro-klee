@@ -24,7 +24,8 @@ struct state_t {
 struct initial_state_t : state_t {
   std::shared_ptr<state_t> next;
 
-  initial_state_t() : state_t(INITIAL, PARSER_INITIAL_STATE_LABEL) {}
+  initial_state_t()
+      : state_t(INITIAL, PARSER_INITIAL_STATE_LABEL), next(nullptr) {}
 
   void synthesize(CodeBuilder &builder) const override {
     assert(next);

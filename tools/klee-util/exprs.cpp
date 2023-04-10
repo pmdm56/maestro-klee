@@ -1,4 +1,5 @@
 #include "exprs.h"
+#include "printer.h"
 #include "retrieve_symbols.h"
 #include "solver_toolbox.h"
 
@@ -72,6 +73,37 @@ bool is_readLSB(klee::ref<klee::Expr> expr) {
   return true;
 }
 
+bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset,
+                       int &n_bytes) {
+  RetrieveSymbols retriever;
+  retriever.visit(expr);
+
+  auto symbols = retriever.get_retrieved_strings();
+
+  if (symbols.size() != 1 || *symbols.begin() != "packet_chunks") {
+    return false;
+  }
+
+  std::vector<unsigned> bytes_read;
+  if (!get_bytes_read(expr, bytes_read) || bytes_read.size() == 0) {
+    return false;
+  }
+
+  auto expected_byte = bytes_read[0];
+  for (const auto &byte : bytes_read) {
+    if (byte != expected_byte) {
+      return false;
+    }
+
+    expected_byte -= 1;
+  }
+
+  offset = bytes_read.back();
+  n_bytes = bytes_read.size();
+
+  return true;
+}
+
 bool is_bool(klee::ref<klee::Expr> expr) {
   assert(!expr.isNull());
 
@@ -98,6 +130,16 @@ bool is_bool(klee::ref<klee::Expr> expr) {
          expr->getKind() == klee::Expr::Slt;
 }
 
+bool has_symbols(klee::ref<klee::Expr> expr) {
+  if (expr.isNull()) {
+    return false;
+  }
+
+  RetrieveSymbols retriever(false, true);
+  retriever.visit(expr);
+  return retriever.get_retrieved().size() > 0;
+}
+
 std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
   if (expr.isNull()) {
     return std::unordered_set<std::string>();
@@ -109,6 +151,10 @@ std::unordered_set<std::string> get_symbols(klee::ref<klee::Expr> expr) {
 }
 
 bool is_constant(klee::ref<klee::Expr> expr) {
+  if (expr->getWidth() > 64) {
+    return false;
+  }
+
   if (expr->getKind() == klee::Expr::Kind::Constant) {
     return true;
   }
@@ -122,15 +168,16 @@ bool is_constant(klee::ref<klee::Expr> expr) {
 }
 
 bool is_constant_signed(klee::ref<klee::Expr> expr) {
+  auto size = expr->getWidth();
+
   if (!is_constant(expr)) {
     return false;
   }
 
-  auto constant = static_cast<klee::ConstantExpr *>(expr.get());
-  assert(constant->getWidth() <= 64);
+  assert(size <= 64);
 
-  auto value = constant->getZExtValue(constant->getWidth());
-  auto sign_bit = value >> (constant->getWidth() - 1);
+  auto value = solver_toolbox.value_from_expr(expr);
+  auto sign_bit = value >> (size - 1);
 
   return sign_bit == 1;
 }

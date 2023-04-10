@@ -6,7 +6,9 @@
 
 namespace BDD {
 
-symbols_t Node::get_generated_symbols() const {
+// Get generated symbols, but no further than this node
+symbols_t Node::get_generated_symbols(
+    const std::unordered_set<node_id_t> &furthest_back_nodes) const {
   symbols_t symbols;
   const Node *node = this;
 
@@ -18,6 +20,14 @@ symbols_t Node::get_generated_symbols() const {
   symbols.emplace("received_a_packet", "received_a_packet", empty_expr);
 
   while (node) {
+    if (furthest_back_nodes.size()) {
+      auto found_it = std::find(furthest_back_nodes.begin(),
+                                furthest_back_nodes.end(), node->get_id());
+      if (found_it != furthest_back_nodes.end()) {
+        break;
+      }
+    }
+
     if (node->get_type() == Node::NodeType::CALL) {
       const Call *call = static_cast<const Call *>(node);
       auto more_symbols = call->get_local_generated_symbols();
@@ -33,9 +43,14 @@ symbols_t Node::get_generated_symbols() const {
   return symbols;
 }
 
+symbols_t Node::get_generated_symbols() const {
+  std::unordered_set<node_id_t> furthest_back_nodes;
+  return get_generated_symbols(furthest_back_nodes);
+}
+
 symbols_t Node::get_local_generated_symbols() const { return symbols_t(); }
 
-void Node::update_id(uint64_t new_id) {
+void Node::update_id(node_id_t new_id) {
   SymbolFactory factory;
   auto symbols = factory.get_symbols(this);
 
@@ -104,7 +119,7 @@ klee::ConstraintManager Node::get_constraints() const {
     accumulated.addConstraint(c);
   }
 
-  const Node* prev = node->get_prev().get();
+  const Node *prev = node->get_prev().get();
 
   while (prev) {
     if (prev->get_type() == NodeType::BRANCH) {
@@ -118,7 +133,7 @@ klee::ConstraintManager Node::get_constraints() const {
 
       auto condition = prev_branch->get_condition();
       assert(!condition.isNull());
-      
+
       if (on_true->get_id() == node->get_id()) {
         accumulated.addConstraint(condition);
       } else {

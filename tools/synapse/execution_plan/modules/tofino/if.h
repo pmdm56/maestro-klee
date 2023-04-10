@@ -2,24 +2,86 @@
 
 #include "../module.h"
 #include "else.h"
+#include "if_header_valid.h"
+#include "ignore.h"
 #include "then.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
+typedef std::vector<klee::ref<klee::Expr>> conditions_t;
+
 class If : public Module {
 private:
-  klee::ref<klee::Expr> condition;
+  conditions_t conditions;
 
 public:
   If() : Module(ModuleType::Tofino_If, TargetType::Tofino, "If") {}
 
-  If(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _condition)
+  If(BDD::BDDNode_ptr node, conditions_t _conditions)
       : Module(ModuleType::Tofino_If, TargetType::Tofino, "If", node),
-        condition(_condition) {}
+        conditions(_conditions) {}
 
 private:
+  // Tofino compiler complains if we access more than 4 bytes of the packet on
+  // the same if statement.
+  bool pass_compiler_packet_bytes_constraint(conditions_t _conditions) const {
+    constexpr int MAX_PACKET_BYTES = 4;
+
+    kutil::RetrieveSymbols retriever;
+
+    for (auto condition : _conditions) {
+      retriever.clear();
+      retriever.visit(condition);
+
+      auto chunks = retriever.get_retrieved_packet_chunks();
+
+      if (chunks.size() > MAX_PACKET_BYTES) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  conditions_t split_condition(klee::ref<klee::Expr> expr) const {
+    auto _conditions = conditions_t{expr};
+
+    auto and_expr_finder = [](klee::ref<klee::Expr> e) {
+      return e->getKind() == klee::Expr::And;
+    };
+
+    while (1) {
+      auto found_it =
+          std::find_if(_conditions.begin(), _conditions.end(), and_expr_finder);
+
+      if (found_it == _conditions.end()) {
+        break;
+      }
+
+      auto and_expr = *found_it;
+      _conditions.erase(found_it);
+
+      auto lhs = and_expr->getKid(0);
+      auto rhs = and_expr->getKid(1);
+
+      _conditions.push_back(lhs);
+      _conditions.push_back(rhs);
+    }
+
+    // minor simplification step
+
+    for (auto &condition : _conditions) {
+      if (condition->getKind() == klee::Expr::ZExt ||
+          condition->getKind() == klee::Expr::SExt) {
+        condition = condition->getKid(0);
+      }
+    }
+
+    return _conditions;
+  }
+
   processing_result_t process_branch(const ExecutionPlan &ep,
                                      BDD::BDDNode_ptr node,
                                      const BDD::Branch *casted) override {
@@ -28,7 +90,25 @@ private:
     assert(!casted->get_condition().isNull());
     auto _condition = casted->get_condition();
 
-    auto new_if_module = std::make_shared<If>(node, _condition);
+    if (IfHeaderValid::is_packet_header_conditional_node(casted)) {
+      return result;
+    }
+
+    _condition = kutil::simplify(_condition);
+    auto _conditions = conditions_t{_condition};
+
+    if (!pass_compiler_packet_bytes_constraint(_conditions)) {
+      _conditions = split_condition(_condition);
+
+      if (!pass_compiler_packet_bytes_constraint(_conditions)) {
+        Log::wrn() << "Unable to implement branching condition in Tofino.\n";
+        Log::wrn() << "Only 4 packet bytes are allowed in condition.\n";
+        return result;
+      }
+    }
+
+    auto new_if_module = std::make_shared<If>(node, _conditions);
+
     auto new_then_module = std::make_shared<Then>(node);
     auto new_else_module = std::make_shared<Else>(node);
 
@@ -56,7 +136,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new If(node, condition);
+    auto cloned = new If(node, conditions);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -67,15 +147,23 @@ public:
 
     auto other_cast = static_cast<const If *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(
-            condition, other_cast->get_condition())) {
+    auto other_conditions = other_cast->get_conditions();
+
+    if (conditions.size() != other_conditions.size()) {
       return false;
+    }
+
+    for (auto i = 0u; i < conditions.size(); i++) {
+      if (!kutil::solver_toolbox.are_exprs_always_equal(conditions[i],
+                                                        other_conditions[i])) {
+        return false;
+      }
     }
 
     return true;
   }
 
-  const klee::ref<klee::Expr> &get_condition() const { return condition; }
+  const conditions_t &get_conditions() const { return conditions; }
 };
 } // namespace tofino
 } // namespace targets

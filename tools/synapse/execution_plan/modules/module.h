@@ -8,6 +8,7 @@
 #include "../execution_plan_node.h"
 #include "../memory_bank.h"
 #include "../target.h"
+#include "../visitors/graphviz/graphviz.h"
 #include "../visitors/visitor.h"
 
 #define MODULE(X) (std::make_shared<X>())
@@ -70,19 +71,35 @@ public:
     BMv2_VectorReturn,
     Tofino_Ignore,
     Tofino_If,
+    Tofino_IfHeaderValid,
     Tofino_Then,
     Tofino_Else,
     Tofino_Forward,
     Tofino_EthernetConsume,
     Tofino_EthernetModify,
+    Tofino_IPv4Consume,
+    Tofino_IPv4Modify,
+    Tofino_IPv4OptionsConsume,
+    Tofino_IPv4OptionsModify,
+    Tofino_TCPUDPConsume,
+    Tofino_TCPUDPModify,
+    Tofino_IPv4TCPUDPChecksumsUpdate,
     Tofino_TableLookup,
     Tofino_Drop,
     Tofino_SendToController,
+    Tofino_SetupExpirationNotifications,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
     x86_Tofino_SendToTofino,
     x86_Tofino_PacketParseEthernet,
     x86_Tofino_PacketModifyEthernet,
+    x86_Tofino_PacketParseIPv4,
+    x86_Tofino_PacketModifyIPv4,
+    x86_Tofino_PacketParseIPv4Options,
+    x86_Tofino_PacketModifyIPv4Options,
+    x86_Tofino_PacketParseTCPUDP,
+    x86_Tofino_PacketModifyTCPUDP,
+    x86_Tofino_PacketModifyChecksums,
     x86_Tofino_If,
     x86_Tofino_Then,
     x86_Tofino_Else,
@@ -136,16 +153,7 @@ public:
   TargetType get_target() const { return target; }
   TargetType get_next_target() const { return next_target; }
 
-  BDD::BDDNode_ptr get_node() const {
-    if (!node) {
-      Log::err() << get_target_name() << "::" << get_name() << " has no node\n";
-      assert(false && "Missing node");
-      exit(1);
-    }
-
-    assert(node);
-    return node;
-  }
+  BDD::BDDNode_ptr get_node() const { return node; }
 
   void replace_node(BDD::BDDNode_ptr _node) {
     node = _node;
@@ -202,12 +210,13 @@ protected:
 protected:
   // General useful queries
   bool query_contains_map_has_key(const BDD::Branch *node) const;
+
   BDD::BDDNode_ptr
   get_past_node_that_generates_symbol(const BDD::Node *current_node,
                                       const std::string &symbol) const;
   std::vector<BDD::BDDNode_ptr>
-  get_all_prev_functions(const BDD::Node *node,
-                         const std::string &function_name);
+  get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+                         const std::string &function_name) const;
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;

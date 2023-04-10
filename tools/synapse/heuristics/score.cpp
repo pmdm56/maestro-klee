@@ -46,7 +46,7 @@ int Score::get_nr_switch_nodes() const {
   const auto &nodes_per_target = execution_plan.get_nodes_per_target();
 
   auto bmv2_nodes_it = nodes_per_target.find(TargetType::BMv2);
-  auto tofino_nodes_it = nodes_per_target.find(TargetType::BMv2);
+  auto tofino_nodes_it = nodes_per_target.find(TargetType::Tofino);
 
   if (bmv2_nodes_it != nodes_per_target.end()) {
     switch_nodes += bmv2_nodes_it->second;
@@ -61,12 +61,18 @@ int Score::get_nr_switch_nodes() const {
 
 int Score::get_nr_controller_nodes() const {
   auto controller_nodes = 0;
-
   const auto &nodes_per_target = execution_plan.get_nodes_per_target();
-  auto controller_nodes_it = nodes_per_target.find(TargetType::x86_BMv2);
 
-  if (controller_nodes_it != nodes_per_target.end()) {
-    controller_nodes = controller_nodes_it->second;
+  auto bmv2_controller_nodes_it = nodes_per_target.find(TargetType::x86_BMv2);
+  auto tofino_controller_nodes_it =
+      nodes_per_target.find(TargetType::x86_Tofino);
+
+  if (bmv2_controller_nodes_it != nodes_per_target.end()) {
+    controller_nodes += bmv2_controller_nodes_it->second;
+  }
+
+  if (tofino_controller_nodes_it != nodes_per_target.end()) {
+    controller_nodes += tofino_controller_nodes_it->second;
   }
 
   return controller_nodes;
@@ -105,6 +111,28 @@ int Score::get_nr_exact_match_nodes() const {
   }
 
   return matches;
+}
+
+int Score::get_nr_switch_leaves() const {
+  int switch_leaves = 0;
+  auto leaves = execution_plan.get_leaves();
+  auto switch_types =
+      std::vector<TargetType>{TargetType::BMv2, TargetType::Tofino};
+
+  for (auto leaf : leaves) {
+    if (!leaf.current_platform.first) {
+      continue;
+    }
+
+    auto found_it = std::find(switch_types.begin(), switch_types.end(),
+                              leaf.current_platform.second);
+
+    if (found_it != switch_types.end()) {
+      switch_leaves++;
+    }
+  }
+
+  return switch_leaves;
 }
 
 } // namespace synapse

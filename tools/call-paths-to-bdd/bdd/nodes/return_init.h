@@ -26,10 +26,10 @@ private:
   }
 
 public:
-  ReturnInit(uint64_t _id, const klee::ConstraintManager &_constraints)
+  ReturnInit(node_id_t _id, const klee::ConstraintManager &_constraints)
       : Node(_id, Node::NodeType::RETURN_INIT, _constraints), value(SUCCESS) {}
 
-  ReturnInit(uint64_t _id, const ReturnRaw *raw)
+  ReturnInit(node_id_t _id, const ReturnRaw *raw)
       : Node(_id, Node::NodeType::RETURN_INIT, nullptr, nullptr,
              raw->constraints) {
     auto calls_list = raw->get_calls();
@@ -37,7 +37,7 @@ public:
     fill_return_value(calls_list[0]);
   }
 
-  ReturnInit(uint64_t _id, const BDDNode_ptr &_prev,
+  ReturnInit(node_id_t _id, const BDDNode_ptr &_prev,
              const klee::ConstraintManager &_constraints, ReturnType _value)
       : Node(_id, Node::NodeType::RETURN_INIT, nullptr, _prev, _constraints),
         value(_value) {}
@@ -45,7 +45,7 @@ public:
   ReturnType get_return_value() const { return value; }
 
   virtual BDDNode_ptr clone(bool recursive = false) const;
-  virtual void recursive_update_ids(uint64_t &new_id) override;
+  virtual void recursive_update_ids(node_id_t &new_id) override;
 
   void visit(BDDVisitor &visitor) const override;
   std::string dump(bool one_liner = false) const;

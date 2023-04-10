@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../module.h"
-#include "../x86_tofino/packet_parse_cpu.h"
 
 namespace synapse {
 namespace targets {

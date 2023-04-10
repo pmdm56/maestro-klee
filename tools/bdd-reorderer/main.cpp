@@ -36,6 +36,10 @@ llvm::cl::opt<int> MaxReorderingOperations(
     "max", llvm::cl::desc("Maximum number of reordering operations."),
     llvm::cl::initializer<int>(-1), llvm::cl::cat(BDDReorderer));
 
+llvm::cl::opt<bool> Show("s", llvm::cl::desc("Show Execution Plans."),
+                         llvm::cl::ValueDisallowed, llvm::cl::init(false),
+                         llvm::cl::cat(BDDReorderer));
+
 llvm::cl::opt<std::string> ReportFile("report",
                                       llvm::cl::desc("Output report file"),
                                       llvm::cl::cat(BDDReorderer));
@@ -72,9 +76,11 @@ int main(int argc, char **argv) {
 
   std::cerr << "\nfinal: " << reordered_bdds.size() << "\n";
 
-  // for (auto bdd : reordered_bdds) {
-  //   BDD::GraphvizGenerator::visualize(bdd, true);
-  // }
+  if (Show) {
+    for (auto bdd : reordered_bdds) {
+      BDD::GraphvizGenerator::visualize(bdd, true);
+    }
+  }
 
   if (ReportFile.size() == 0) {
     return 0;

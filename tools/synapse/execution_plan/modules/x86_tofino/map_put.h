@@ -28,6 +28,21 @@ public:
         map_addr(_map_addr), key(_key), value(_value) {}
 
 private:
+  bool check_previous_placement_decisions(const ExecutionPlan &ep,
+                                          klee::ref<klee::Expr> obj) const {
+    auto mb = ep.get_memory_bank();
+
+    if (!mb->has_placement_decision(obj)) {
+      return true;
+    }
+
+    if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
+      return true;
+    }
+
+    return false;
+  }
+
   processing_result_t process_map_put(const ExecutionPlan &ep,
                                       BDD::BDDNode_ptr node,
                                       const BDD::Call *casted) {
@@ -41,6 +56,10 @@ private:
     auto _map_addr = call.args[symbex::FN_MAP_ARG_MAP].expr;
     auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
     auto _value = call.args[symbex::FN_MAP_ARG_VALUE].expr;
+
+    if (!check_previous_placement_decisions(ep, _map_addr)) {
+      return result;
+    }
 
     auto new_module = std::make_shared<MapPut>(node, _map_addr, _key, _value);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
@@ -66,6 +85,10 @@ private:
     auto _index = call.args[symbex::FN_VECTOR_ARG_INDEX].expr;
     auto _value_addr = call.args[symbex::FN_VECTOR_ARG_VALUE].expr;
     auto _value = call.args[symbex::FN_VECTOR_ARG_VALUE].in;
+
+    if (!check_previous_placement_decisions(ep, _vector_addr)) {
+      return result;
+    }
 
     auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
     auto last_value = mb->get_vector_borrow_value(_vector_addr);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "klee-util.h"
 #include "modules/module.h"
 
 #include <unordered_map>
@@ -25,9 +26,16 @@ struct reorder_data_t {
         condition(_condition) {}
 };
 
+enum PlacementDecision {
+  TofinoTable,
+};
+
+typedef uint64_t obj_addr_t;
+
 class MemoryBank {
 private:
   std::vector<reorder_data_t> reorder_data;
+  std::unordered_map<obj_addr_t, PlacementDecision> placement_decisions;
 
 public:
   MemoryBank() {}
@@ -47,11 +55,38 @@ public:
     reorder_data.emplace_back(node_candidate_id, cond);
   }
 
+  void save_placement_decision(klee::ref<klee::Expr> obj_addr,
+                               PlacementDecision decision) {
+    auto obj_addr_value = expr_addr_to_obj_addr(obj_addr);
+    placement_decisions[obj_addr_value] = decision;
+  }
+
+  bool has_placement_decision(klee::ref<klee::Expr> obj_addr) {
+    auto obj_addr_value = expr_addr_to_obj_addr(obj_addr);
+    auto found_it = placement_decisions.find(obj_addr_value);
+    return found_it != placement_decisions.end();
+  }
+
+  bool check_placement_decision(klee::ref<klee::Expr> obj_addr,
+                                PlacementDecision decision) const {
+    auto obj_addr_value = expr_addr_to_obj_addr(obj_addr);
+    auto found_it = placement_decisions.find(obj_addr_value);
+
+    return found_it != placement_decisions.end() &&
+           found_it->second == decision;
+  }
+
   virtual MemoryBank_ptr clone() const {
     return MemoryBank_ptr(new MemoryBank(*this));
   }
 
   static MemoryBank_ptr build() { return MemoryBank_ptr(new MemoryBank()); }
+
+  static obj_addr_t expr_addr_to_obj_addr(klee::ref<klee::Expr> obj_addr) {
+    assert(!obj_addr.isNull());
+    assert(kutil::is_constant(obj_addr));
+    return kutil::solver_toolbox.value_from_expr(obj_addr);
+  }
 };
 
 } // namespace synapse

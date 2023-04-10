@@ -211,7 +211,7 @@ apply_changes_to_match(AST *ast, const klee::ref<klee::Expr> &before,
   switch (type->get_type_kind()) {
   case Type::TypeKind::STRUCT: {
     Struct *s = static_cast<Struct *>(type.get());
-    std::vector<Variable_ptr> fields = s->get_fields();
+    std::vector<Variable_ptr> fields = s->query_fields();
 
     unsigned int offset = 0;
     for (auto field : fields) {

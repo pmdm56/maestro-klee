@@ -17,7 +17,7 @@ namespace BDD {
 class GraphvizGenerator : public BDDVisitor {
 private:
   std::ostream &os;
-  std::unordered_set<uint64_t> processed;
+  std::unordered_set<node_id_t> processed;
   const Node *next;
   bool show_init_graph;
 
@@ -29,7 +29,7 @@ public:
       : os(_os), next(nullptr), show_init_graph(true) {}
 
   GraphvizGenerator(std::ostream &_os,
-                    const std::unordered_set<uint64_t> &_processed,
+                    const std::unordered_set<node_id_t> &_processed,
                     const Node *_next)
       : os(_os), processed(_processed), next(_next), show_init_graph(true) {}
 

@@ -42,11 +42,14 @@ private:
 
   MemoryBank_ptr shared_memory_bank;
   std::unordered_map<TargetType, MemoryBank_ptr> memory_banks;
-  std::unordered_set<uint64_t> processed_bdd_nodes;
+  std::unordered_set<BDD::node_id_t> processed_bdd_nodes;
 
   unsigned depth;
   unsigned nodes;
+  TargetType initial_target;
   std::unordered_set<TargetType> targets;
+  std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>>
+      targets_bdd_starting_points;
   std::map<TargetType, unsigned> nodes_per_target;
   unsigned reordered_nodes;
   unsigned id;
@@ -61,6 +64,9 @@ public:
   unsigned get_depth() const;
   unsigned get_nodes() const;
 
+  const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
+  get_targets_bdd_starting_points() const;
+
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
 
   unsigned get_id() const;
@@ -68,6 +74,10 @@ public:
   const BDD::BDD &get_bdd() const;
   BDD::BDD &get_bdd();
   unsigned get_reordered_nodes() const;
+
+  std::vector<ExecutionPlanNode_ptr> get_prev_nodes() const;
+  std::vector<ExecutionPlanNode_ptr> get_prev_nodes_of_current_target() const;
+
   void inc_reordered_nodes();
   const ExecutionPlanNode_ptr &get_root() const;
 
@@ -79,14 +89,15 @@ public:
   template <class MB> MB *get_memory_bank(TargetType type) const {
     static_assert(std::is_base_of<MemoryBank, MB>::value,
                   "MB not derived from MemoryBank");
+    assert(memory_banks.find(type) != memory_banks.end());
     return static_cast<MB *>(memory_banks.at(type).get());
   }
 
-  const std::unordered_set<uint64_t> &get_processed_bdd_nodes() const;
+  const std::unordered_set<BDD::node_id_t> &get_processed_bdd_nodes() const;
 
   BDD::BDDNode_ptr get_next_node() const;
   ExecutionPlanNode_ptr get_active_leaf() const;
-  std::pair<bool, TargetType> get_current_platform() const;
+  TargetType get_current_platform() const;
 
   ExecutionPlan replace_leaf(Module_ptr new_module,
                              const BDD::BDDNode_ptr &next,
@@ -110,8 +121,8 @@ public:
                                 bool process_bdd_node = true);
 
   float get_percentage_of_processed_bdd_nodes() const;
-  void remove_from_processed_bdd_nodes(uint64_t id);
-  void add_processed_bdd_node(uint64_t id);
+  void remove_from_processed_bdd_nodes(BDD::node_id_t id);
+  void add_processed_bdd_node(BDD::node_id_t id);
 
   void visit(ExecutionPlanVisitor &visitor) const;
 
@@ -119,6 +130,7 @@ public:
   ExecutionPlan clone(bool deep = false) const;
 
 private:
+  void update_targets_starting_points(std::vector<leaf_t> new_leaves);
   void update_leaves(std::vector<leaf_t> _leaves, bool is_terminal);
   void update_processed_nodes();
 

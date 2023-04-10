@@ -66,9 +66,13 @@ public:
   virtual std::string get_type() const {
     std::stringstream type;
 
-    type << "bit<";
-    type << size_bits;
-    type << ">";
+    if (size_bits == 1) {
+      type << "bool";
+    } else {
+      type << "bit<";
+      type << size_bits;
+      type << ">";
+    }
 
     return type.str();
   }
@@ -118,6 +122,10 @@ public:
     builder.append(";");
     builder.append_new_line();
   }
+
+  bool operator==(const Variable &other) const {
+    return label == other.get_label();
+  }
 };
 
 struct variable_query_t {
@@ -131,6 +139,8 @@ struct variable_query_t {
       : valid(true), var(std::unique_ptr<Variable>(new Variable(_var))),
         offset_bits(_offset_bits) {}
 };
+
+typedef std::vector<Variable> Variables;
 
 } // namespace tofino
 } // namespace synthesizer

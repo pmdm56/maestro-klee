@@ -28,7 +28,7 @@ symbols_t Call::get_local_generated_symbols() const {
   return symbol_factory.get_symbols(this);
 }
 
-void Call::recursive_update_ids(uint64_t &new_id) {
+void Call::recursive_update_ids(node_id_t &new_id) {
   update_id(new_id);
   new_id++;
   next->recursive_update_ids(new_id);

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../../code_builder.h"
+#include "../../util.h"
 #include "klee-util.h"
 #include "klee/Expr.h"
 
@@ -41,8 +42,12 @@ public:
   Variable(std::string _label, bits_t _size_bits)
       : label(_label), size_bits(_size_bits) {}
 
-  std::string get_label() const { return label; }
+  const std::string &get_label() const { return label; }
   bits_t get_size_bits() const { return size_bits; }
+  
+  const std::vector<std::string> &get_vigor_symbols() const {
+    return vigor_symbols;
+  }
 
   void add_expr(klee::ref<klee::Expr> expr) { exprs.push_back(expr); }
 
@@ -64,7 +69,7 @@ public:
 
     std::stringstream type;
 
-    if (size_bits <= 64) {
+    if (is_primitive_type(size_bits)) {
       type << "uint";
       type << size_bits;
       type << "_t";
@@ -81,6 +86,24 @@ public:
       if (symbol == s) {
         return true;
       }
+
+      // check if symbol is base for incoming s
+      auto delim = s.find(symbol);
+
+      if (delim == std::string::npos || delim > 0) {
+        continue;
+      }
+
+      // format is "{base label}__{node id}"
+      if (s.size() <= symbol.size() + 2) {
+        continue;
+      }
+
+      if (s.substr(symbol.size(), 2) != "__") {
+        continue;
+      }
+
+      return true;
     }
 
     return false;

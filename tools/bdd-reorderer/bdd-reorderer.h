@@ -15,6 +15,11 @@ struct reordered_bdd {
 };
 
 std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root);
+
+std::vector<reordered_bdd>
+reorder(const BDD &bdd, BDDNode_ptr root,
+        const std::unordered_set<node_id_t> &furthest_back_nodes);
+
 std::vector<BDD> get_all_reordered_bdds(const BDD &bdd, int max_reordering);
 
 } // namespace BDD

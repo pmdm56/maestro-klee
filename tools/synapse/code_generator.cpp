@@ -1,5 +1,8 @@
 #include "code_generator.h"
 #include "execution_plan/visitors/graphviz/graphviz.h"
+#include "execution_plan/execution_plan.h"
+#include "execution_plan/execution_plan_node.h"
+#include "execution_plan/modules/modules.h"
 
 namespace synapse {
 
@@ -49,12 +52,12 @@ bool only_has_modules_from_target(const ExecutionPlan &execution_plan,
 struct annotated_node_t {
   ExecutionPlanNode_ptr node;
   bool save;
-  uint64_t path_id;
+  BDD::node_id_t path_id;
 
   annotated_node_t(ExecutionPlanNode_ptr _node)
       : node(_node), save(false), path_id(0) {}
 
-  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, uint64_t _path_id)
+  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, BDD::node_id_t _path_id)
       : node(_node), save(_save), path_id(_path_id) {}
 
   annotated_node_t clone() const {
@@ -282,7 +285,8 @@ x86_tofino_roots_t get_roots(const ExecutionPlan &execution_plan) {
   auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
 
   while (nodes.size()) {
-    auto &node = nodes[0];
+    auto node = nodes[0];
+    assert(node);
     nodes.erase(nodes.begin());
 
     auto module = node->get_module();
@@ -332,6 +336,7 @@ CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
 
     auto path_id = kutil::solver_toolbox.exprBuilder->Constant(
         root.second, code_path->getWidth());
+
     auto path_eq_path_id =
         kutil::solver_toolbox.exprBuilder->Eq(code_path, path_id);
 

@@ -18,6 +18,7 @@ public:
     functions_to_ignore = std::vector<std::string>{
         symbex::FN_CURRENT_TIME,
         symbex::FN_EXPIRE_MAP,
+        symbex::FN_ETHER_HASH,
     };
   }
 
@@ -38,7 +39,7 @@ private:
     auto time_symbol = *_generated_symbols.begin();
 
     auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
-    mb->set_time(time_symbol);
+    mb->add_time(time_symbol);
   }
 
   void process_expire_items_single_map(const ExecutionPlan &ep,

@@ -62,14 +62,23 @@ class VectorReturn;
 namespace tofino {
 class Ignore;
 class If;
+class IfHeaderValid;
 class Then;
 class Else;
 class Forward;
 class EthernetConsume;
 class EthernetModify;
+class IPv4Consume;
+class IPv4Modify;
+class IPv4OptionsConsume;
+class IPv4OptionsModify;
+class TCPUDPConsume;
+class TCPUDPModify;
+class IPv4TCPUDPChecksumsUpdate;
 class TableLookup;
 class Drop;
 class SendToController;
+class SetupExpirationNotifications;
 } // namespace tofino
 
 namespace x86_tofino {
@@ -77,12 +86,19 @@ class Ignore;
 class CurrentTime;
 class PacketParseCPU;
 class PacketParseEthernet;
+class PacketModifyEthernet;
+class PacketParseIPv4;
+class PacketModifyIPv4;
+class PacketParseIPv4Options;
+class PacketModifyIPv4Options;
+class PacketParseTCPUDP;
+class PacketModifyTCPUDP;
+class PacketModifyChecksums;
+class ForwardThroughTofino;
 class If;
 class Then;
 class Else;
 class Drop;
-class PacketModifyEthernet;
-class ForwardThroughTofino;
 class MapGet;
 class MapPut;
 class EtherAddrHash;
@@ -159,6 +175,7 @@ public:
 
   VISIT(targets::tofino::Ignore)
   VISIT(targets::tofino::If)
+  VISIT(targets::tofino::IfHeaderValid)
   VISIT(targets::tofino::Then)
   VISIT(targets::tofino::Else)
   VISIT(targets::tofino::Forward)
@@ -167,6 +184,14 @@ public:
   VISIT(targets::tofino::TableLookup)
   VISIT(targets::tofino::Drop)
   VISIT(targets::tofino::SendToController)
+  VISIT(targets::tofino::SetupExpirationNotifications)
+  VISIT(targets::tofino::IPv4Consume)
+  VISIT(targets::tofino::IPv4Modify)
+  VISIT(targets::tofino::IPv4OptionsConsume)
+  VISIT(targets::tofino::IPv4OptionsModify)
+  VISIT(targets::tofino::TCPUDPConsume)
+  VISIT(targets::tofino::TCPUDPModify)
+  VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
 
   /*************************************
    *
@@ -178,12 +203,19 @@ public:
   VISIT(targets::x86_tofino::CurrentTime)
   VISIT(targets::x86_tofino::PacketParseCPU)
   VISIT(targets::x86_tofino::PacketParseEthernet)
+  VISIT(targets::x86_tofino::PacketModifyEthernet)
+  VISIT(targets::x86_tofino::PacketParseIPv4)
+  VISIT(targets::x86_tofino::PacketModifyIPv4)
+  VISIT(targets::x86_tofino::PacketParseIPv4Options)
+  VISIT(targets::x86_tofino::PacketModifyIPv4Options)
+  VISIT(targets::x86_tofino::PacketParseTCPUDP)
+  VISIT(targets::x86_tofino::PacketModifyTCPUDP)
+  VISIT(targets::x86_tofino::PacketModifyChecksums)
+  VISIT(targets::x86_tofino::ForwardThroughTofino)
   VISIT(targets::x86_tofino::If)
   VISIT(targets::x86_tofino::Then)
   VISIT(targets::x86_tofino::Else)
   VISIT(targets::x86_tofino::Drop)
-  VISIT(targets::x86_tofino::PacketModifyEthernet)
-  VISIT(targets::x86_tofino::ForwardThroughTofino)
   VISIT(targets::x86_tofino::MapGet)
   VISIT(targets::x86_tofino::MapPut)
   VISIT(targets::x86_tofino::EtherAddrHash)

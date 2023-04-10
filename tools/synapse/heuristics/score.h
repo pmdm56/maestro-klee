@@ -21,6 +21,7 @@ public:
   enum Category {
     NumberOfReorderedNodes,
     NumberOfSwitchNodes,
+    NumberOfSwitchLeaves,
     NumberOfNodes,
     NumberOfControllerNodes,
     NumberOfMergedTables,
@@ -47,6 +48,7 @@ private:
   int get_nr_controller_nodes() const;
   int get_nr_reordered_nodes() const;
   int get_nr_exact_match_nodes() const;
+  int get_nr_switch_leaves() const;
 
   DummyModule target_ep;
 
@@ -58,6 +60,7 @@ public:
         {NumberOfNodes, &Score::get_nr_nodes},
         {NumberOfMergedTables, &Score::get_nr_merged_tables},
         {NumberOfSwitchNodes, &Score::get_nr_switch_nodes},
+        {NumberOfSwitchLeaves, &Score::get_nr_switch_leaves},
         {NumberOfControllerNodes, &Score::get_nr_controller_nodes},
         {Depth, &Score::get_depth},
         {ExactMatchNodes, &Score::get_nr_exact_match_nodes},
@@ -67,8 +70,8 @@ public:
   Score(const Score &score)
       : execution_plan(score.execution_plan), computers(score.computers),
         categories(score.categories) {}
-  
-  void add_target_execution_plan(const DummyModule& _target_ep) {
+
+  void add_target_execution_plan(const DummyModule &_target_ep) {
     target_ep = _target_ep;
   }
 

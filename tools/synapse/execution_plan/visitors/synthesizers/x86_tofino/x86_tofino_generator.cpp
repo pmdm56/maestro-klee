@@ -8,6 +8,16 @@
 
 #include <sstream>
 
+#define ADD_NODE_COMMENT(module)                                               \
+  {                                                                            \
+    if (module->get_node()) {                                                  \
+      nf_process_builder.indent();                                             \
+      nf_process_builder.append("// node ");                                   \
+      nf_process_builder.append((module)->get_node()->get_id());               \
+      nf_process_builder.append_new_line();                                    \
+    }                                                                          \
+  }
+
 namespace target = synapse::targets::x86_tofino;
 
 namespace synapse {
@@ -20,13 +30,13 @@ std::string x86TofinoGenerator::transpile(klee::ref<klee::Expr> expr) {
 
 variable_query_t x86TofinoGenerator::search_variable(std::string symbol) const {
   if (symbol == symbex::PORT || symbol == symbex::PORT2) {
-    auto in_port_var = headers.get_hdr_field(CPU, CPU_IN_PORT);
+    auto in_port_var = headers.query_hdr_field(CPU, CPU_IN_PORT);
 
     if (in_port_var.valid) {
       return in_port_var;
     }
   } else if (symbol == symbex::CPU_CODE_PATH) {
-    auto code_path_var = headers.get_hdr_field(CPU, CPU_CODE_PATH);
+    auto code_path_var = headers.query_hdr_field(CPU, CPU_CODE_PATH);
 
     if (code_path_var.valid) {
       return code_path_var;
@@ -50,7 +60,7 @@ x86TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
     return local_var;
   }
 
-  auto hdr_field = headers.get_hdr_field_from_chunk(expr);
+  auto hdr_field = headers.query_hdr_field_from_chunk(expr);
 
   if (hdr_field.valid) {
     return hdr_field;
@@ -66,6 +76,20 @@ x86TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   }
 
   return variable_query_t();
+}
+
+bool get_dataplane_table_names(const ExecutionPlan &ep,
+                               klee::ref<klee::Expr> obj,
+                               std::unordered_set<std::string> &table_names) {
+  auto mb = ep.get_memory_bank();
+
+  if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
+    auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
+    table_names = tmb->get_table_names_of_obj(obj);
+    return true;
+  }
+
+  return false;
 }
 
 void x86TofinoGenerator::init_state(ExecutionPlan ep) {
@@ -93,7 +117,25 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
       state_init_builder.append(label);
       state_init_builder.append(" = Map<");
       state_init_builder.append(value_type);
-      state_init_builder.append(">::build();");
+      state_init_builder.append(">::build(");
+
+      std::unordered_set<std::string> table_names;
+
+      auto has_dataplane =
+          get_dataplane_table_names(ep, map_ds->addr, table_names);
+
+      if (has_dataplane) {
+        state_init_builder.append("{");
+        for (const auto &table_name : table_names) {
+          state_init_builder.append("\"");
+          state_init_builder.append(table_name);
+          state_init_builder.append("\"");
+          state_init_builder.append(",");
+        }
+        state_init_builder.append("}");
+      }
+
+      state_init_builder.append(");");
       state_init_builder.append_new_line();
 
       vars.append(map_var);
@@ -124,13 +166,32 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
     }
   }
 
-  auto time = mb->get_time();
-  assert(!time.expr.isNull());
+  // For multiple SendToController operations, we have multiple next_time
+  // symbols
+  for (auto time : mb->get_time()) {
+    assert(!time.expr.isNull());
+    auto time_var =
+        Variable(TIME_VAR_LABEL, time.expr->getWidth(), {time.label});
+    time_var.add_expr(time.expr);
+    vars.append(time_var);
+  }
 
-  auto time_var = Variable(TIME_VAR_LABEL, time.expr->getWidth(), {time.label});
-  time_var.add_expr(time.expr);
+  auto packet_len_var =
+      Variable(PACKET_LENGTH_VAR_LABEL, 32, {symbex::PACKET_LENGTH});
+  vars.append(packet_len_var);
 
-  vars.append(time_var);
+  // HACK: we don't care about this symbol
+  auto number_of_freed_flows = Variable(symbex::EXPIRE_MAP_FREED_FLOWS, 32,
+                                        {symbex::EXPIRE_MAP_FREED_FLOWS});
+  vars.append(number_of_freed_flows);
+
+  nf_process_builder.indent();
+  nf_process_builder.append(number_of_freed_flows.get_type());
+  nf_process_builder.append(" ");
+  nf_process_builder.append(number_of_freed_flows.get_label());
+  nf_process_builder.append(" = 0");
+  nf_process_builder.append(";");
+  nf_process_builder.append_new_line();
 }
 
 void x86TofinoGenerator::visit(ExecutionPlan ep) {
@@ -157,6 +218,7 @@ void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 
   log(ep_node);
 
+  ADD_NODE_COMMENT(ep_node->get_module());
   mod->visit(*this);
 
   for (auto branch : next) {
@@ -212,8 +274,11 @@ void x86TofinoGenerator::visit(
   const hdr_field_t eth_ether_type{ETH_ETHER_TYPE, HDR_ETH_ETHER_TYPE_FIELD,
                                    16};
 
-  std::vector<hdr_field_t> fields = {eth_dst_addr, eth_src_addr,
-                                     eth_ether_type};
+  std::vector<hdr_field_t> fields = {
+      eth_dst_addr,
+      eth_src_addr,
+      eth_ether_type,
+  };
 
   auto chunk = node->get_chunk();
   auto header = Header(ETHERNET, HDR_ETH_VARIABLE, chunk, fields);
@@ -233,17 +298,18 @@ void x86TofinoGenerator::visit(
     const targets::x86_tofino::PacketModifyEthernet *node) {
   assert(node);
 
-  auto ethernet_chunk = node->get_ethernet_chunk();
+  auto ethernet_hdr = headers.get_hdr(ETHERNET);
   auto modifications = node->get_modifications();
+
+  assert(ethernet_hdr.valid);
+  assert(ethernet_hdr.offset_bits == 0);
 
   for (auto mod : modifications) {
     auto byte = mod.byte;
     auto expr = mod.expr;
 
-    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
-        ethernet_chunk, byte * 8, klee::Expr::Int8);
-
-    auto transpiled_byte = transpile(modified_byte);
+    auto transpiled_byte =
+        transpiler.transpile_lvalue_byte(*ethernet_hdr.var, byte * 8);
     auto transpiled_expr = transpile(expr);
 
     nf_process_builder.indent();
@@ -253,6 +319,201 @@ void x86TofinoGenerator::visit(
     nf_process_builder.append(";");
     nf_process_builder.append_new_line();
   }
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketParseIPv4 *node) {
+  assert(node);
+
+  const hdr_field_t ver_ihl{IPV4_VERSION_IHL, HDR_IPV4_VERSION_IHL_FIELD, 8};
+  const hdr_field_t ecn_dscp{IPV4_ECN_DSCP, HDR_IPV4_ECN_DSCP_FIELD, 8};
+  const hdr_field_t tot_len{IPV4_TOT_LEN, HDR_IPV4_TOT_LEN_FIELD, 16};
+  const hdr_field_t id{IPV4_ID, HDR_IPV4_ID_FIELD, 16};
+  const hdr_field_t frag_off{IPV4_FRAG_OFF, HDR_IPV4_FRAG_OFF_FIELD, 16};
+  const hdr_field_t ttl{IPV4_TTL, HDR_IPV4_TTL_FIELD, 8};
+  const hdr_field_t protocol{IPV4_PROTOCOL, HDR_IPV4_PROTOCOL_FIELD, 8};
+  const hdr_field_t check{IPV4_CHECK, HDR_IPV4_CHECK_FIELD, 16};
+  const hdr_field_t src_ip{IPV4_SRC_IP, HDR_IPV4_SRC_IP_FIELD, 32};
+  const hdr_field_t dst_ip{IPV4_DST_IP, HDR_IPV4_DST_IP_FIELD, 32};
+
+  std::vector<hdr_field_t> fields = {
+      ver_ihl, ecn_dscp, tot_len, id,     frag_off,
+      ttl,     protocol, check,   src_ip, dst_ip,
+  };
+
+  auto chunk = node->get_chunk();
+  auto header = Header(IPV4, HDR_IPV4_VARIABLE, chunk, fields);
+
+  headers.add(header);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(HDR_IPV4_VARIABLE);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append(PACKET_VAR_LABEL);
+  nf_process_builder.append(".parse_ipv4();");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketModifyIPv4 *node) {
+  assert(node);
+
+  auto ipv4_hdr = headers.get_hdr(IPV4);
+  auto modifications = node->get_modifications();
+
+  assert(ipv4_hdr.valid);
+  assert(ipv4_hdr.offset_bits == 0);
+
+  for (auto mod : modifications) {
+    auto byte = mod.byte;
+    auto expr = mod.expr;
+
+    auto transpiled_byte =
+        transpiler.transpile_lvalue_byte(*ipv4_hdr.var, byte * 8);
+    auto transpiled_expr = transpile(expr);
+
+    nf_process_builder.indent();
+    nf_process_builder.append(transpiled_byte);
+    nf_process_builder.append(" = ");
+    nf_process_builder.append(transpiled_expr);
+    nf_process_builder.append(";");
+    nf_process_builder.append_new_line();
+  }
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketParseIPv4Options *node) {
+  assert(node);
+
+  auto chunk = node->get_chunk();
+  auto length = node->get_length();
+
+  const hdr_field_t value{IPV4_OPTIONS_VALUE, HDR_IPV4_OPTIONS_VALUE_FIELD,
+                          length};
+  std::vector<hdr_field_t> fields = {value};
+  auto header = Header(IPV4_OPTIONS, HDR_IPV4_OPTIONS_VARIABLE, chunk, fields);
+
+  headers.add(header);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(HDR_IPV4_OPTIONS_VARIABLE);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append(PACKET_VAR_LABEL);
+  nf_process_builder.append(".parse_tcpudp();");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketModifyIPv4Options *node) {
+  assert(false && "TODO");
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketParseTCPUDP *node) {
+  assert(node);
+
+  const hdr_field_t src_port{TCPUDP_SRC_PORT, HDR_TCPUDP_SRC_PORT_FIELD, 16};
+  const hdr_field_t dst_port{TCPUDP_DST_PORT, HDR_TCPUDP_DST_PORT_FIELD, 16};
+
+  std::vector<hdr_field_t> fields = {
+      src_port,
+      dst_port,
+  };
+
+  auto chunk = node->get_chunk();
+  auto header = Header(TCPUDP, HDR_TCPUDP_VARIABLE, chunk, fields);
+
+  headers.add(header);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("auto ");
+  nf_process_builder.append(HDR_TCPUDP_VARIABLE);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append(PACKET_VAR_LABEL);
+  nf_process_builder.append(".parse_tcpudp();");
+  nf_process_builder.append_new_line();
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketModifyTCPUDP *node) {
+  assert(node);
+
+  auto tcpudp_hdr = headers.get_hdr(TCPUDP);
+  auto modifications = node->get_modifications();
+
+  assert(tcpudp_hdr.valid);
+  assert(tcpudp_hdr.offset_bits == 0);
+
+  for (auto mod : modifications) {
+    auto byte = mod.byte;
+    auto expr = mod.expr;
+
+    auto transpiled_byte =
+        transpiler.transpile_lvalue_byte(*tcpudp_hdr.var, byte * 8);
+    auto transpiled_expr = transpile(expr);
+
+    nf_process_builder.indent();
+    nf_process_builder.append(transpiled_byte);
+    nf_process_builder.append(" = ");
+    nf_process_builder.append(transpiled_expr);
+    nf_process_builder.append(";");
+    nf_process_builder.append_new_line();
+  }
+}
+
+void x86TofinoGenerator::visit(
+    const targets::x86_tofino::PacketModifyChecksums *node) {
+  auto ip_header_addr = node->get_ip_header_addr();
+  auto l4_header_addr = node->get_l4_header_addr();
+  auto p_addr = node->get_p_addr();
+  auto generated_symbols = node->get_generated_symbols();
+
+  assert(!ip_header_addr.isNull());
+  assert(!l4_header_addr.isNull());
+  assert(!p_addr.isNull());
+
+  auto ip_hdr_var = headers.get_hdr(IPV4);
+  auto l4_hdr_var = headers.get_hdr(TCPUDP);
+
+  assert(ip_hdr_var.valid);
+  assert(l4_hdr_var.valid);
+
+  assert(generated_symbols.size() == 1);
+  auto checksum_symbol = get_label(generated_symbols, symbex::CHECKSUM);
+  auto checksum_label = "*" + checksum_symbol; // will be a pointer
+
+  assert(ip_hdr_var.var->has_expr());
+  auto ip_hdr_label = ip_hdr_var.var->get_label();
+  auto checksum_ip_offset_bytes = 10;
+
+  auto checksum_var = Variable(checksum_label, 16, {checksum_symbol});
+  auto checksum_type = checksum_var.get_type();
+  vars.append(checksum_var);
+
+  nf_process_builder.indent();
+  nf_process_builder.append(checksum_type);
+  nf_process_builder.append(" ");
+  nf_process_builder.append(checksum_label);
+  nf_process_builder.append(" = ");
+  nf_process_builder.append("(");
+  nf_process_builder.append(checksum_type);
+  nf_process_builder.append("*)(");
+  nf_process_builder.append("((uint8_t*)");
+  nf_process_builder.append(ip_hdr_var.var->get_label());
+  nf_process_builder.append(")+");
+  nf_process_builder.append(checksum_ip_offset_bytes);
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
+
+  nf_process_builder.indent();
+  nf_process_builder.append("update_ipv4_tcpudp_checksums(");
+  nf_process_builder.append(ip_hdr_var.var->get_label());
+  nf_process_builder.append(", ");
+  nf_process_builder.append(l4_hdr_var.var->get_label());
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
@@ -300,27 +561,32 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
 
   assert(!map_addr.isNull());
   assert(!key.isNull());
-  assert(!map_has_this_key.isNull());
   assert(!value_out.isNull());
 
-  assert(generated_symbols.size() == 2);
+  if (!map_has_this_key.isNull()) {
+    auto map_has_this_key_label =
+        get_label(generated_symbols, symbex::MAP_HAS_THIS_KEY);
+    auto contains_var =
+        Variable(map_has_this_key_label, map_has_this_key->getWidth(),
+                 {map_has_this_key_label});
+    vars.append(contains_var);
+  }
 
-  auto map_has_this_key_label =
-      get_label(generated_symbols, symbex::MAP_HAS_THIS_KEY);
+  auto allocated_index_label = std::string();
 
-  auto allocated_index_label =
-      get_label(generated_symbols, symbex::MAP_ALLOCATED_INDEX);
-
-  auto contains_var =
-      Variable(map_has_this_key_label, map_has_this_key->getWidth(),
-               {map_has_this_key_label});
-  contains_var.add_expr(map_has_this_key);
+  if (has_label(generated_symbols, symbex::MAP_ALLOCATED_INDEX)) {
+    allocated_index_label =
+        get_label(generated_symbols, symbex::MAP_ALLOCATED_INDEX);
+  } else if (has_label(generated_symbols, symbex::VECTOR_VALUE_SYMBOL)) {
+    allocated_index_label =
+        get_label(generated_symbols, symbex::VECTOR_VALUE_SYMBOL);
+  } else {
+    assert(false && "No valid generated symbol");
+  }
 
   auto value_var = Variable(allocated_index_label, value_out->getWidth(),
                             {allocated_index_label});
   value_var.add_expr(value_out);
-
-  vars.append(contains_var);
   vars.append(value_var);
 
   nf_process_builder.indent();
@@ -331,6 +597,7 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
   nf_process_builder.append_new_line();
 
   auto map = vars.get(map_addr);
+  assert(map.valid);
 
   auto key_label_base = map.var->get_label() + "_key";
   auto key_label = vars.get_new_label(key_label_base);
@@ -355,7 +622,7 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
 
     nf_process_builder.indent();
     nf_process_builder.append(key_label);
-    nf_process_builder.append(".values[");
+    nf_process_builder.append("[");
     nf_process_builder.append(b / 8);
     nf_process_builder.append("]");
     nf_process_builder.append(" = ");
@@ -365,9 +632,18 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
   }
 
   nf_process_builder.indent();
-  nf_process_builder.append("auto ");
-  nf_process_builder.append(contains_var.get_label());
-  nf_process_builder.append(" = ");
+
+  if (!map_has_this_key.isNull()) {
+    auto map_has_this_key_label =
+        get_label(generated_symbols, symbex::MAP_HAS_THIS_KEY);
+    auto contains_var = vars.get(map_has_this_key_label);
+    assert(contains_var.valid);
+    assert(contains_var.offset_bits == 0);
+    nf_process_builder.append("auto ");
+    nf_process_builder.append(contains_var.var->get_label());
+    nf_process_builder.append(" = ");
+  }
+
   nf_process_builder.append("state->");
   nf_process_builder.append(map.var->get_label());
   nf_process_builder.append("->get(");
@@ -379,7 +655,100 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::MapPut *node) {
-  assert(false && "TODO");
+  assert(node);
+
+  auto map_addr = node->get_map_addr();
+  auto key = node->get_key();
+  auto value = node->get_value();
+
+  assert(!map_addr.isNull());
+  assert(!key.isNull());
+  assert(!value.isNull());
+
+  auto map = vars.get(map_addr);
+  assert(map.valid);
+
+  auto key_label_base = map.var->get_label() + "_key";
+  auto key_label = vars.get_new_label(key_label_base);
+  auto key_var = Variable(key_label, key->getWidth());
+  vars.append(key_var);
+
+  auto value_label_base = map.var->get_label() + "_value";
+  auto value_label = vars.get_new_label(value_label_base);
+  auto value_var = Variable(value_label, value->getWidth());
+  vars.append(value_var);
+
+  assert(key->getWidth() > 0);
+  assert(key->getWidth() % 8 == 0);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("bytes_t ");
+  nf_process_builder.append(key_label);
+  nf_process_builder.append("(");
+  nf_process_builder.append(key->getWidth() / 8);
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
+
+  for (bits_t b = 0u; b < key->getWidth(); b += 8) {
+    auto byte = kutil::solver_toolbox.exprBuilder->Extract(key, b, 8);
+    auto byte_transpiled = transpile(byte);
+
+    nf_process_builder.indent();
+    nf_process_builder.append(key_label);
+    nf_process_builder.append("[");
+    nf_process_builder.append(b / 8);
+    nf_process_builder.append("]");
+    nf_process_builder.append(" = ");
+    nf_process_builder.append(byte_transpiled);
+    nf_process_builder.append(";");
+    nf_process_builder.append_new_line();
+  }
+
+  if (is_primitive_type(value->getWidth())) {
+    auto value_transpiled = transpile(value);
+
+    nf_process_builder.indent();
+    nf_process_builder.append(value_var.get_type());
+    nf_process_builder.append(" ");
+    nf_process_builder.append(value_var.get_label());
+    nf_process_builder.append(" = ");
+    nf_process_builder.append(value_transpiled);
+    nf_process_builder.append(";");
+    nf_process_builder.append_new_line();
+  } else {
+    nf_process_builder.indent();
+    nf_process_builder.append("bytes_t ");
+    nf_process_builder.append(value_var.get_label());
+    nf_process_builder.append("(");
+    nf_process_builder.append(value->getWidth() / 8);
+    nf_process_builder.append(");");
+    nf_process_builder.append_new_line();
+
+    for (bits_t b = 0u; b < value->getWidth(); b += 8) {
+      auto byte = kutil::solver_toolbox.exprBuilder->Extract(value, b, 8);
+      auto byte_transpiled = transpile(byte);
+
+      nf_process_builder.indent();
+      nf_process_builder.append(value_var.get_label());
+      nf_process_builder.append("[");
+      nf_process_builder.append(b / 8);
+      nf_process_builder.append("]");
+      nf_process_builder.append(" = ");
+      nf_process_builder.append(byte_transpiled);
+      nf_process_builder.append(";");
+      nf_process_builder.append_new_line();
+    }
+  }
+
+  nf_process_builder.indent();
+  nf_process_builder.append("state->");
+  nf_process_builder.append(map.var->get_label());
+  nf_process_builder.append("->put(");
+  nf_process_builder.append(key_label);
+  nf_process_builder.append(", ");
+  nf_process_builder.append(value_var.get_label());
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
 }
 
 void x86TofinoGenerator::visit(const targets::x86_tofino::EtherAddrHash *node) {
@@ -463,12 +832,72 @@ void x86TofinoGenerator::visit(
 
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::DchainIsIndexAllocated *node) {
-  assert(false && "TODO");
+  assert(node);
+
+  auto dchain_addr = node->get_dchain_addr();
+  auto index = node->get_index();
+  auto is_index_allocated = node->get_is_allocated();
+
+  auto generated_symbols = node->get_generated_symbols();
+
+  assert(!dchain_addr.isNull());
+  assert(!index.isNull());
+  assert(!is_index_allocated.isNull());
+
+  assert(generated_symbols.size() == 1);
+  auto is_allocated_label =
+      get_label(generated_symbols, symbex::DCHAIN_IS_INDEX_ALLOCATED);
+  auto is_allocated_var = Variable(
+      is_allocated_label, is_index_allocated->getWidth(), {is_allocated_label});
+  auto is_allocated_type = is_allocated_var.get_type();
+  is_allocated_var.add_expr(is_index_allocated);
+  vars.append(is_allocated_var);
+
+  auto dchain = vars.get(dchain_addr);
+  auto index_transpiled = transpile(index);
+
+  assert(dchain.valid);
+
+  nf_process_builder.indent();
+  nf_process_builder.append(is_allocated_type);
+  nf_process_builder.append(" ");
+  nf_process_builder.append(is_allocated_var.get_label());
+  nf_process_builder.append(" = ");
+  nf_process_builder.append("state->");
+  nf_process_builder.append(dchain.var->get_label());
+  nf_process_builder.append("->is_index_allocated(");
+  nf_process_builder.append(index_transpiled);
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
 }
 
 void x86TofinoGenerator::visit(
     const targets::x86_tofino::DchainRejuvenateIndex *node) {
-  assert(false && "TODO");
+  assert(node);
+
+  auto dchain_addr = node->get_dchain_addr();
+  auto time = node->get_time();
+  auto index = node->get_index();
+
+  assert(!dchain_addr.isNull());
+  assert(!time.isNull());
+  assert(!index.isNull());
+
+  auto dchain = vars.get(dchain_addr);
+  auto index_transpiled = transpile(index);
+  auto time_transpiled = transpile(time);
+
+  assert(dchain.valid);
+
+  nf_process_builder.indent();
+  nf_process_builder.append("state->");
+  nf_process_builder.append(dchain.var->get_label());
+  nf_process_builder.append("->rejuvenate_index(");
+  nf_process_builder.append(index_transpiled);
+  nf_process_builder.append(", ");
+  nf_process_builder.append(time_transpiled);
+  nf_process_builder.append(");");
+  nf_process_builder.append_new_line();
 }
 
 } // namespace x86_tofino

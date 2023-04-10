@@ -28,8 +28,8 @@ BDDNode_ptr Branch::clone(bool recursive) const {
   return clone;
 }
 
-std::vector<uint64_t> Branch::get_terminating_node_ids() const {
-  std::vector<uint64_t> terminating_ids;
+std::vector<node_id_t> Branch::get_terminating_node_ids() const {
+  std::vector<node_id_t> terminating_ids;
 
   assert(next);
   assert(on_false);
@@ -46,7 +46,7 @@ std::vector<uint64_t> Branch::get_terminating_node_ids() const {
   return terminating_ids;
 }
 
-void Branch::recursive_update_ids(uint64_t &new_id) {
+void Branch::recursive_update_ids(node_id_t &new_id) {
   update_id(new_id);
   new_id++;
   next->recursive_update_ids(new_id);

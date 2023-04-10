@@ -40,13 +40,15 @@ ExecutionPlan::ExecutionPlan(const ExecutionPlan &ep)
     : root(ep.root), leaves(ep.leaves), bdd(ep.bdd),
       shared_memory_bank(ep.shared_memory_bank), memory_banks(ep.memory_banks),
       processed_bdd_nodes(ep.processed_bdd_nodes), depth(ep.depth),
-      nodes(ep.nodes), targets(ep.targets),
+      nodes(ep.nodes), initial_target(ep.initial_target), targets(ep.targets),
+      targets_bdd_starting_points(ep.targets_bdd_starting_points),
       nodes_per_target(ep.nodes_per_target),
       reordered_nodes(ep.reordered_nodes), id(ep.id) {}
 
 ExecutionPlan::ExecutionPlan(const ExecutionPlan &ep,
                              ExecutionPlanNode_ptr _root)
-    : root(_root), bdd(ep.bdd), depth(0), nodes(0), reordered_nodes(0),
+    : root(_root), bdd(ep.bdd), shared_memory_bank(ep.shared_memory_bank),
+      memory_banks(ep.memory_banks), depth(0), nodes(0), reordered_nodes(0),
       id(counter++) {
   if (!_root) {
     return;
@@ -73,6 +75,11 @@ ExecutionPlan::get_nodes_per_target() const {
   return nodes_per_target;
 }
 
+const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
+ExecutionPlan::get_targets_bdd_starting_points() const {
+  return targets_bdd_starting_points;
+}
+
 unsigned ExecutionPlan::get_id() const { return id; }
 
 const std::vector<ExecutionPlan::leaf_t> &ExecutionPlan::get_leaves() const {
@@ -85,9 +92,47 @@ unsigned ExecutionPlan::get_reordered_nodes() const { return reordered_nodes; }
 void ExecutionPlan::inc_reordered_nodes() { reordered_nodes++; }
 const ExecutionPlanNode_ptr &ExecutionPlan::get_root() const { return root; }
 
+std::vector<ExecutionPlanNode_ptr> ExecutionPlan::get_prev_nodes() const {
+  std::vector<ExecutionPlanNode_ptr> prev_nodes;
+
+  auto current = get_active_leaf();
+
+  while (current) {
+    auto prev = current->get_prev();
+    prev_nodes.push_back(prev);
+    current = prev;
+  }
+
+  return prev_nodes;
+}
+
+std::vector<ExecutionPlanNode_ptr>
+ExecutionPlan::get_prev_nodes_of_current_target() const {
+  std::vector<ExecutionPlanNode_ptr> prev_nodes;
+  auto target = get_current_platform();
+  auto current = get_active_leaf();
+
+  while (current) {
+    auto m = current->get_module();
+    assert(m);
+
+    if (m->get_target() == target) {
+      prev_nodes.push_back(current);
+    }
+
+    current = current->get_prev();
+  }
+
+  return prev_nodes;
+}
+
 void ExecutionPlan::add_target(TargetType type, MemoryBank_ptr mb) {
   assert(targets.find(type) == targets.end());
   assert(memory_banks.find(type) == memory_banks.end());
+
+  if (targets.size() == 0) {
+    initial_target = type;
+  }
 
   targets.insert(type);
   memory_banks[type] = mb;
@@ -101,18 +146,39 @@ MemoryBank_ptr ExecutionPlan::get_memory_bank() const {
   return shared_memory_bank;
 }
 
-const std::unordered_set<uint64_t> &
+const std::unordered_set<BDD::node_id_t> &
 ExecutionPlan::get_processed_bdd_nodes() const {
   return processed_bdd_nodes;
 }
 
+void ExecutionPlan::update_targets_starting_points(std::vector<leaf_t> new_leaves) {
+  auto current_target = get_current_platform();
+
+  for (auto leaf : new_leaves) {
+    if (!leaf.next) {
+      continue;
+    }
+
+    assert(leaf.current_platform.first);
+    auto next_target = leaf.current_platform.second;
+
+    if (current_target != next_target) {
+      auto starting_point = leaf.next->get_id();
+      targets_bdd_starting_points[next_target].insert(starting_point);
+    }
+  }
+}
+
 void ExecutionPlan::update_leaves(std::vector<leaf_t> _leaves,
                                   bool is_terminal) {
+  update_targets_starting_points(_leaves);
+  
   assert(leaves.size());
 
   if (leaves.size()) {
     leaves.erase(leaves.begin());
   }
+
 
   for (auto leaf : _leaves) {
     if (!leaf.next && is_terminal) {
@@ -200,15 +266,12 @@ ExecutionPlanNode_ptr ExecutionPlan::get_active_leaf() const {
   return leaf;
 }
 
-std::pair<bool, TargetType> ExecutionPlan::get_current_platform() const {
-  std::pair<bool, TargetType> current_platform;
-  current_platform.first = false;
-
-  if (leaves.size()) {
-    current_platform = leaves[0].current_platform;
+TargetType ExecutionPlan::get_current_platform() const {
+  if (leaves.size() && leaves[0].current_platform.first) {
+    return leaves[0].current_platform.second;
   }
 
-  return current_platform;
+  return initial_target;
 }
 
 ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
@@ -244,8 +307,10 @@ ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
     new_ep.nodes_per_target[new_module->get_target()]++;
   }
 
+  auto next_target = new_module->get_next_target();
+
   new_ep.leaves[0].current_platform.first = true;
-  new_ep.leaves[0].current_platform.second = new_module->get_next_target();
+  new_ep.leaves[0].current_platform.second = next_target;
 
   return new_ep;
 }
@@ -338,12 +403,12 @@ float ExecutionPlan::get_percentage_of_processed_bdd_nodes() const {
   return (float)processed_bdd_nodes.size() / (float)total_nodes;
 }
 
-void ExecutionPlan::remove_from_processed_bdd_nodes(uint64_t id) {
+void ExecutionPlan::remove_from_processed_bdd_nodes(BDD::node_id_t id) {
   auto found_it = processed_bdd_nodes.find(id);
   processed_bdd_nodes.erase(found_it);
 }
 
-void ExecutionPlan::add_processed_bdd_node(uint64_t id) {
+void ExecutionPlan::add_processed_bdd_node(BDD::node_id_t id) {
   auto found_it = processed_bdd_nodes.find(id);
   if (found_it == processed_bdd_nodes.end()) {
     processed_bdd_nodes.insert(id);
@@ -457,12 +522,27 @@ bool operator==(const ExecutionPlan &lhs, const ExecutionPlan &rhs) {
     }
   }
 
-  auto lhs_nodes = std::vector<ExecutionPlanNode_ptr>{lhs.get_root()};
-  auto rhs_nodes = std::vector<ExecutionPlanNode_ptr>{rhs.get_root()};
+  auto lhs_root = lhs.get_root();
+  auto rhs_root = rhs.get_root();
+
+  if ((lhs_root.get() == nullptr) != (rhs_root.get() == nullptr)) {
+    return false;
+  }
+
+  auto lhs_nodes = std::vector<ExecutionPlanNode_ptr>{};
+  auto rhs_nodes = std::vector<ExecutionPlanNode_ptr>{};
+
+  if (lhs_root) {
+    lhs_nodes.push_back(lhs_root);
+    rhs_nodes.push_back(rhs_root);
+  }
 
   while (lhs_nodes.size()) {
     auto lhs_node = lhs_nodes[0];
     auto rhs_node = rhs_nodes[0];
+
+    assert(lhs_node);
+    assert(rhs_node);
 
     lhs_nodes.erase(lhs_nodes.begin());
     rhs_nodes.erase(rhs_nodes.begin());

@@ -28,7 +28,12 @@ std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
   }
 
   auto current_bdd = ep.get_bdd();
-  auto reordered_bdds = BDD::reorder(current_bdd, current_node);
+  auto current_target = ep.get_current_platform();
+  auto starting_points_of_targets = ep.get_targets_bdd_starting_points();
+  auto current_starting_points = starting_points_of_targets[current_target];
+
+  auto reordered_bdds =
+      BDD::reorder(current_bdd, current_node, current_starting_points);
 
   for (auto reordered_bdd : reordered_bdds) {
     auto ep_cloned = ep.clone(reordered_bdd.bdd);
@@ -73,8 +78,8 @@ Module::process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
 }
 
 bool can_process_platform(const ExecutionPlan &ep, TargetType target) {
-  auto current_platform = ep.get_current_platform();
-  return !current_platform.first || (current_platform.second == target);
+  auto current_target = ep.get_current_platform();
+  return current_target == target;
 }
 
 processing_result_t Module::process_node(const ExecutionPlan &ep,
@@ -180,15 +185,28 @@ Module::get_past_node_that_generates_symbol(const BDD::Node *current_node,
 }
 
 std::vector<BDD::BDDNode_ptr>
-Module::get_all_prev_functions(const BDD::Node *_node,
-                               const std::string &function_name) {
-  std::vector<BDD::BDDNode_ptr> prev_packet_borrow_next_chunk;
+Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+                               const std::string &function_name) const {
+  std::vector<BDD::BDDNode_ptr> prev_functions;
 
-  auto node = _node->get_prev();
+  auto target = ep.get_current_platform();
 
-  while (node) {
+  auto targets_bdd_starting_points = ep.get_targets_bdd_starting_points();
+  auto starting_point_it = targets_bdd_starting_points.find(target);
+
+  assert(node);
+  auto proceed = true;
+
+  while (proceed && node->get_prev()) {
+    node = node->get_prev();
+
+    if (starting_point_it != targets_bdd_starting_points.end() &&
+        starting_point_it->second.find(node->get_id()) !=
+            starting_point_it->second.end()) {
+      proceed = false;
+    }
+
     if (node->get_type() != BDD::Node::NodeType::CALL) {
-      node = node->get_prev();
       continue;
     }
 
@@ -196,13 +214,11 @@ Module::get_all_prev_functions(const BDD::Node *_node,
     auto call = call_node->get_call();
 
     if (call.function_name == function_name) {
-      prev_packet_borrow_next_chunk.push_back(node);
+      prev_functions.push_back(node);
     }
-
-    node = node->get_prev();
   }
 
-  return prev_packet_borrow_next_chunk;
+  return prev_functions;
 }
 
 std::vector<Module::modification_t>

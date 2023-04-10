@@ -6,12 +6,8 @@ namespace tofino {
 
 constexpr char TOFINO_BOILERPLATE_FILE[] = "boilerplate.p4";
 
-constexpr char MARKER_HEADERS_DEFINITIONS[] = "HEADERS DEFINITIONS";
 constexpr char MARKER_INGRESS_METADATA[] = "INGRESS METADATA";
-constexpr char MARKER_INGRESS_HEADERS[] = "INGRESS HEADERS";
 constexpr char MARKER_EGRESS_METADATA[] = "EGRESS METADATA";
-constexpr char MARKER_EGRESS_HEADERS[] = "EGRESS HEADERS";
-constexpr char MARKER_INGRESS_PARSE_HEADERS[] = "INGRESS PARSE HEADERS";
 constexpr char MARKER_INGRESS_STATE[] = "INGRESS STATE";
 constexpr char MARKER_INGRESS_APPLY[] = "INGRESS APPLY";
 
@@ -44,6 +40,7 @@ constexpr int INGRESS_INTRINSIC_META_TIMESTAMP_SIZE_BITS = 48;
 
 constexpr char HDR_ETH[] = "ethernet";
 constexpr char HDR_IPV4[] = "ipv4";
+constexpr char HDR_IPV4_OPTIONS[] = "ipv4_options";
 constexpr char HDR_TCPUDP[] = "tcpudp";
 
 constexpr char HDR_ETH_SRC_ADDR_FIELD[] = "src_addr";
@@ -53,15 +50,16 @@ constexpr char HDR_ETH_ETHER_TYPE_FIELD[] = "ether_type";
 constexpr char HDR_IPV4_VERSION_FIELD[] = "version";
 constexpr char HDR_IPV4_IHL_FIELD[] = "ihl";
 constexpr char HDR_IPV4_DSCP_FIELD[] = "dscp";
-constexpr char HDR_IPV4_TOTAL_LEN_FIELD[] = "total_len";
-constexpr char HDR_IPV4_ID_FIELD[] = "identification";
-constexpr char HDR_IPV4_FLAGS_FIELD[] = "flags";
-constexpr char HDR_IPV4_FRAG_OFF_FIELD[] = "frag_offset";
+constexpr char HDR_IPV4_TOT_LEN_FIELD[] = "tot_len";
+constexpr char HDR_IPV4_ID_FIELD[] = "id";
+constexpr char HDR_IPV4_FRAG_OFF_FIELD[] = "frag_off";
 constexpr char HDR_IPV4_TTL_FIELD[] = "ttl";
-constexpr char HDR_IPV4_PROTO_FIELD[] = "protocol";
-constexpr char HDR_IPV4_CHKSUM_FIELD[] = "hdr_checksum";
+constexpr char HDR_IPV4_PROTOCOL_FIELD[] = "protocol";
+constexpr char HDR_IPV4_CHECK_FIELD[] = "check";
 constexpr char HDR_IPV4_SRC_ADDR_FIELD[] = "src_addr";
 constexpr char HDR_IPV4_DST_ADDR_FIELD[] = "dst_addr";
+
+constexpr char HDR_IPV4_OPTIONS_VALUE_FIELD[] = "value";
 
 constexpr char HDR_TCPUDP_SRC_PORT_FIELD[] = "src_port";
 constexpr char HDR_TCPUDP_DST_PORT_FIELD[] = "dst_port";

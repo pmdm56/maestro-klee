@@ -68,6 +68,13 @@ public:
   void visit(const targets::x86_tofino::ForwardThroughTofino *node) override;
   void visit(const targets::x86_tofino::PacketParseEthernet *node) override;
   void visit(const targets::x86_tofino::PacketModifyEthernet *node) override;
+  void visit(const targets::x86_tofino::PacketParseIPv4 *node) override;
+  void visit(const targets::x86_tofino::PacketModifyIPv4 *node) override;
+  void visit(const targets::x86_tofino::PacketParseIPv4Options *node) override;
+  void visit(const targets::x86_tofino::PacketModifyIPv4Options *node) override;
+  void visit(const targets::x86_tofino::PacketParseTCPUDP *node) override;
+  void visit(const targets::x86_tofino::PacketModifyTCPUDP *node) override;
+  void visit(const targets::x86_tofino::PacketModifyChecksums *node) override;
   void visit(const targets::x86_tofino::If *node) override;
   void visit(const targets::x86_tofino::Then *node) override;
   void visit(const targets::x86_tofino::Else *node) override;

@@ -38,6 +38,8 @@ extern "C" {
 #define SWAP_ENDIAN_32(v)                                                      \
   { (v) = __bswap_32((v)); }
 
+typedef size_t bits_t;
+
 bf_rt_target_t dev_tgt;
 const bfrt::BfRtInfo *info;
 std::shared_ptr<bfrt::BfRtSession> session;
@@ -71,10 +73,8 @@ struct eth_t {
 } __attribute__((packed));
 
 struct ipv4_t {
-  uint8_t ihl : 4;
-  uint8_t version : 4;
-  uint8_t ecn : 2;
-  uint8_t dscp : 6;
+  uint8_t version_ihl;
+  uint8_t ecn_dscp;
   uint16_t tot_len;
   uint16_t id;
   uint16_t frag_off;
@@ -86,9 +86,9 @@ struct ipv4_t {
 
   void dump() const {
     printf("###[ IP ]###\n");
-    printf("ihl     %u\n", (ihl & 0x0f));
-    printf("version %u\n", (ihl & 0xf0) >> 4);
-    printf("tos     %u\n", version);
+    printf("version %u\n", (version_ihl & 0xf0) >> 4);
+    printf("ihl     %u\n", (version_ihl & 0x0f));
+    printf("tos     %u\n", ecn_dscp);
     printf("len     %u\n", ntohs(tot_len));
     printf("id      %u\n", ntohs(id));
     printf("off     %u\n", ntohs(frag_off));
@@ -380,6 +380,15 @@ protected:
   std::unique_ptr<bfrt::BfRtTableKey> key;
   std::unique_ptr<bfrt::BfRtTableData> data;
 
+  struct field_t {
+    std::string name;
+    bf_rt_id_t id;
+    bits_t size;
+  };
+
+  std::vector<field_t> key_fields;
+  std::vector<field_t> data_fields;
+
 protected:
   __Table(const std::string &_table_name)
       : table_name(_table_name), table(nullptr) {
@@ -397,6 +406,31 @@ protected:
     bf_status = table->dataAllocate(&data);
     assert(bf_status == BF_SUCCESS);
     assert(data);
+  }
+
+  void init_key() {
+    std::vector<bf_rt_id_t> key_fields_ids;
+
+    auto bf_status = table->keyFieldIdListGet(&key_fields_ids);
+    assert(bf_status == BF_SUCCESS);
+
+    for (auto id : key_fields_ids) {
+      std::string name;
+      bits_t size;
+
+      bf_status = table->keyFieldNameGet(id, &name);
+      assert(bf_status == BF_SUCCESS);
+
+      bf_status = table->keyFieldSizeGet(id, &size);
+      assert(bf_status == BF_SUCCESS);
+
+      key_fields.push_back({name, id, size});
+    }
+
+    std::cerr << "Keys:\n";
+    for (auto k : key_fields) {
+      std::cerr << "  " << k.name << " (" << k.size << " bits)\n";
+    }
   }
 
   void init_key(const std::string &name, bf_rt_id_t *id) {
@@ -426,6 +460,31 @@ protected:
   void init_data(std::unordered_map<std::string, bf_rt_id_t *> fields) {
     for (const auto &field : fields) {
       init_data(field.first, field.second);
+    }
+  }
+
+  void init_data_with_action(bf_rt_id_t action_id) {
+    std::vector<bf_rt_id_t> data_fields_ids;
+
+    auto bf_status = table->dataFieldIdListGet(action_id, &data_fields_ids);
+    assert(bf_status == BF_SUCCESS);
+
+    for (auto id : data_fields_ids) {
+      std::string name;
+      bits_t size;
+
+      bf_status = table->dataFieldNameGet(id, action_id, &name);
+      assert(bf_status == BF_SUCCESS);
+
+      bf_status = table->dataFieldSizeGet(id, action_id, &size);
+      assert(bf_status == BF_SUCCESS);
+
+      data_fields.push_back({name, id, size});
+    }
+
+    std::cerr << "Data:\n";
+    for (auto d : data_fields) {
+      std::cerr << "  " << d.name << " (" << d.size << " bits)\n";
     }
   }
 
@@ -1019,22 +1078,53 @@ inline bool operator==(const fields_values_t &lhs, const fields_values_t &rhs) {
 typedef uint8_t byte_t;
 
 struct bytes_t {
-  uint32_t size;
   byte_t *values;
+  uint32_t size;
 
-  bytes_t() : size(0) {}
+  bytes_t() : values(nullptr), size(0) {}
 
-  bytes_t(uint32_t _size) : size(_size), values(new byte_t[_size]) {}
+  bytes_t(uint32_t _size) : values(new byte_t[_size]), size(_size) {}
 
-  bytes_t(const bytes_t &key) : size(key.size), values(new byte_t[key.size]) {
+  bytes_t(const bytes_t &key) : bytes_t(key.size) {
     for (auto i = 0u; i < size; i++) {
       values[i] = key.values[i];
     }
   }
 
   ~bytes_t() {
-    if (values)
-      delete values;
+    if (values) {
+      delete[] values;
+      values = nullptr;
+      size = 0;
+    }
+  }
+
+  byte_t &operator[](int i) {
+    assert(i < size);
+    return values[i];
+  }
+
+  const byte_t &operator[](int i) const {
+    assert(i < size);
+    return values[i];
+  }
+
+  // copy assignment
+  bytes_t &operator=(const bytes_t &other) noexcept {
+    // Guard self assignment
+    if (this == &other) {
+      return *this;
+    }
+
+    if (size != other.size) {
+      this->~bytes_t();
+      values = new byte_t[other.size];
+      size = other.size;
+    }
+
+    std::copy(other.values, other.values + other.size, values);
+
+    return *this;
   }
 
   struct hash {
@@ -1064,67 +1154,42 @@ inline bool operator==(const bytes_t &lhs, const bytes_t &rhs) {
   return true;
 }
 
+inline std::ostream &operator<<(std::ostream &os, const bytes_t &bytes) {
+  os << "{";
+  for (int i = 0u; i < bytes.size; i++) {
+    if (i > 0)
+      os << ",";
+    os << (int)bytes[i];
+  }
+  os << "}";
+  return os;
+}
+
 class Table : __Table {
 private:
-  struct field_t {
-    const std::string name;
-    bf_rt_id_t id;
-
-    field_t(const std::string &_name, bf_rt_id_t _id) : name(_name), id(_id) {}
-  };
-
-  std::vector<field_t> key_fields;
   bf_rt_id_t populate_action_id;
-  std::vector<field_t> param_fields;
   std::unordered_set<fields_values_t, fields_values_t::hash> set_keys;
 
 public:
-  Table(const std::string _table_name,
-        const std::vector<std::string> _key_fields_names,
-        const std::vector<std::string> _param_fields_names)
-      : __Table("Ingress." + _table_name) {
-    for (auto key_field_name : _key_fields_names) {
-      bf_rt_id_t field_id;
-      init_key(key_field_name, &field_id);
-      key_fields.emplace_back(key_field_name, field_id);
-    }
+  Table(const std::string _table_name) : __Table("Ingress." + _table_name) {
+    init_key();
+    init_action("Ingress.populate", &populate_action_id);
+    init_data_with_action(populate_action_id);
+  }
 
-    init_action("Ingress.map_populate", &populate_action_id);
+  void set(const bytes_t &key_bytes, const bytes_t &param_bytes) {
+    auto keys = bytes_to_fields_values(key_bytes, key_fields);
+    auto params = bytes_to_fields_values(param_bytes, data_fields);
 
-    for (auto param_field_name : _param_fields_names) {
-      bf_rt_id_t field_id;
-      init_data_with_action(param_field_name, populate_action_id, &field_id);
-      param_fields.emplace_back(param_field_name, field_id);
+    if (set_keys.find(keys) == set_keys.end()) {
+      add(keys, params);
+    } else {
+      mod(keys, params);
     }
   }
 
-  bool contains(const fields_values_t &key_fields_values) const {
-    return set_keys.find(key_fields_values) != set_keys.end();
-  }
-
-  bool add(const fields_values_t &key_fields_values,
-           const fields_values_t &param_fields_values) {
-    if (contains(key_fields_values)) {
-      return false;
-    }
-
-    key_setup(key_fields_values);
-    data_setup(param_fields_values);
-
-    auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
-    assert(bf_status == BF_SUCCESS);
-
-    set_keys.insert(key_fields_values);
-
-    return true;
-  }
-
-  static std::unique_ptr<Table>
-  build(const std::string _table_name,
-        const std::vector<std::string> _key_fields_names,
-        const std::vector<std::string> _param_fields_names) {
-    return std::unique_ptr<Table>(
-        new Table(_table_name, _key_fields_names, _param_fields_names));
+  static std::unique_ptr<Table> build(const std::string _table_name) {
+    return std::unique_ptr<Table>(new Table(_table_name));
   }
 
 private:
@@ -1144,21 +1209,86 @@ private:
     auto bf_status = table->dataReset(populate_action_id, data.get());
     assert(bf_status == BF_SUCCESS);
 
-    for (auto i = 0u; i < param_fields.size(); i++) {
+    for (auto i = 0u; i < data_fields.size(); i++) {
       auto param_field_value = param_field_values.values[i];
-      auto param_field = param_fields[i];
+      auto param_field = data_fields[i];
       auto bf_status = data->setValue(param_field.id, param_field_value);
       assert(bf_status == BF_SUCCESS);
     }
   }
+
+  void add(const fields_values_t &key_fields_values,
+           const fields_values_t &param_fields_values) {
+    key_setup(key_fields_values);
+    data_setup(param_fields_values);
+
+    auto bf_status = table->tableEntryAdd(*session, dev_tgt, *key, *data);
+    assert(bf_status == BF_SUCCESS);
+
+    set_keys.insert(key_fields_values);
+  }
+
+  void mod(const fields_values_t &key_fields_values,
+           const fields_values_t &param_fields_values) {
+    key_setup(key_fields_values);
+    data_setup(param_fields_values);
+
+    auto bf_status = table->tableEntryMod(*session, dev_tgt, *key, *data);
+    assert(bf_status == BF_SUCCESS);
+  }
+
+  void del(const fields_values_t &key_fields_values,
+           const fields_values_t &param_fields_values) {
+    key_setup(key_fields_values);
+    data_setup(param_fields_values);
+
+    auto bf_status = table->tableEntryDel(*session, dev_tgt, 0, *key);
+    assert(bf_status == BF_SUCCESS);
+
+    set_keys.erase(key_fields_values);
+  }
+
+  static fields_values_t
+  bytes_to_fields_values(const bytes_t &values,
+                         const std::vector<field_t> &fields) {
+    auto fields_values = fields_values_t(fields.size());
+    auto starting_byte = 0;
+
+    for (auto kf_i = 0u; kf_i < fields.size(); kf_i++) {
+      auto kf = fields[kf_i];
+      auto bytes = kf.size / 8;
+
+      assert(values.size >= starting_byte + bytes);
+
+      fields_values.values[kf_i] = 0;
+
+      for (auto i = 0u; i < bytes; i++) {
+        auto byte = values[starting_byte + i];
+
+        fields_values.values[kf_i] = (fields_values.values[kf_i] << 8) | byte;
+      }
+
+      starting_byte += bytes;
+    }
+
+    return fields_values;
+  }
 };
 
-template <typename T> class Map {
+template <typename T>
+class Map {
 private:
   std::unordered_map<bytes_t, T, bytes_t::hash> data;
+  std::vector<std::unique_ptr<Table>> dataplane_tables;
 
 public:
   Map() {}
+
+  Map(const std::vector<std::string> &dataplane_table_names) {
+    for (const auto &table_name : dataplane_table_names) {
+      dataplane_tables.push_back(Table::build(table_name));
+    }
+  }
 
   bool get(bytes_t key, T &value) const {
     if (contains(key)) {
@@ -1173,21 +1303,101 @@ public:
 
   void put(bytes_t key, T value) {
     data[key] = value;
-    assert(contains(key));
+
+    auto value_bytes = to_bytes(value);
+    for (auto &dataplane_table : dataplane_tables) {
+      dataplane_table->set(key, value_bytes);
+    }
   }
 
   static std::unique_ptr<Map> build() {
     return std::unique_ptr<Map>(new Map());
   }
+
+  static std::unique_ptr<Map> build(
+    const std::vector<std::string> &dataplane_table_names) {
+    return std::unique_ptr<Map>(new Map(dataplane_table_names));
+  }
+
+private:
+  bytes_t to_bytes(int value) {
+    bytes_t bytes(4);
+
+    bytes[0] = (value >> 24) & 0xff;
+    bytes[1] = (value >> 16) & 0xff;
+    bytes[2] = (value >> 8) & 0xff;
+    bytes[3] = (value >> 0) & 0xff;
+
+    return bytes;
+  }
+
+  bytes_t to_bytes(bytes_t value) { return value; }
 };
 
 #define DCHAIN_RESERVED (2)
 
 class Dchain {
+public:
+  Dchain(int index_range) {
+    cells = (struct dchain_cell *)malloc(sizeof(struct dchain_cell) *
+                                         (index_range + DCHAIN_RESERVED));
+    timestamps = (time_ns_t *)malloc(sizeof(time_ns_t) * (index_range));
+
+    impl_init(index_range);
+  }
+
+  uint32_t allocate_new_index(uint32_t &index_out, time_ns_t time) {
+    uint32_t ret = impl_allocate_new_index(index_out);
+
+    if (ret) {
+      timestamps[index_out] = time;
+    }
+
+    return ret;
+  }
+
+  uint32_t rejuvenate_index(uint32_t index, time_ns_t time) {
+    uint32_t ret = impl_rejuvenate_index(index);
+
+    if (ret) {
+      timestamps[index] = time;
+    }
+
+    return ret;
+  }
+
+  uint32_t expire_one_index(uint32_t &index_out, time_ns_t time) {
+    uint32_t has_ind = impl_get_oldest_index(index_out);
+
+    if (has_ind) {
+      if (timestamps[index_out] < time) {
+        uint32_t rez = impl_free_index(index_out);
+        return rez;
+      }
+    }
+
+    return 0;
+  }
+
+  uint32_t is_index_allocated(uint32_t index) {
+    return impl_is_index_allocated(index);
+  }
+
+  uint32_t free_index(uint32_t index) { return impl_free_index(index); }
+
+  ~Dchain() {
+    free(cells);
+    free(timestamps);
+  }
+
+  static std::unique_ptr<Dchain> build(int index_range) {
+    return std::unique_ptr<Dchain>(new Dchain(index_range));
+  }
+
 private:
   struct dchain_cell {
-    int prev;
-    int next;
+    uint32_t prev;
+    uint32_t next;
   };
 
   enum DCHAIN_ENUM {
@@ -1199,11 +1409,11 @@ private:
   struct dchain_cell *cells;
   time_ns_t *timestamps;
 
-  void impl_init(int size) {
+  void impl_init(uint32_t size) {
     struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
     al_head->prev = 0;
     al_head->next = 0;
-    int i = INDEX_SHIFT;
+    uint32_t i = INDEX_SHIFT;
 
     struct dchain_cell *fl_head = cells + FREE_LIST_HEAD;
     fl_head->next = i;
@@ -1222,10 +1432,10 @@ private:
     last->prev = last->next;
   }
 
-  int impl_allocate_new_index(int &index) {
+  uint32_t impl_allocate_new_index(uint32_t &index) {
     struct dchain_cell *fl_head = cells + FREE_LIST_HEAD;
     struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
-    int allocated = fl_head->next;
+    uint32_t allocated = fl_head->next;
     if (allocated == FREE_LIST_HEAD) {
       return 0;
     }
@@ -1248,12 +1458,12 @@ private:
     return 1;
   }
 
-  int impl_free_index(int index) {
-    int freed = index + INDEX_SHIFT;
+  uint32_t impl_free_index(uint32_t index) {
+    uint32_t freed = index + INDEX_SHIFT;
 
     struct dchain_cell *freedp = cells + freed;
-    int freed_prev = freedp->prev;
-    int freed_next = freedp->next;
+    uint32_t freed_prev = freedp->prev;
+    uint32_t freed_next = freedp->next;
 
     // The index is already free.
     if (freed_next == freed_prev) {
@@ -1278,7 +1488,7 @@ private:
     return 1;
   }
 
-  int impl_get_oldest_index(int& index) {
+  uint32_t impl_get_oldest_index(uint32_t &index) {
     struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
 
     // No allocated indexes.
@@ -1291,12 +1501,12 @@ private:
     return 1;
   }
 
-  int impl_rejuvenate_index(int index) {
-    int lifted = index + INDEX_SHIFT;
+  uint32_t impl_rejuvenate_index(uint32_t index) {
+    uint32_t lifted = index + INDEX_SHIFT;
 
     struct dchain_cell *liftedp = cells + lifted;
-    int lifted_next = liftedp->next;
-    int lifted_prev = liftedp->prev;
+    uint32_t lifted_next = liftedp->next;
+    uint32_t lifted_prev = liftedp->prev;
 
     if (lifted_next == lifted_prev) {
       if (lifted_next != ALLOC_LIST_HEAD) {
@@ -1313,7 +1523,7 @@ private:
     lifted_nextp->prev = lifted_prev;
 
     struct dchain_cell *al_head = cells + ALLOC_LIST_HEAD;
-    int al_head_prev = al_head->prev;
+    uint32_t al_head_prev = al_head->prev;
 
     liftedp->next = ALLOC_LIST_HEAD;
     liftedp->prev = al_head_prev;
@@ -1325,14 +1535,14 @@ private:
     return 1;
   }
 
-  int impl_is_index_allocated(int index) {
-    int lifted = index + INDEX_SHIFT;
+  uint32_t impl_is_index_allocated(uint32_t index) {
+    uint32_t lifted = index + INDEX_SHIFT;
 
     struct dchain_cell *liftedp = cells + lifted;
-    int lifted_next = liftedp->next;
-    int lifted_prev = liftedp->prev;
+    uint32_t lifted_next = liftedp->next;
+    uint32_t lifted_prev = liftedp->prev;
 
-    int result;
+    uint32_t result;
     if (lifted_next == lifted_prev) {
       if (lifted_next != ALLOC_LIST_HEAD) {
         return 0;
@@ -1342,57 +1552,6 @@ private:
     } else {
       return 1;
     }
-  }
-
-public:
-  Dchain(int index_range) {
-    cells = (struct dchain_cell *)malloc(sizeof(struct dchain_cell) *
-                                         (index_range + DCHAIN_RESERVED));
-    timestamps = (time_ns_t *)malloc(sizeof(time_ns_t) * (index_range));
-
-    impl_init(index_range);
-  }
-
-  int allocate_new_index(int& index_out, time_ns_t time) {
-    int ret = impl_allocate_new_index(index_out);
-
-    if (ret) {
-      timestamps[index_out] = time;
-    }
-
-    return ret;
-  }
-
-  int rejuvenate_index(int index, time_ns_t time) {
-    int ret = impl_rejuvenate_index(index);
-
-    if (ret) {
-      timestamps[index] = time;
-    }
-
-    return ret;
-  }
-
-  int expire_one_index(int& index_out, time_ns_t time) {
-    int has_ind = impl_get_oldest_index(index_out);
-
-    if (has_ind) {
-      if (timestamps[index_out] < time) {
-        int rez = impl_free_index(index_out);
-        return rez;
-      }
-    }
-
-    return 0;
-  }
-
-  int is_index_allocated(int index) { return impl_is_index_allocated(index); }
-
-  int free_index(int index) { return impl_free_index(index); }
-
-  ~Dchain() {
-    free(cells);
-    free(timestamps);
   }
 };
 

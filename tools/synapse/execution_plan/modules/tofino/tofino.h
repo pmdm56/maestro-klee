@@ -9,10 +9,19 @@
 #include "ethernet_modify.h"
 #include "forward.h"
 #include "if.h"
+#include "if_header_valid.h"
 #include "ignore.h"
+#include "ipv4_consume.h"
+#include "ipv4_modify.h"
+#include "ipv4_options_consume.h"
+#include "ipv4_options_modify.h"
+#include "ipv4_tcpudp_checksums_update.h"
 #include "memory_bank.h"
 #include "send_to_controller.h"
+#include "setup_expiration_notifications.h"
 #include "table_lookup.h"
+#include "tcpudp_consume.h"
+#include "tcpudp_modify.h"
 #include "then.h"
 
 namespace synapse {
@@ -26,14 +35,23 @@ public:
                {
                    MODULE(Ignore),
                    MODULE(If),
+                   MODULE(IfHeaderValid),
                    MODULE(Then),
                    MODULE(Else),
                    MODULE(Forward),
                    MODULE(EthernetConsume),
                    MODULE(EthernetModify),
+                   MODULE(IPv4Consume),
+                   MODULE(IPv4Modify),
+                   MODULE(IPv4OptionsConsume),
+                   MODULE(IPv4OptionsModify),
+                   MODULE(TCPUDPConsume),
+                   MODULE(TCPUDPModify),
+                   MODULE(IPv4TCPUDPChecksumsUpdate),
                    MODULE(TableLookup),
                    MODULE(Drop),
                    MODULE(SendToController),
+                   MODULE(SetupExpirationNotifications),
                },
                MemoryBank_ptr(new TofinoMemoryBank())) {}
 
