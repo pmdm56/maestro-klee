@@ -21,7 +21,7 @@ namespace Clone {
 		BDD::BDDNode_ptr init_tail = nullptr;
 		BDD::BDDNode_ptr process_root = nullptr;
 
-		uint64_t counter = 100;
+		uint64_t counter = 1;
 		Builder(std::unique_ptr<BDD::BDD> bdd);
 
 		Tails clone_node(BDD::BDDNode_ptr node, uint32_t input_port);
