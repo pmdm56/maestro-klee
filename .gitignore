@@ -43,3 +43,4 @@ input/
 .cache/
 CMakePresets.json
 .clangd
+nf.c
