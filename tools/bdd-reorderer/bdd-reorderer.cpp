@@ -110,10 +110,15 @@ std::map<std::string, bool> fn_has_side_effects_lookup{
     {"sketch_compute_hashes", true},
     {"sketch_refresh", true},
     {"sketch_fetch", false},
-    {"sketch_touch_buckets", true}};
+    {"sketch_touch_buckets", true},
+};
 
 std::vector<std::string> fn_cannot_reorder_lookup{
-    "current_time", "packet_return_chunk", "nf_set_rte_ipv4_udptcp_checksum"};
+    "current_time",
+    "packet_return_chunk",
+    "nf_set_rte_ipv4_udptcp_checksum",
+    "packet_borrow_next_chunk",
+};
 
 bool fn_has_side_effects(std::string fn) {
   auto found = fn_has_side_effects_lookup.find(fn);
@@ -261,19 +266,25 @@ bool are_io_dependencies_met(const Node *node, symbols_t symbols) {
   return false;
 }
 
-bool are_io_dependencies_met(const Node *root, const Node *next_node) {
+bool are_io_dependencies_met(
+    const Node *root, const Node *next_node,
+    const std::unordered_set<uint64_t> &furthest_back_nodes) {
   assert(root);
-  symbols_t symbols = root->get_generated_symbols();
+  symbols_t symbols = root->get_generated_symbols(furthest_back_nodes);
   return are_io_dependencies_met(next_node, symbols);
 }
 
-bool are_io_dependencies_met(const Node *root, klee::ref<klee::Expr> expr) {
+bool are_io_dependencies_met(
+    const Node *root, klee::ref<klee::Expr> expr,
+    const std::unordered_set<uint64_t> &furthest_back_nodes) {
   assert(root);
-  symbols_t symbols = root->get_generated_symbols();
+  symbols_t symbols = root->get_generated_symbols(furthest_back_nodes);
   return are_all_symbols_known(expr, symbols);
 }
 
-bool map_can_reorder(const Node *current, const Node *before, const Node *after,
+bool map_can_reorder(const Node *current,
+                     const std::unordered_set<uint64_t> &furthest_back_nodes,
+                     const Node *before, const Node *after,
                      klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
       before->get_type() != Node::NodeType::CALL) {
@@ -343,7 +354,7 @@ bool map_can_reorder(const Node *current, const Node *before, const Node *after,
   condition = kutil::solver_toolbox.exprBuilder->Not(
       kutil::solver_toolbox.exprBuilder->Eq(before_key, after_key));
 
-  return are_io_dependencies_met(before, condition);
+  return are_io_dependencies_met(before, condition, furthest_back_nodes);
 }
 
 bool dchain_can_reorder(const Node *current, const Node *before,
@@ -389,8 +400,10 @@ bool dchain_can_reorder(const Node *current, const Node *before,
   return false;
 }
 
-bool vector_can_reorder(const Node *current, const Node *before,
-                        const Node *after, klee::ref<klee::Expr> &condition) {
+bool vector_can_reorder(const Node *current,
+                        const std::unordered_set<uint64_t> &furthest_back_nodes,
+                        const Node *before, const Node *after,
+                        klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
       before->get_type() != Node::NodeType::CALL) {
     return true;
@@ -455,11 +468,13 @@ bool vector_can_reorder(const Node *current, const Node *before,
   condition = kutil::solver_toolbox.exprBuilder->Not(
       kutil::solver_toolbox.exprBuilder->Eq(before_index, after_index));
 
-  return are_io_dependencies_met(current, condition);
+  return are_io_dependencies_met(current, condition, furthest_back_nodes);
 }
 
-bool are_rw_dependencies_met(const Node *root, const Node *next_node,
-                             klee::ref<klee::Expr> &condition) {
+bool are_rw_dependencies_met(
+    const Node *root, const Node *next_node,
+    const std::unordered_set<uint64_t> &furthest_back_nodes,
+    klee::ref<klee::Expr> &condition) {
   assert(root);
   auto node = next_node->get_prev();
   assert(node);
@@ -469,7 +484,8 @@ bool are_rw_dependencies_met(const Node *root, const Node *next_node,
   while (node->get_id() != root->get_id()) {
     klee::ref<klee::Expr> local_condition;
 
-    if (!map_can_reorder(root, node.get(), next_node, local_condition)) {
+    if (!map_can_reorder(root, furthest_back_nodes, node.get(), next_node,
+                         local_condition)) {
       return false;
     }
 
@@ -477,7 +493,8 @@ bool are_rw_dependencies_met(const Node *root, const Node *next_node,
       return false;
     }
 
-    if (!vector_can_reorder(root, node.get(), next_node, local_condition)) {
+    if (!vector_can_reorder(root, furthest_back_nodes, node.get(), next_node,
+                            local_condition)) {
       return false;
     }
 
@@ -562,7 +579,9 @@ bool is_called_in_all_future_branches(const Node *start, const Node *target,
   return true;
 }
 
-std::vector<candidate_t> get_candidates(const Node *root) {
+std::vector<candidate_t>
+get_candidates(const Node *root,
+               const std::unordered_set<uint64_t> &furthest_back_nodes) {
   std::vector<candidate_t> viable_candidates;
   std::vector<candidate_t> candidates;
 
@@ -613,7 +632,8 @@ std::vector<candidate_t> get_candidates(const Node *root) {
       continue;
     }
 
-    if (!are_io_dependencies_met(root, candidate.node.get())) {
+    if (!are_io_dependencies_met(root, candidate.node.get(),
+                                 furthest_back_nodes)) {
       continue;
     }
 
@@ -625,6 +645,7 @@ std::vector<candidate_t> get_candidates(const Node *root) {
       }
 
       if (!are_rw_dependencies_met(root, candidate.node.get(),
+                                   furthest_back_nodes,
                                    candidate.extra_condition)) {
         continue;
       }
@@ -820,25 +841,44 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
 }
 
 std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root) {
+  std::unordered_set<uint64_t> furthest_back_nodes;
+
+  auto init = bdd.get_init();
+  auto process = bdd.get_process();
+
+  if (init) {
+    furthest_back_nodes.insert(init->get_id());
+  }
+
+  if (process) {
+    furthest_back_nodes.insert(process->get_id());
+  }
+
+  return reorder(bdd, root, furthest_back_nodes);
+}
+
+std::vector<reordered_bdd>
+reorder(const BDD &bdd, BDDNode_ptr root,
+        const std::unordered_set<uint64_t> &furthest_back_nodes) {
   std::vector<reordered_bdd> reordered;
 
   if (!root) {
     return reordered;
   }
 
-  auto candidates = get_candidates(root.get());
+  auto candidates = get_candidates(root.get(), furthest_back_nodes);
 
-// #ifndef NDEBUG
-//   std::cerr << "\n";
-//   std::cerr << "*********************************************************"
-//                "********************\n";
-//   std::cerr << "  current   : " << root->dump(true) << "\n";
-//   for (auto candidate : candidates) {
-//     std::cerr << candidate.dump() << "\n";
-//   }
-//   std::cerr << "*********************************************************"
-//                "********************\n";
-// #endif
+  // #ifndef NDEBUG
+  //   std::cerr << "\n";
+  //   std::cerr << "*********************************************************"
+  //                "********************\n";
+  //   std::cerr << "  current   : " << root->dump(true) << "\n";
+  //   for (auto candidate : candidates) {
+  //     std::cerr << candidate.dump() << "\n";
+  //   }
+  //   std::cerr << "*********************************************************"
+  //                "********************\n";
+  // #endif
 
   for (auto candidate : candidates) {
     auto bdd_cloned = bdd.clone();
@@ -851,6 +891,16 @@ std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root) {
     candidate.node = candidate_cloned;
 
     reorder(bdd_cloned, root_cloned, candidate);
+
+    if (candidate.node->get_type() == Node::NodeType::CALL) {
+      auto call = static_cast<const Call *>(candidate.node.get());
+      if (call->get_call().function_name == "packet_borrow_next_chunk") {
+        std::cerr << "root " << root->get_id() << "\n";
+        std::cerr << "pulled " << call->get_call() << "\n";
+        // GraphvizGenerator::visualize(bdd_cloned);
+      }
+    }
+
     reordered.emplace_back(bdd_cloned,
                            bdd_cloned.get_node_by_id(candidate.node->get_id()),
                            candidate.condition);

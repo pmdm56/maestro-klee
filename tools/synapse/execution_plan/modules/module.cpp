@@ -28,7 +28,12 @@ std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
   }
 
   auto current_bdd = ep.get_bdd();
-  auto reordered_bdds = BDD::reorder(current_bdd, current_node);
+  auto current_target = ep.get_current_platform();
+  auto starting_points_of_targets = ep.get_targets_bdd_starting_points();
+  auto current_starting_points = starting_points_of_targets[current_target];
+
+  auto reordered_bdds =
+      BDD::reorder(current_bdd, current_node, current_starting_points);
 
   for (auto reordered_bdd : reordered_bdds) {
     auto ep_cloned = ep.clone(reordered_bdd.bdd);

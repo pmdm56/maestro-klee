@@ -13,6 +13,7 @@ class Node;
 class BDDVisitor;
 
 typedef std::shared_ptr<Node> BDDNode_ptr;
+typedef uint64_t node_id_t;
 
 class Node {
 public:
@@ -84,6 +85,11 @@ public:
   }
 
   symbols_t get_generated_symbols() const;
+
+  // Get generated symbols, but no further than any of these node IDs
+  symbols_t get_generated_symbols(
+      const std::unordered_set<uint64_t> &furthest_back_nodes) const;
+
   virtual symbols_t get_local_generated_symbols() const;
 
   void update_id(uint64_t new_id);

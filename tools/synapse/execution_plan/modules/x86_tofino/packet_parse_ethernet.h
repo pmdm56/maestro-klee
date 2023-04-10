@@ -47,6 +47,12 @@ private:
     // Make sure that packet_borrow_next_chunk borrows the
     // 14 ethernet bytes
     assert(_length->getKind() == klee::Expr::Kind::Constant);
+    {
+      if (kutil::solver_toolbox.value_from_expr(_length) != 14) {
+        // FIXME: remove this
+        Graphviz::visualize(ep);
+      }
+    }
     assert(kutil::solver_toolbox.value_from_expr(_length) == 14);
 
     auto new_module = std::make_shared<PacketParseEthernet>(node, _chunk);
