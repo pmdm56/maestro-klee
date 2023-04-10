@@ -62,6 +62,7 @@ class VectorReturn;
 namespace tofino {
 class Ignore;
 class If;
+class IfHeaderValid;
 class Then;
 class Else;
 class Forward;
@@ -174,6 +175,7 @@ public:
 
   VISIT(targets::tofino::Ignore)
   VISIT(targets::tofino::If)
+  VISIT(targets::tofino::IfHeaderValid)
   VISIT(targets::tofino::Then)
   VISIT(targets::tofino::Else)
   VISIT(targets::tofino::Forward)

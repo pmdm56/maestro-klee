@@ -75,6 +75,13 @@ public:
     return retrieved_strings;
   }
 
+  void clear() {
+    retrieved_reads.clear();
+    retrieved_reads_packet_chunks.clear();
+    retrieved_readLSB.clear();
+    retrieved_strings.clear();
+  }
+
   static bool contains(klee::ref<klee::Expr> expr, const std::string &symbol) {
     RetrieveSymbols retriever;
     retriever.visit(expr);

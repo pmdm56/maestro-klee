@@ -9,6 +9,7 @@
 #include "ethernet_modify.h"
 #include "forward.h"
 #include "if.h"
+#include "if_header_valid.h"
 #include "ignore.h"
 #include "ipv4_consume.h"
 #include "ipv4_modify.h"
@@ -34,6 +35,7 @@ public:
                {
                    MODULE(Ignore),
                    MODULE(If),
+                   MODULE(IfHeaderValid),
                    MODULE(Then),
                    MODULE(Else),
                    MODULE(Forward),

@@ -83,68 +83,9 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
   }
 }
 
-void TofinoGenerator::visit_if_header_validator(
-    const targets::tofino::If *node) {
-  auto header = node->get_header();
-  assert(header.first);
-
-  std::stringstream ingress_condition_builder;
-
-  ingress_condition_builder << INGRESS_PACKET_HEADER_VARIABLE;
-  ingress_condition_builder << ".";
-
-  switch (header.second) {
-  case targets::tofino::If::PacketHeader::ETHERNET: {
-    ingress_condition_builder << HDR_ETH;
-    ingress_condition_builder << ".isValid()";
-  } break;
-  case targets::tofino::If::PacketHeader::IPV4: {
-    ingress_condition_builder << HDR_IPV4;
-    ingress_condition_builder << ".isValid()";
-  } break;
-  case targets::tofino::If::PacketHeader::NOT_IPV4_OPTIONS: {
-    ingress_condition_builder << HDR_IPV4;
-    ingress_condition_builder << ".";
-    ingress_condition_builder << HDR_IPV4_IHL_FIELD;
-    ingress_condition_builder << " <= 5";
-  } break;
-  case targets::tofino::If::PacketHeader::TCPUDP: {
-    ingress_condition_builder << HDR_TCPUDP;
-    ingress_condition_builder << ".isValid()";
-  } break;
-  default:
-    assert(false && "Should not be here.");
-  }
-
-  auto transpiled = ingress_condition_builder.str();
-
-  ingress.apply_block_builder.indent();
-  ingress.apply_block_builder.append("if (");
-  ingress.apply_block_builder.append(transpiled);
-  ingress.apply_block_builder.append(") {");
-  ingress.apply_block_builder.append_new_line();
-
-  ingress.apply_block_builder.inc_indentation();
-
-  ingress.local_vars.push();
-  ingress.pending_ifs.push();
-}
-
 // Due to packet byte limitations (max 4 bytes per branching condition)
-void TofinoGenerator::visit_if_break_condition(
-    klee::ref<klee::Expr> condition) {
-  auto conditions = split_condition(condition);
-
-  auto invalid_condition_finder = [](klee::ref<klee::Expr> c) {
-    auto bytes = get_num_packet_bytes(c);
-    return bytes > 4;
-  };
-
-  auto found_it = std::find_if(conditions.begin(), conditions.end(),
-                               invalid_condition_finder);
-  assert(found_it == conditions.end());
-  assert(conditions.size() > 1);
-
+void TofinoGenerator::visit_if_multiple_conditions(
+    std::vector<klee::ref<klee::Expr>> conditions) {
   auto cond = ingress.allocate_local_auxiliary("cond", 1);
 
   ingress.apply_block_builder.indent();
@@ -210,23 +151,61 @@ void TofinoGenerator::visit_if_simple_condition(
 void TofinoGenerator::visit(const targets::tofino::If *node) {
   assert(node);
 
-  auto condition = node->get_condition();
+  auto conditions = node->get_conditions();
+  assert(conditions.size() > 0);
+
+  if (conditions.size() > 1) {
+    visit_if_multiple_conditions(conditions);
+  } else {
+    visit_if_simple_condition(conditions[0]);
+  }
+}
+
+void TofinoGenerator::visit(const targets::tofino::IfHeaderValid *node) {
+  assert(node);
+
   auto header = node->get_header();
 
-  if (header.first) {
-    visit_if_header_validator(node);
-    return;
+  std::stringstream ingress_condition_builder;
+
+  ingress_condition_builder << INGRESS_PACKET_HEADER_VARIABLE;
+  ingress_condition_builder << ".";
+
+  switch (header) {
+  case targets::tofino::IfHeaderValid::PacketHeader::ETHERNET: {
+    ingress_condition_builder << HDR_ETH;
+    ingress_condition_builder << ".isValid()";
+  } break;
+  case targets::tofino::IfHeaderValid::PacketHeader::IPV4: {
+    ingress_condition_builder << HDR_IPV4;
+    ingress_condition_builder << ".isValid()";
+  } break;
+  case targets::tofino::IfHeaderValid::PacketHeader::NOT_IPV4_OPTIONS: {
+    ingress_condition_builder << HDR_IPV4;
+    ingress_condition_builder << ".";
+    ingress_condition_builder << HDR_IPV4_IHL_FIELD;
+    ingress_condition_builder << " <= 5";
+  } break;
+  case targets::tofino::IfHeaderValid::PacketHeader::TCPUDP: {
+    ingress_condition_builder << HDR_TCPUDP;
+    ingress_condition_builder << ".isValid()";
+  } break;
+  default:
+    assert(false && "Should not be here.");
   }
 
-  condition = simplify(condition);
-  auto packet_bytes = get_num_packet_bytes(condition);
+  auto transpiled = ingress_condition_builder.str();
 
-  if (packet_bytes > 4) {
-    visit_if_break_condition(condition);
-    return;
-  }
+  ingress.apply_block_builder.indent();
+  ingress.apply_block_builder.append("if (");
+  ingress.apply_block_builder.append(transpiled);
+  ingress.apply_block_builder.append(") {");
+  ingress.apply_block_builder.append_new_line();
 
-  visit_if_simple_condition(condition);
+  ingress.apply_block_builder.inc_indentation();
+
+  ingress.local_vars.push();
+  ingress.pending_ifs.push();
 }
 
 void TofinoGenerator::visit(const targets::tofino::Then *node) { assert(node); }

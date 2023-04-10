@@ -10,6 +10,6 @@
 
 namespace kutil {
 
-klee::ref<klee::Expr> simplify_extract(klee::ref<klee::Expr> extract);
+klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr);
 
 } // namespace kutil

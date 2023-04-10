@@ -32,6 +32,7 @@ public:
   void visit(const ExecutionPlanNode *ep_node) override;
 
   void visit(const targets::tofino::If *node) override;
+  void visit(const targets::tofino::IfHeaderValid *node) override;
   void visit(const targets::tofino::Then *node) override;
   void visit(const targets::tofino::Else *node) override;
   void visit(const targets::tofino::Forward *node) override;
@@ -54,8 +55,8 @@ public:
   variable_query_t search_variable(klee::ref<klee::Expr> expr) const;
 
 private:
-  void visit_if_header_validator(const targets::tofino::If *node);
-  void visit_if_break_condition(klee::ref<klee::Expr> condition);
+  void
+  visit_if_multiple_conditions(std::vector<klee::ref<klee::Expr>> conditions);
   void visit_if_simple_condition(klee::ref<klee::Expr> condition);
 };
 

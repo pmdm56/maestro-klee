@@ -2,6 +2,7 @@
 
 #include "../module.h"
 #include "else.h"
+#include "if_header_valid.h"
 #include "ignore.h"
 #include "then.h"
 
@@ -9,47 +10,34 @@ namespace synapse {
 namespace targets {
 namespace tofino {
 
-class If : public Module {
-public:
-  enum PacketHeader {
-    ETHERNET,
-    IPV4,
-    NOT_IPV4_OPTIONS,
-    TCPUDP,
-    IGNORE,
-  };
+typedef std::vector<klee::ref<klee::Expr>> conditions_t;
 
+class If : public Module {
 private:
-  klee::ref<klee::Expr> condition;
-  std::pair<bool, PacketHeader> header;
+  conditions_t conditions;
 
 public:
   If() : Module(ModuleType::Tofino_If, TargetType::Tofino, "If") {}
 
-  If(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _condition,
-     std::pair<bool, PacketHeader> _header)
+  If(BDD::BDDNode_ptr node, conditions_t _conditions)
       : Module(ModuleType::Tofino_If, TargetType::Tofino, "If", node),
-        condition(_condition), header(_header) {}
+        conditions(_conditions) {}
 
 private:
-  bool has_only_allowed_symbols(klee::ref<klee::Expr> expr) const {
+  // Tofino compiler complains if we access more than 4 bytes of the packet on
+  // the same if statement.
+  bool pass_compiler_packet_bytes_constraint(conditions_t _conditions) const {
+    constexpr int MAX_PACKET_BYTES = 4;
+
     kutil::RetrieveSymbols retriever;
-    retriever.visit(expr);
 
-    auto symbols = retriever.get_retrieved_strings();
+    for (auto condition : _conditions) {
+      retriever.clear();
+      retriever.visit(condition);
 
-    std::vector<std::string> allowed_symbols = {
-        synapse::symbex::PACKET_LENGTH,
-        synapse::symbex::CHUNK,
-    };
+      auto chunks = retriever.get_retrieved_packet_chunks();
 
-    // check if there are unexpected symbols
-
-    for (auto symbol : symbols) {
-      auto found_it =
-          std::find(allowed_symbols.begin(), allowed_symbols.end(), symbol);
-
-      if (found_it == allowed_symbols.end()) {
+      if (chunks.size() > MAX_PACKET_BYTES) {
         return false;
       }
     }
@@ -57,64 +45,41 @@ private:
     return true;
   }
 
-  bool is_conditional_ipv4(klee::ref<klee::Expr> expr) const {
-    auto stringified = kutil::expr_to_string(expr, true);
-    return stringified == symbex::KLEE_EXPR_IPV4_CONDITION;
-  }
+  conditions_t split_condition(klee::ref<klee::Expr> expr) const {
+    auto _conditions = conditions_t{expr};
 
-  bool is_conditional_ipv4_options(klee::ref<klee::Expr> expr) const {
-    auto stringified = kutil::expr_to_string(expr, true);
-    return stringified == symbex::KLEE_EXPR_IPV4_OPTIONS_CONDITION;
-  }
+    auto and_expr_finder = [](klee::ref<klee::Expr> e) {
+      return e->getKind() == klee::Expr::And;
+    };
 
-  bool is_conditional_ipv4_options_to_ignore(klee::ref<klee::Expr> expr) const {
-    auto stringified = kutil::expr_to_string(expr, true);
-    return stringified == symbex::KLEE_EXPR_IPV4_OPTIONS_CONDITION_TO_IGNORE;
-  }
+    while (1) {
+      auto found_it =
+          std::find_if(_conditions.begin(), _conditions.end(), and_expr_finder);
 
-  bool is_conditional_tcpudp(klee::ref<klee::Expr> expr) const {
-    auto stringified = kutil::expr_to_string(expr, true);
-    return stringified == symbex::KLEE_EXPR_TCPUDP_CONDITION ||
-           stringified == symbex::KLEE_EXPR_TCPUDP_AFTER_IPV4_OPTIONS_CONDITION;
-  }
+      if (found_it == _conditions.end()) {
+        break;
+      }
 
-  std::pair<bool, PacketHeader>
-  is_packet_header_conditional_node(const BDD::Branch *node) const {
-    std::pair<bool, PacketHeader> result;
-    result.first = false;
+      auto and_expr = *found_it;
+      _conditions.erase(found_it);
 
-    assert(node);
-    auto expr = node->get_condition();
+      auto lhs = and_expr->getKid(0);
+      auto rhs = and_expr->getKid(1);
 
-    if (!has_only_allowed_symbols(expr)) {
-      return result;
+      _conditions.push_back(lhs);
+      _conditions.push_back(rhs);
     }
 
-    if (is_conditional_ipv4(expr)) {
-      result.first = true;
-      result.second = IPV4;
-      return result;
+    // minor simplification step
+
+    for (auto &condition : _conditions) {
+      if (condition->getKind() == klee::Expr::ZExt ||
+          condition->getKind() == klee::Expr::SExt) {
+        condition = condition->getKid(0);
+      }
     }
 
-    if (is_conditional_ipv4_options(expr)) {
-      result.first = true;
-      result.second = NOT_IPV4_OPTIONS;
-      return result;
-    }
-
-    if (is_conditional_ipv4_options_to_ignore(expr)) {
-      result.first = true;
-      result.second = IGNORE;
-      return result;
-    }
-
-    if (is_conditional_tcpudp(expr)) {
-      result.first = true;
-      result.second = TCPUDP;
-      return result;
-    }
-
-    return result;
+    return _conditions;
   }
 
   processing_result_t process_branch(const ExecutionPlan &ep,
@@ -122,28 +87,27 @@ private:
                                      const BDD::Branch *casted) override {
     processing_result_t result;
 
-    auto conditional_header = is_packet_header_conditional_node(casted);
-
-    if (conditional_header.first && conditional_header.second == IGNORE) {
-      auto new_module = std::make_shared<Ignore>(node);
-
-      // Here, we assume next is the correct way to go.
-      // FIXME: we should double check this, and actually check
-      // if the other path actually leads to a packet drop without any
-      // additional operations.
-      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::Tofino);
-
-      result.module = new_module;
-      result.next_eps.push_back(new_ep);
-
-      return result;
-    }
-
     assert(!casted->get_condition().isNull());
     auto _condition = casted->get_condition();
 
-    auto new_if_module =
-        std::make_shared<If>(node, _condition, conditional_header);
+    if (IfHeaderValid::is_packet_header_conditional_node(casted)) {
+      return result;
+    }
+
+    _condition = kutil::simplify(_condition);
+    auto _conditions = conditions_t{_condition};
+
+    if (!pass_compiler_packet_bytes_constraint(_conditions)) {
+      _conditions = split_condition(_condition);
+
+      if (!pass_compiler_packet_bytes_constraint(_conditions)) {
+        Log::wrn() << "Unable to implement branching condition in Tofino.\n";
+        Log::wrn() << "Only 4 packet bytes are allowed in condition.\n";
+        return result;
+      }
+    }
+
+    auto new_if_module = std::make_shared<If>(node, _conditions);
 
     auto new_then_module = std::make_shared<Then>(node);
     auto new_else_module = std::make_shared<Else>(node);
@@ -172,7 +136,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new If(node, condition, header);
+    auto cloned = new If(node, conditions);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -183,16 +147,23 @@ public:
 
     auto other_cast = static_cast<const If *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(
-            condition, other_cast->get_condition())) {
+    auto other_conditions = other_cast->get_conditions();
+
+    if (conditions.size() != other_conditions.size()) {
       return false;
+    }
+
+    for (auto i = 0u; i < conditions.size(); i++) {
+      if (!kutil::solver_toolbox.are_exprs_always_equal(conditions[i],
+                                                        other_conditions[i])) {
+        return false;
+      }
     }
 
     return true;
   }
 
-  const klee::ref<klee::Expr> &get_condition() const { return condition; }
-  std::pair<bool, PacketHeader> get_header() const { return header; }
+  const conditions_t &get_conditions() const { return conditions; }
 };
 } // namespace tofino
 } // namespace targets

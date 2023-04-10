@@ -71,6 +71,7 @@ public:
     BMv2_VectorReturn,
     Tofino_Ignore,
     Tofino_If,
+    Tofino_IfHeaderValid,
     Tofino_Then,
     Tofino_Else,
     Tofino_Forward,

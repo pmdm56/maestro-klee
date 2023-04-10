@@ -257,18 +257,12 @@ std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
     return variable_result.second;
   }
 
+  auto simplified_expr = kutil::simplify(expr);
+
   auto transpiler = InternalTranspiler(tg);
-  transpiler.visit(expr);
+  transpiler.visit(simplified_expr);
 
   auto code = transpiler.get();
-
-  if (!code.size()) {
-    Log::err() << "Unable to transpile expression: "
-               << kutil::expr_to_string(expr, true) << "\n";
-    Log::err() << "Kind: " << expr->getKind() << "\n";
-    exit(1);
-  }
-
   return code;
 }
 
@@ -353,7 +347,7 @@ InternalTranspiler::visitConcat(const klee::ConcatExpr &e) {
 klee::ExprVisitor::Action
 InternalTranspiler::visitExtract(const klee::ExtractExpr &e) {
   auto expr = const_cast<klee::ExtractExpr *>(&e);
-  auto new_expr = kutil::simplify_extract(expr);
+  auto new_expr = kutil::simplify(expr);
 
   if (new_expr->getKind() != klee::Expr::Extract) {
     code << tg.transpile(new_expr);
@@ -578,7 +572,7 @@ klee::ExprVisitor::Action InternalTranspiler::visitEq(const klee::EqExpr &e) {
     auto lhs_code = tg.transpile(lhs);
     code << "(" << lhs_code << ")";
   }
-  
+
   code << " == ";
 
   auto rhs_code = tg.transpile(rhs);
@@ -613,7 +607,7 @@ klee::ExprVisitor::Action InternalTranspiler::visitNe(const klee::NeExpr &e) {
     auto lhs_code = tg.transpile(lhs);
     code << "(" << lhs_code << ")";
   }
-  
+
   code << " != ";
 
   auto rhs_code = tg.transpile(rhs);

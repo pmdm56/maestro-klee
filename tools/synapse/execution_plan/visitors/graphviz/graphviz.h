@@ -135,6 +135,7 @@ public:
 
   DECLARE_VISIT(targets::tofino::Ignore)
   DECLARE_VISIT(targets::tofino::If)
+  DECLARE_VISIT(targets::tofino::IfHeaderValid)
   DECLARE_VISIT(targets::tofino::Then)
   DECLARE_VISIT(targets::tofino::Else)
   DECLARE_VISIT(targets::tofino::Forward)

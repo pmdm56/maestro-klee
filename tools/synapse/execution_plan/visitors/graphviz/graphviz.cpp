@@ -419,6 +419,7 @@ VISIT_PRINT_MODULE_NAME(targets::bmv2::VectorReturn)
 
 VISIT_PRINT_MODULE_NAME(targets::tofino::Ignore)
 VISIT_PRINT_MODULE_NAME(targets::tofino::If)
+VISIT_PRINT_MODULE_NAME(targets::tofino::IfHeaderValid)
 VISIT_PRINT_MODULE_NAME(targets::tofino::Then)
 VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
 VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
