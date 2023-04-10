@@ -4,7 +4,7 @@ namespace BDD {
 
 struct candidate_t {
   BDDNode_ptr node;
-  std::unordered_set<uint64_t> siblings;
+  std::unordered_set<node_id_t> siblings;
   klee::ref<klee::Expr> extra_condition;
   klee::ref<klee::Expr> condition;
 
@@ -149,7 +149,7 @@ bool fn_can_be_reordered(std::string fn) {
                    fn) == fn_cannot_reorder_lookup.end();
 }
 
-uint64_t get_readLSB_base(klee::ref<klee::Expr> chunk) {
+node_id_t get_readLSB_base(klee::ref<klee::Expr> chunk) {
   std::vector<unsigned> bytes_read;
   auto success = kutil::get_bytes_read(chunk, bytes_read);
 
@@ -268,7 +268,7 @@ bool are_io_dependencies_met(const Node *node, symbols_t symbols) {
 
 bool are_io_dependencies_met(
     const Node *root, const Node *next_node,
-    const std::unordered_set<uint64_t> &furthest_back_nodes) {
+    const std::unordered_set<node_id_t> &furthest_back_nodes) {
   assert(root);
   symbols_t symbols = root->get_generated_symbols(furthest_back_nodes);
   return are_io_dependencies_met(next_node, symbols);
@@ -276,14 +276,14 @@ bool are_io_dependencies_met(
 
 bool are_io_dependencies_met(
     const Node *root, klee::ref<klee::Expr> expr,
-    const std::unordered_set<uint64_t> &furthest_back_nodes) {
+    const std::unordered_set<node_id_t> &furthest_back_nodes) {
   assert(root);
   symbols_t symbols = root->get_generated_symbols(furthest_back_nodes);
   return are_all_symbols_known(expr, symbols);
 }
 
 bool map_can_reorder(const Node *current,
-                     const std::unordered_set<uint64_t> &furthest_back_nodes,
+                     const std::unordered_set<node_id_t> &furthest_back_nodes,
                      const Node *before, const Node *after,
                      klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
@@ -401,7 +401,7 @@ bool dchain_can_reorder(const Node *current, const Node *before,
 }
 
 bool vector_can_reorder(const Node *current,
-                        const std::unordered_set<uint64_t> &furthest_back_nodes,
+                        const std::unordered_set<node_id_t> &furthest_back_nodes,
                         const Node *before, const Node *after,
                         klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
@@ -473,7 +473,7 @@ bool vector_can_reorder(const Node *current,
 
 bool are_rw_dependencies_met(
     const Node *root, const Node *next_node,
-    const std::unordered_set<uint64_t> &furthest_back_nodes,
+    const std::unordered_set<node_id_t> &furthest_back_nodes,
     klee::ref<klee::Expr> &condition) {
   assert(root);
   auto node = next_node->get_prev();
@@ -523,7 +523,7 @@ bool are_rw_dependencies_met(
 }
 
 bool is_called_in_all_future_branches(const Node *start, const Node *target,
-                                      std::unordered_set<uint64_t> &siblings) {
+                                      std::unordered_set<node_id_t> &siblings) {
   assert(start);
   assert(target);
 
@@ -581,7 +581,7 @@ bool is_called_in_all_future_branches(const Node *start, const Node *target,
 
 std::vector<candidate_t>
 get_candidates(const Node *root,
-               const std::unordered_set<uint64_t> &furthest_back_nodes) {
+               const std::unordered_set<node_id_t> &furthest_back_nodes) {
   std::vector<candidate_t> viable_candidates;
   std::vector<candidate_t> candidates;
 
@@ -668,7 +668,7 @@ get_candidates(const Node *root,
 }
 
 void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
-  uint64_t id = bdd.get_id();
+  node_id_t id = bdd.get_id();
 
   struct aux_t {
     BDDNode_ptr node;
@@ -841,7 +841,7 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
 }
 
 std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root) {
-  std::unordered_set<uint64_t> furthest_back_nodes;
+  std::unordered_set<node_id_t> furthest_back_nodes;
 
   auto init = bdd.get_init();
   auto process = bdd.get_process();
@@ -859,7 +859,7 @@ std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root) {
 
 std::vector<reordered_bdd>
 reorder(const BDD &bdd, BDDNode_ptr root,
-        const std::unordered_set<uint64_t> &furthest_back_nodes) {
+        const std::unordered_set<node_id_t> &furthest_back_nodes) {
   std::vector<reordered_bdd> reordered;
 
   if (!root) {

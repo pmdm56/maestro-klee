@@ -8,7 +8,7 @@ namespace BDD {
 
 // Get generated symbols, but no further than this node
 symbols_t Node::get_generated_symbols(
-    const std::unordered_set<uint64_t> &furthest_back_nodes) const {
+    const std::unordered_set<node_id_t> &furthest_back_nodes) const {
   symbols_t symbols;
   const Node *node = this;
 
@@ -44,13 +44,13 @@ symbols_t Node::get_generated_symbols(
 }
 
 symbols_t Node::get_generated_symbols() const {
-  std::unordered_set<uint64_t> furthest_back_nodes;
+  std::unordered_set<node_id_t> furthest_back_nodes;
   return get_generated_symbols(furthest_back_nodes);
 }
 
 symbols_t Node::get_local_generated_symbols() const { return symbols_t(); }
 
-void Node::update_id(uint64_t new_id) {
+void Node::update_id(node_id_t new_id) {
   SymbolFactory factory;
   auto symbols = factory.get_symbols(this);
 

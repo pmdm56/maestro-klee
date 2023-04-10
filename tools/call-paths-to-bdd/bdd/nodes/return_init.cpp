@@ -7,7 +7,7 @@ BDDNode_ptr ReturnInit::clone(bool recursive) const {
   return clone;
 }
 
-void ReturnInit::recursive_update_ids(uint64_t &new_id) {
+void ReturnInit::recursive_update_ids(node_id_t &new_id) {
   update_id(new_id);
   new_id++;
 }

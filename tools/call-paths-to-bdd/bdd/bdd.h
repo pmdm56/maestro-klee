@@ -11,7 +11,7 @@ class BDDVisitor;
 
 class BDD {
 private:
-  uint64_t id;
+  node_id_t id;
   unsigned total_call_paths;
 
   BDDNode_ptr nf_init;
@@ -50,9 +50,9 @@ public:
 
   BDD &operator=(const BDD &) = default;
 
-  uint64_t get_id() const { return id; }
+  node_id_t get_id() const { return id; }
 
-  void set_id(uint64_t _id) {
+  void set_id(node_id_t _id) {
     assert(_id >= id);
     id = _id;
   }
@@ -62,7 +62,7 @@ public:
 
   BDDNode_ptr get_init() const { return nf_init; }
   BDDNode_ptr get_process() const { return nf_process; }
-  BDDNode_ptr get_node_by_id(uint64_t _id) const;
+  BDDNode_ptr get_node_by_id(node_id_t _id) const;
 
   BDD clone() const;
 

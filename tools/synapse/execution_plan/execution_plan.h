@@ -42,13 +42,13 @@ private:
 
   MemoryBank_ptr shared_memory_bank;
   std::unordered_map<TargetType, MemoryBank_ptr> memory_banks;
-  std::unordered_set<uint64_t> processed_bdd_nodes;
+  std::unordered_set<BDD::node_id_t> processed_bdd_nodes;
 
   unsigned depth;
   unsigned nodes;
   TargetType initial_target;
   std::unordered_set<TargetType> targets;
-  std::unordered_map<TargetType, std::unordered_set<uint64_t>>
+  std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>>
       targets_bdd_starting_points;
   std::map<TargetType, unsigned> nodes_per_target;
   unsigned reordered_nodes;
@@ -64,7 +64,7 @@ public:
   unsigned get_depth() const;
   unsigned get_nodes() const;
 
-  const std::unordered_map<TargetType, std::unordered_set<uint64_t>> &
+  const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
   get_targets_bdd_starting_points() const;
 
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
@@ -93,7 +93,7 @@ public:
     return static_cast<MB *>(memory_banks.at(type).get());
   }
 
-  const std::unordered_set<uint64_t> &get_processed_bdd_nodes() const;
+  const std::unordered_set<BDD::node_id_t> &get_processed_bdd_nodes() const;
 
   BDD::BDDNode_ptr get_next_node() const;
   ExecutionPlanNode_ptr get_active_leaf() const;
@@ -121,8 +121,8 @@ public:
                                 bool process_bdd_node = true);
 
   float get_percentage_of_processed_bdd_nodes() const;
-  void remove_from_processed_bdd_nodes(uint64_t id);
-  void add_processed_bdd_node(uint64_t id);
+  void remove_from_processed_bdd_nodes(BDD::node_id_t id);
+  void add_processed_bdd_node(BDD::node_id_t id);
 
   void visit(ExecutionPlanVisitor &visitor) const;
 

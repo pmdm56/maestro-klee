@@ -22,7 +22,7 @@ std::vector<std::string> BDD::skip_conditions_with_symbol{"received_a_packet",
 
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(*this); }
 
-BDDNode_ptr BDD::get_node_by_id(uint64_t _id) const {
+BDDNode_ptr BDD::get_node_by_id(node_id_t _id) const {
   std::vector<BDDNode_ptr> nodes{nf_init, nf_process};
   BDDNode_ptr node;
 

@@ -8,7 +8,7 @@ namespace bmv2 {
 
 class SendToController : public Module {
 private:
-  uint64_t metadata_code_path;
+  BDD::node_id_t metadata_code_path;
 
 public:
   SendToController()
@@ -17,7 +17,7 @@ public:
     next_target = TargetType::x86_BMv2;
   }
 
-  SendToController(BDD::BDDNode_ptr node, uint64_t _metadata_code_path)
+  SendToController(BDD::BDDNode_ptr node, BDD::node_id_t _metadata_code_path)
       : Module(ModuleType::BMv2_SendToController, TargetType::BMv2,
                "SendToController", node),
         metadata_code_path(_metadata_code_path) {
@@ -144,7 +144,7 @@ public:
     return true;
   }
 
-  uint64_t get_metadata_code_path() const { return metadata_code_path; }
+  BDD::node_id_t get_metadata_code_path() const { return metadata_code_path; }
 };
 } // namespace bmv2
 } // namespace targets

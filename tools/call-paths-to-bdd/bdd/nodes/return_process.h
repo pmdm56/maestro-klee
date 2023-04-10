@@ -16,7 +16,7 @@ private:
   void fill_return_value(calls_t calls);
 
 public:
-  ReturnProcess(uint64_t _id, const ReturnRaw *raw)
+  ReturnProcess(node_id_t _id, const ReturnRaw *raw)
       : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, nullptr,
              raw->constraints) {
     assert(raw);
@@ -25,7 +25,7 @@ public:
     fill_return_value(calls_list[0]);
   }
 
-  ReturnProcess(uint64_t _id, const BDDNode_ptr &_prev,
+  ReturnProcess(node_id_t _id, const BDDNode_ptr &_prev,
                 const klee::ConstraintManager &_constraints, int _value,
                 Operation _operation)
       : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, _prev, _constraints),
@@ -35,7 +35,7 @@ public:
   Operation get_return_operation() const { return operation; }
 
   virtual BDDNode_ptr clone(bool recursive = false) const override;
-  virtual void recursive_update_ids(uint64_t &new_id) override;
+  virtual void recursive_update_ids(node_id_t &new_id) override;
 
   void visit(BDDVisitor &visitor) const override;
   std::string dump(bool one_liner = false) const;

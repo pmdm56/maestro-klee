@@ -684,7 +684,7 @@ call_t parse_call(std::string serialized_call,
   return call;
 }
 
-BDDNode_ptr parse_node_call(uint64_t id,
+BDDNode_ptr parse_node_call(node_id_t id,
                             const klee::ConstraintManager &constraints,
                             std::string serialized,
                             std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -694,7 +694,7 @@ BDDNode_ptr parse_node_call(uint64_t id,
   return call_node;
 }
 
-BDDNode_ptr parse_node_branch(uint64_t id,
+BDDNode_ptr parse_node_branch(node_id_t id,
                               const klee::ConstraintManager &constraints,
                               std::string serialized,
                               std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -704,7 +704,7 @@ BDDNode_ptr parse_node_branch(uint64_t id,
   return branch_node;
 }
 
-BDDNode_ptr parse_node_return_init(uint64_t id,
+BDDNode_ptr parse_node_return_init(node_id_t id,
                                    const klee::ConstraintManager &constraints,
                                    std::string serialized,
                                    std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -725,7 +725,7 @@ BDDNode_ptr parse_node_return_init(uint64_t id,
 }
 
 BDDNode_ptr parse_node_return_process(
-    uint64_t id, const klee::ConstraintManager &constraints,
+    node_id_t id, const klee::ConstraintManager &constraints,
     std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs) {
   auto delim = serialized.find(" ");
   assert(delim != std::string::npos);
@@ -828,7 +828,7 @@ void parse_kQuery(std::string kQuery,
 }
 
 void process_edge(std::string serialized_edge,
-                  std::map<uint64_t, BDDNode_ptr> &nodes) {
+                  std::map<node_id_t, BDDNode_ptr> &nodes) {
   auto delim = serialized_edge.find("(");
   assert(delim != std::string::npos);
 
@@ -930,7 +930,7 @@ void BDD::deserialize(const std::string &file_path) {
   std::string kQuery;
 
   std::vector<klee::ref<klee::Expr>> exprs;
-  std::map<uint64_t, BDDNode_ptr> nodes;
+  std::map<node_id_t, BDDNode_ptr> nodes;
 
   int parenthesis_level = 0;
   std::string current_node;
@@ -1030,13 +1030,13 @@ void BDD::deserialize(const std::string &file_path) {
       auto root_id_str = line.substr(delim + 1);
 
       if (root_type == "init") {
-        uint64_t init_id = std::stoll(root_id_str);
+        node_id_t init_id = std::stoll(root_id_str);
         assert(nodes.find(init_id) != nodes.end());
 
         nf_init = std::shared_ptr<Node>(nodes[init_id]);
         break;
       } else if (root_type == "process") {
-        uint64_t process_id = std::stoll(root_id_str);
+        node_id_t process_id = std::stoll(root_id_str);
         assert(nodes.find(process_id) != nodes.end());
 
         nf_process = std::shared_ptr<Node>(nodes[process_id]);

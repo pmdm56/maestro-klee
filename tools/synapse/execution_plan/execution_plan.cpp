@@ -75,7 +75,7 @@ ExecutionPlan::get_nodes_per_target() const {
   return nodes_per_target;
 }
 
-const std::unordered_map<TargetType, std::unordered_set<uint64_t>> &
+const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
 ExecutionPlan::get_targets_bdd_starting_points() const {
   return targets_bdd_starting_points;
 }
@@ -146,7 +146,7 @@ MemoryBank_ptr ExecutionPlan::get_memory_bank() const {
   return shared_memory_bank;
 }
 
-const std::unordered_set<uint64_t> &
+const std::unordered_set<BDD::node_id_t> &
 ExecutionPlan::get_processed_bdd_nodes() const {
   return processed_bdd_nodes;
 }
@@ -403,12 +403,12 @@ float ExecutionPlan::get_percentage_of_processed_bdd_nodes() const {
   return (float)processed_bdd_nodes.size() / (float)total_nodes;
 }
 
-void ExecutionPlan::remove_from_processed_bdd_nodes(uint64_t id) {
+void ExecutionPlan::remove_from_processed_bdd_nodes(BDD::node_id_t id) {
   auto found_it = processed_bdd_nodes.find(id);
   processed_bdd_nodes.erase(found_it);
 }
 
-void ExecutionPlan::add_processed_bdd_node(uint64_t id) {
+void ExecutionPlan::add_processed_bdd_node(BDD::node_id_t id) {
   auto found_it = processed_bdd_nodes.find(id);
   if (found_it == processed_bdd_nodes.end()) {
     processed_bdd_nodes.insert(id);

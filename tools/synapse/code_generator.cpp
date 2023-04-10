@@ -52,12 +52,12 @@ bool only_has_modules_from_target(const ExecutionPlan &execution_plan,
 struct annotated_node_t {
   ExecutionPlanNode_ptr node;
   bool save;
-  uint64_t path_id;
+  BDD::node_id_t path_id;
 
   annotated_node_t(ExecutionPlanNode_ptr _node)
       : node(_node), save(false), path_id(0) {}
 
-  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, uint64_t _path_id)
+  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, BDD::node_id_t _path_id)
       : node(_node), save(_save), path_id(_path_id) {}
 
   annotated_node_t clone() const {

@@ -133,7 +133,7 @@ Graphviz::rgb_t Graphviz::get_color(float f) const {
 }
 
 void Graphviz::dump_bdd(const BDD::BDD &bdd,
-                        const std::unordered_set<uint64_t> &processed,
+                        const std::unordered_set<BDD::node_id_t> &processed,
                         const BDD::Node *next) {
   std::string leaf_fpath = get_rand_fname();
   bdd_fpaths.push_back(leaf_fpath);
