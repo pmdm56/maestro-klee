@@ -153,58 +153,31 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
   return true;
 }
 
-BDD::BDDNode_ptr
-Module::get_past_node_that_generates_symbol(const BDD::Node *current_node,
-                                            const std::string &symbol) const {
-  assert(current_node);
-  auto node = current_node->get_prev();
-
-  while (node) {
-    if (node->get_type() != BDD::Node::NodeType::CALL) {
-      node = node->get_prev();
-      continue;
-    }
-
-    auto call_node = static_cast<const BDD::Call *>(node.get());
-    auto generated_symbols = call_node->get_generated_symbols();
-
-    auto found_it =
-        std::find_if(generated_symbols.begin(), generated_symbols.end(),
-                     [&](BDD::symbol_t generated_symbol) {
-                       return generated_symbol.label == symbol;
-                     });
-
-    if (found_it != generated_symbols.end()) {
-      return node;
-    }
-
-    node = node->get_prev();
-  }
-
-  return nullptr;
-}
-
-std::vector<BDD::BDDNode_ptr>
-Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
-                               const std::string &function_name) const {
+std::vector<BDD::BDDNode_ptr> Module::get_all_prev_functions(
+    const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+    const std::vector<std::string> &functions_names) const {
   std::vector<BDD::BDDNode_ptr> prev_functions;
 
   auto target = ep.get_current_platform();
 
   auto targets_bdd_starting_points = ep.get_targets_bdd_starting_points();
-  auto starting_point_it = targets_bdd_starting_points.find(target);
+  auto starting_points_it = targets_bdd_starting_points.find(target);
+
+  auto is_starting_point = [&](const BDD::BDDNode_ptr &node) -> bool {
+    if (starting_points_it == targets_bdd_starting_points.end()) {
+      return false;
+    }
+
+    auto starting_points = starting_points_it->second;
+    return starting_points.find(node->get_id()) != starting_points.end();
+  };
 
   assert(node);
   auto proceed = true;
 
   while (proceed && node->get_prev()) {
     node = node->get_prev();
-
-    if (starting_point_it != targets_bdd_starting_points.end() &&
-        starting_point_it->second.find(node->get_id()) !=
-            starting_point_it->second.end()) {
-      proceed = false;
-    }
+    proceed = !is_starting_point(node);
 
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       continue;
@@ -213,12 +186,22 @@ Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
     auto call_node = static_cast<const BDD::Call *>(node.get());
     auto call = call_node->get_call();
 
-    if (call.function_name == function_name) {
+    auto found_it = std::find(functions_names.begin(), functions_names.end(),
+                              call.function_name);
+
+    if (found_it != functions_names.end()) {
       prev_functions.push_back(node);
     }
   }
 
   return prev_functions;
+}
+
+std::vector<BDD::BDDNode_ptr>
+Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+                               const std::string &function_name) const {
+  auto functions_names = std::vector<std::string>{function_name};
+  return get_all_prev_functions(ep, node, functions_names);
 }
 
 std::vector<Module::modification_t>

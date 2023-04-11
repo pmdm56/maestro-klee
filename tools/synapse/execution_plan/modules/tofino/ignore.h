@@ -35,16 +35,16 @@ private:
     return true;
   }
 
-  call_t get_previous_vector_borrow(const BDD::Node *node,
+  call_t get_previous_vector_borrow(const ExecutionPlan &ep,
+                                    BDD::BDDNode_ptr node,
                                     klee::ref<klee::Expr> wanted_vector) const {
-    while (node->get_prev()) {
-      node = node->get_prev().get();
+    auto prev_vector_borrows =
+        get_all_prev_functions(ep, node, symbex::FN_VECTOR_BORROW);
 
-      if (node->get_type() != BDD::Node::NodeType::CALL) {
-        continue;
-      }
+    for (auto prev_node : prev_vector_borrows) {
+      assert(prev_node->get_type() == BDD::Node::NodeType::CALL);
 
-      auto call_node = static_cast<const BDD::Call *>(node);
+      auto call_node = static_cast<const BDD::Call *>(prev_node.get());
       auto call = call_node->get_call();
 
       if (call.function_name != symbex::FN_VECTOR_BORROW) {
@@ -76,7 +76,7 @@ private:
     auto vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
     auto cell_after = call.args[symbex::FN_VECTOR_ARG_VALUE].in;
 
-    auto vector_borrow = get_previous_vector_borrow(casted, vector);
+    auto vector_borrow = get_previous_vector_borrow(ep, node, vector);
     auto cell_before = vector_borrow.extra_vars[symbex::FN_VECTOR_EXTRA].second;
 
     assert(cell_before->getWidth() == cell_after->getWidth());

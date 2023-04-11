@@ -45,28 +45,21 @@ public:
   }
 
 private:
-  bool multiple_queries_to_this_table(BDD::BDDNode_ptr current_node,
+  bool multiple_queries_to_this_table(const ExecutionPlan &ep,
+                                      BDD::BDDNode_ptr current_node,
                                       uint64_t _table_name) const {
     assert(current_node);
-    auto node = current_node->get_prev();
+
+    auto prev_functions = get_all_prev_functions(
+        ep, current_node,
+        {symbex::FN_MAP_GET, symbex::FN_MAP_PUT, symbex::FN_VECTOR_BORROW});
 
     unsigned int counter = 0;
 
-    while (node) {
-      if (node->get_type() != BDD::Node::NodeType::CALL) {
-        node = node->get_prev();
-        continue;
-      }
-
+    for (auto node : prev_functions) {
+      assert(node->get_type() == BDD::Node::NodeType::CALL);
       auto call_node = static_cast<const BDD::Call *>(node.get());
       auto call = call_node->get_call();
-
-      if (call.function_name != symbex::FN_MAP_GET &&
-          call.function_name != symbex::FN_MAP_PUT &&
-          call.function_name != symbex::FN_VECTOR_BORROW) {
-        node = node->get_prev();
-        continue;
-      }
 
       uint64_t this_table_name = 0;
       if (call.function_name == symbex::FN_MAP_GET ||
@@ -87,8 +80,6 @@ private:
       if (counter > 1) {
         return true;
       }
-
-      node = node->get_prev();
     }
 
     return false;
@@ -271,7 +262,7 @@ private:
     assert(data.obj->getKind() == klee::Expr::Kind::Constant);
     auto _obj_value = kutil::solver_toolbox.value_from_expr(data.obj);
 
-    if (multiple_queries_to_this_table(node, _obj_value)) {
+    if (multiple_queries_to_this_table(ep, node, _obj_value)) {
       return false;
     }
 

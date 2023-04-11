@@ -211,12 +211,13 @@ protected:
   // General useful queries
   bool query_contains_map_has_key(const BDD::Branch *node) const;
 
-  BDD::BDDNode_ptr
-  get_past_node_that_generates_symbol(const BDD::Node *current_node,
-                                      const std::string &symbol) const;
   std::vector<BDD::BDDNode_ptr>
   get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                          const std::string &function_name) const;
+  std::vector<BDD::BDDNode_ptr>
+  get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+                         const std::vector<std::string> &functions_names) const;
+
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;
