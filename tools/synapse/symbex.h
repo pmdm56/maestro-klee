@@ -1,5 +1,8 @@
 #pragma once
 
+#include "call-paths-to-bdd.h"
+#include "klee-util.h"
+
 namespace synapse {
 namespace symbex {
 
@@ -105,6 +108,7 @@ constexpr char KLEE_EXPR_TCPUDP_CONDITION[] =
     "w32 (Ult (ZExt w64 (Add w32 (w32 4294967262) (ZExt w32 (ReadLSB w16 (w32 "
     "0) pkt_len)))) (w64 4)))))";
 
+std::pair<bool, obj_addr_t> get_obj_from_call(const BDD::Call *call);
 
 } // namespace symbex
 } // namespace synapse

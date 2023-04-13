@@ -9,10 +9,12 @@ struct MaximizeSwitchNodesComparator : public HeuristicConfiguration {
   Score get_score(const ExecutionPlan &e) const override {
     Score score(e);
 
-    score.add(Score::Category::NumberOfMergedTables);
-    score.add(Score::Category::NumberOfSwitchNodes);
-    score.add(Score::Category::NumberOfSwitchLeaves);
-    // score.add(Score::Category::NumberOfNodes, Score::MINIMIZE);
+    score.add(Score::Category::NumberOfMergedTables, Score::MAX);
+    score.add(Score::Category::NumberOfSwitchNodes, Score::MAX);
+    score.add(Score::Category::NumberOfSwitchLeaves, Score::MAX);
+    score.add(Score::Category::HasNextStatefulOperation, Score::MAX);
+    score.add(Score::Category::ConsecutiveObjectOperations, Score::MAX);
+    // score.add(Score::Category::NumberOfNodes, Score::MIN);
 
     return score;
   }

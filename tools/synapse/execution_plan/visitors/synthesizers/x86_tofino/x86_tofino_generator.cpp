@@ -78,14 +78,20 @@ x86TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   return variable_query_t();
 }
 
-bool get_dataplane_table_names(const ExecutionPlan &ep,
-                               klee::ref<klee::Expr> obj,
+bool get_dataplane_table_names(const ExecutionPlan &ep, obj_addr_t obj,
                                std::unordered_set<std::string> &table_names) {
   auto mb = ep.get_memory_bank();
 
   if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
     auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
-    table_names = tmb->get_table_names_of_obj(obj);
+
+    auto obj_tables = tmb->get_obj_tables(obj);
+    for (auto table : obj_tables) {
+      auto t = static_cast<const targets::tofino::TableLookup *>(table.get());
+      auto table_name = t->get_table_name();
+      table_names.insert(table_name);
+    }
+
     return true;
   }
 
@@ -102,7 +108,10 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
       auto map_ds = static_cast<target::x86TofinoMemoryBank::map_t *>(ds.get());
 
       auto label = "map_" + std::to_string(map_ds->node_id);
-      auto map_var = Variable(label, map_ds->addr);
+
+      auto map_var = Variable(label, 64);
+      map_var.set_addr(map_ds->addr);
+
       auto value_type = transpiler.size_to_type(map_ds->value_size);
 
       state_decl_builder.indent();
@@ -146,7 +155,8 @@ void x86TofinoGenerator::init_state(ExecutionPlan ep) {
           static_cast<target::x86TofinoMemoryBank::dchain_t *>(ds.get());
 
       auto label = "dchain_" + std::to_string(dchain_ds->node_id);
-      auto dchain_var = Variable(label, dchain_ds->addr);
+      auto dchain_var = Variable(label, 64);
+      dchain_var.set_addr(dchain_ds->addr);
 
       state_decl_builder.indent();
       state_decl_builder.append("std::unique_ptr<Dchain> ");
@@ -559,7 +569,6 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
 
   auto generated_symbols = node->get_generated_symbols();
 
-  assert(!map_addr.isNull());
   assert(!key.isNull());
   assert(!value_out.isNull());
 
@@ -661,7 +670,6 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapPut *node) {
   auto key = node->get_key();
   auto value = node->get_value();
 
-  assert(!map_addr.isNull());
   assert(!key.isNull());
   assert(!value.isNull());
 
@@ -782,7 +790,6 @@ void x86TofinoGenerator::visit(
   auto success = node->get_success();
   auto generated_symbols = node->get_generated_symbols();
 
-  assert(!dchain_addr.isNull());
   assert(!time.isNull());
   assert(!index_out.isNull());
   assert(!success.isNull());
@@ -840,7 +847,6 @@ void x86TofinoGenerator::visit(
 
   auto generated_symbols = node->get_generated_symbols();
 
-  assert(!dchain_addr.isNull());
   assert(!index.isNull());
   assert(!is_index_allocated.isNull());
 
@@ -879,7 +885,6 @@ void x86TofinoGenerator::visit(
   auto time = node->get_time();
   auto index = node->get_index();
 
-  assert(!dchain_addr.isNull());
   assert(!time.isNull());
   assert(!index.isNull());
 

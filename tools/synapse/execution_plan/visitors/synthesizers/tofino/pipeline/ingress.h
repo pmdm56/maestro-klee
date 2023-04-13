@@ -140,15 +140,17 @@ public:
   }
 
   Variable allocate_meta_param(const std::string &table_label, int param_num,
-                               klee::ref<klee::Expr> meta_param) {
+                               std::vector<klee::ref<klee::Expr>> meta_params) {
     std::stringstream meta_param_label_builder;
 
     meta_param_label_builder << table_label;
     meta_param_label_builder << "_";
     meta_param_label_builder << param_num;
 
+    assert(meta_params.size() > 0);
+
     auto label = meta_param_label_builder.str();
-    auto size_bits = meta_param->getWidth();
+    auto size_bits = meta_params[0]->getWidth();
 
     auto meta_param_var = Variable(label, size_bits);
 
@@ -156,12 +158,17 @@ public:
         std::find(user_metadata.begin(), user_metadata.end(), meta_param_var);
 
     if (found_it != user_metadata.end()) {
-      found_it->add_expr(meta_param);
+      for (auto param : meta_params) {
+        found_it->add_expr(param);
+      }
       return *found_it;
     }
 
     meta_param_var.set_prefix(INGRESS_USER_METADATA_VARIABLE);
-    meta_param_var.add_expr(meta_param);
+
+    for (auto param : meta_params) {
+      meta_param_var.add_expr(param);
+    }
     user_metadata.push_back(meta_param_var);
 
     return meta_param_var;

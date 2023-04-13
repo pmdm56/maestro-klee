@@ -22,7 +22,7 @@ struct ExactMatchComparator : public HeuristicConfiguration {
   Score get_score(const ExecutionPlan &e) const override {
     Score score(e);
 
-    score.add(Score::Category::ExactMatchNodes);
+    score.add(Score::Category::ExactMatchNodes, Score::MAX);
     score.add_target_execution_plan(target);
 
     return score;

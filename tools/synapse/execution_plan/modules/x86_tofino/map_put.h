@@ -12,7 +12,7 @@ namespace x86_tofino {
 
 class MapPut : public Module {
 private:
-  klee::ref<klee::Expr> map_addr;
+  obj_addr_t map_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> value;
 
@@ -21,7 +21,7 @@ public:
       : Module(ModuleType::x86_Tofino_MapPut, TargetType::x86_Tofino,
                "MapPut") {}
 
-  MapPut(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _map_addr,
+  MapPut(BDD::BDDNode_ptr node, obj_addr_t _map_addr,
          klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
       : Module(ModuleType::x86_Tofino_MapPut, TargetType::x86_Tofino, "MapPut",
                node),
@@ -29,7 +29,7 @@ public:
 
 private:
   bool check_previous_placement_decisions(const ExecutionPlan &ep,
-                                          klee::ref<klee::Expr> obj) const {
+                                          obj_addr_t obj) const {
     auto mb = ep.get_memory_bank();
 
     if (!mb->has_placement_decision(obj)) {
@@ -53,9 +53,10 @@ private:
     assert(!call.args[symbex::FN_MAP_ARG_KEY].in.isNull());
     assert(!call.args[symbex::FN_MAP_ARG_VALUE].expr.isNull());
 
-    auto _map_addr = call.args[symbex::FN_MAP_ARG_MAP].expr;
+    auto _map = call.args[symbex::FN_MAP_ARG_MAP].expr;
     auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
     auto _value = call.args[symbex::FN_MAP_ARG_VALUE].expr;
+    auto _map_addr = kutil::expr_addr_to_obj_addr(_map);
 
     if (!check_previous_placement_decisions(ep, _map_addr)) {
       return result;
@@ -81,10 +82,11 @@ private:
     assert(!call.args[symbex::FN_VECTOR_ARG_VALUE].expr.isNull());
     assert(!call.args[symbex::FN_VECTOR_ARG_VALUE].in.isNull());
 
-    auto _vector_addr = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+    auto _vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
     auto _index = call.args[symbex::FN_VECTOR_ARG_INDEX].expr;
     auto _value_addr = call.args[symbex::FN_VECTOR_ARG_VALUE].expr;
     auto _value = call.args[symbex::FN_VECTOR_ARG_VALUE].in;
+    auto _vector_addr = kutil::expr_addr_to_obj_addr(_vector);
 
     if (!check_previous_placement_decisions(ep, _vector_addr)) {
       return result;
@@ -148,8 +150,7 @@ public:
 
     auto other_cast = static_cast<const MapPut *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(
-            map_addr, other_cast->get_map_addr())) {
+    if (map_addr != other_cast->get_map_addr()) {
       return false;
     }
 
@@ -166,7 +167,7 @@ public:
     return true;
   }
 
-  const klee::ref<klee::Expr> &get_map_addr() const { return map_addr; }
+  const obj_addr_t &get_map_addr() const { return map_addr; }
   const klee::ref<klee::Expr> &get_key() const { return key; }
   const klee::ref<klee::Expr> &get_value() const { return value; }
 };

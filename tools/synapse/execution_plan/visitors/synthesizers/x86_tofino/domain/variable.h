@@ -3,8 +3,10 @@
 #include <string>
 #include <vector>
 
+#include "../../../../memory_bank.h"
 #include "../../code_builder.h"
 #include "../../util.h"
+
 #include "klee-util.h"
 #include "klee/Expr.h"
 
@@ -16,13 +18,14 @@ class Variable {
 protected:
   std::string label;
   bits_t size_bits;
+  obj_addr_t addr;
 
   std::vector<std::string> vigor_symbols;
   std::vector<klee::ref<klee::Expr>> exprs;
 
 public:
   Variable(const Variable &variable)
-      : label(variable.label), size_bits(variable.size_bits),
+      : label(variable.label), size_bits(variable.size_bits), addr(variable.addr),
         vigor_symbols(variable.vigor_symbols), exprs(variable.exprs) {}
 
   Variable(std::string _label, bits_t _size_bits,
@@ -44,7 +47,7 @@ public:
 
   const std::string &get_label() const { return label; }
   bits_t get_size_bits() const { return size_bits; }
-  
+
   const std::vector<std::string> &get_vigor_symbols() const {
     return vigor_symbols;
   }
@@ -55,6 +58,8 @@ public:
     assert(exprs.size() == 0);
     return exprs.push_back(expr);
   }
+
+  void set_addr(obj_addr_t _addr) { addr = _addr; }
 
   bool has_expr() const { return exprs.size() > 0; }
 
@@ -120,6 +125,8 @@ public:
 
     return false;
   }
+
+  bool match(obj_addr_t a) const { return addr == a; }
 
   kutil::solver_toolbox_t::contains_result_t
   contains(klee::ref<klee::Expr> e) const {

@@ -149,6 +149,7 @@ public:
   DECLARE_VISIT(targets::tofino::TCPUDPModify)
   DECLARE_VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
   DECLARE_VISIT(targets::tofino::TableLookup)
+  DECLARE_VISIT(targets::tofino::RegisterRead)
   DECLARE_VISIT(targets::tofino::Drop)
   DECLARE_VISIT(targets::tofino::SendToController)
   DECLARE_VISIT(targets::tofino::SetupExpirationNotifications)

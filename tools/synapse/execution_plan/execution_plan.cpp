@@ -80,6 +80,25 @@ ExecutionPlan::get_targets_bdd_starting_points() const {
   return targets_bdd_starting_points;
 }
 
+BDD::BDDNode_ptr ExecutionPlan::get_bdd_root(BDD::BDDNode_ptr node) const {
+  assert(node);
+
+  auto targets_starting_points = get_targets_bdd_starting_points();
+  auto current_platform = get_current_platform();
+  auto starting_points = targets_starting_points[current_platform];
+
+  auto is_root = [&](BDD::BDDNode_ptr n) {
+    auto found_it = starting_points.find(n->get_id());
+    return found_it != starting_points.end();
+  };
+
+  while (!is_root(node) && node->get_prev()) {
+    node = node->get_prev();
+  }
+
+  return node;
+}
+
 unsigned ExecutionPlan::get_id() const { return id; }
 
 const std::vector<ExecutionPlan::leaf_t> &ExecutionPlan::get_leaves() const {
@@ -151,7 +170,8 @@ ExecutionPlan::get_processed_bdd_nodes() const {
   return processed_bdd_nodes;
 }
 
-void ExecutionPlan::update_targets_starting_points(std::vector<leaf_t> new_leaves) {
+void ExecutionPlan::update_targets_starting_points(
+    std::vector<leaf_t> new_leaves) {
   auto current_target = get_current_platform();
 
   for (auto leaf : new_leaves) {
@@ -172,13 +192,12 @@ void ExecutionPlan::update_targets_starting_points(std::vector<leaf_t> new_leave
 void ExecutionPlan::update_leaves(std::vector<leaf_t> _leaves,
                                   bool is_terminal) {
   update_targets_starting_points(_leaves);
-  
+
   assert(leaves.size());
 
   if (leaves.size()) {
     leaves.erase(leaves.begin());
   }
-
 
   for (auto leaf : _leaves) {
     if (!leaf.next && is_terminal) {

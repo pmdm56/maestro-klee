@@ -87,11 +87,26 @@ private:
     return !modifies_cell;
   }
 
+  bool recall_to_ignore(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
+    auto mb = ep.get_memory_bank();
+    return mb->check_if_can_be_ignored(node);
+  }
+
   processing_result_t process_call(const ExecutionPlan &ep,
                                    BDD::BDDNode_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();
+
+    if (recall_to_ignore(ep, node)) {
+      auto new_module = std::make_shared<Ignore>(node);
+      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::Tofino);
+
+      result.module = new_module;
+      result.next_eps.push_back(new_ep);
+
+      return result;
+    }
 
     auto found_it = functions_to_ignore.find(call.function_name);
 

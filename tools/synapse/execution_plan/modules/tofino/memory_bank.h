@@ -14,34 +14,27 @@ namespace tofino {
 
 class TofinoMemoryBank : public MemoryBank {
 private:
-  std::unordered_map<obj_addr_t, std::unordered_set<std::string>>
-      obj_addr_to_table_names;
+  std::unordered_map<obj_addr_t, std::vector<Module_ptr>> tables;
 
 public:
   TofinoMemoryBank() : MemoryBank() {}
   TofinoMemoryBank(const MemoryBank &mb) : MemoryBank(mb) {}
   TofinoMemoryBank(const TofinoMemoryBank &mb)
-      : MemoryBank(mb), obj_addr_to_table_names(mb.obj_addr_to_table_names) {}
+      : MemoryBank(mb), tables(mb.tables) {}
 
-  void save_obj_addr_table_name(klee::ref<klee::Expr> expr_addr,
-                                const std::string &table_name) {
-    auto obj_addr = expr_addr_to_obj_addr(expr_addr);
-    obj_addr_to_table_names[obj_addr].insert(table_name);
+  void save_table(obj_addr_t obj_addr, const Module_ptr &table) {
+    assert(table->get_type() == Module::Tofino_TableLookup);
+    tables[obj_addr].push_back(table);
   }
 
-  bool does_obj_have_table_names(klee::ref<klee::Expr> expr_addr) const {
-    auto obj_addr = expr_addr_to_obj_addr(expr_addr);
-    auto found_it = obj_addr_to_table_names.find(obj_addr);
-
-    return found_it != obj_addr_to_table_names.end() &&
-           found_it->second.size() > 0;
+  bool does_obj_have_tables(obj_addr_t obj_addr) const {
+    auto found_it = tables.find(obj_addr);
+    return found_it != tables.end() && found_it->second.size() > 0;
   }
 
-  std::unordered_set<std::string>
-  get_table_names_of_obj(klee::ref<klee::Expr> expr_addr) const {
-    assert(does_obj_have_table_names(expr_addr));
-    auto obj_addr = expr_addr_to_obj_addr(expr_addr);
-    return obj_addr_to_table_names.at(obj_addr);
+  std::vector<Module_ptr> get_obj_tables(obj_addr_t obj_addr) const {
+    assert(does_obj_have_tables(obj_addr));
+    return tables.at(obj_addr);
   }
 
   virtual MemoryBank_ptr clone() const {

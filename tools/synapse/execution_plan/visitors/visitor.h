@@ -76,6 +76,7 @@ class TCPUDPConsume;
 class TCPUDPModify;
 class IPv4TCPUDPChecksumsUpdate;
 class TableLookup;
+class RegisterRead;
 class Drop;
 class SendToController;
 class SetupExpirationNotifications;
@@ -182,6 +183,7 @@ public:
   VISIT(targets::tofino::EthernetConsume)
   VISIT(targets::tofino::EthernetModify)
   VISIT(targets::tofino::TableLookup)
+  VISIT(targets::tofino::RegisterRead)
   VISIT(targets::tofino::Drop)
   VISIT(targets::tofino::SendToController)
   VISIT(targets::tofino::SetupExpirationNotifications)

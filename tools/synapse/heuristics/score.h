@@ -27,9 +27,11 @@ public:
     NumberOfMergedTables,
     Depth,
     ExactMatchNodes,
+    ConsecutiveObjectOperations,
+    HasNextStatefulOperation,
   };
 
-  enum Objective { MINIMIZE, MAXIMIZE };
+  enum Objective { MIN, MAX };
 
 private:
   typedef int (Score::*ComputerPtr)() const;
@@ -49,6 +51,8 @@ private:
   int get_nr_reordered_nodes() const;
   int get_nr_exact_match_nodes() const;
   int get_nr_switch_leaves() const;
+  int next_op_same_obj() const;
+  int next_op_is_stateful() const;
 
   DummyModule target_ep;
 
@@ -64,6 +68,8 @@ public:
         {NumberOfControllerNodes, &Score::get_nr_controller_nodes},
         {Depth, &Score::get_depth},
         {ExactMatchNodes, &Score::get_nr_exact_match_nodes},
+        {ConsecutiveObjectOperations, &Score::next_op_same_obj},
+        {HasNextStatefulOperation, &Score::next_op_is_stateful},
     };
   }
 
@@ -75,7 +81,7 @@ public:
     target_ep = _target_ep;
   }
 
-  void add(Category category, Objective objective = Objective::MAXIMIZE) {
+  void add(Category category, Objective objective) {
     auto found_it =
         std::find_if(categories.begin(), categories.end(),
                      [&](const std::pair<Category, Objective> &saved) {
@@ -108,7 +114,7 @@ public:
       auto this_score = get(category);
       auto other_score = other.get(category);
 
-      if (objective == Objective::MINIMIZE) {
+      if (objective == Objective::MIN) {
         this_score *= -1;
         other_score *= -1;
       }
@@ -133,7 +139,7 @@ public:
       auto this_score = get(category);
       auto other_score = other.get(category);
 
-      if (objective == Objective::MINIMIZE) {
+      if (objective == Objective::MIN) {
         this_score *= -1;
         other_score *= -1;
       }
@@ -167,7 +173,7 @@ inline std::ostream &operator<<(std::ostream &os, const Score &score) {
 
     auto value = score.get(category);
 
-    if (objective == Score::Objective::MINIMIZE) {
+    if (objective == Score::Objective::MIN) {
       value *= -1;
     }
 

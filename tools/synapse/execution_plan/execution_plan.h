@@ -66,6 +66,7 @@ public:
 
   const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
   get_targets_bdd_starting_points() const;
+  BDD::BDDNode_ptr get_bdd_root(BDD::BDDNode_ptr node) const;
 
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
 

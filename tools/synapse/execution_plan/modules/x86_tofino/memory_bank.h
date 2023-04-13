@@ -11,19 +11,19 @@ class x86TofinoMemoryBank : public MemoryBank {
 public:
   struct expiration_t {
     bool set;
-    klee::ref<klee::Expr> chain;
-    klee::ref<klee::Expr> map;
-    klee::ref<klee::Expr> vector;
+    obj_addr_t chain;
+    obj_addr_t map;
+    obj_addr_t vector;
     klee::ref<klee::Expr> time;
 
     expiration_t() : set(false) {}
-    expiration_t(klee::ref<klee::Expr> _chain, klee::ref<klee::Expr> _map,
-                 klee::ref<klee::Expr> _vector, klee::ref<klee::Expr> _time)
+    expiration_t(obj_addr_t _chain, obj_addr_t _map, obj_addr_t _vector,
+                 klee::ref<klee::Expr> _time)
         : set(true), chain(_chain), map(_map), vector(_vector), time(_time) {}
   };
 
   struct vector_borrow_t {
-    klee::ref<klee::Expr> vector_addr;
+    obj_addr_t vector_addr;
     klee::ref<klee::Expr> value_out;
   };
 
@@ -34,13 +34,13 @@ public:
 
   struct ds_t {
     ds_type_t type;
-    klee::ref<klee::Expr> addr;
+    obj_addr_t addr;
     BDD::node_id_t node_id;
 
-    ds_t(ds_type_t _type, klee::ref<klee::Expr> _addr, BDD::node_id_t _node_id)
+    ds_t(ds_type_t _type, obj_addr_t _addr, BDD::node_id_t _node_id)
         : type(_type), addr(_addr), node_id(_node_id) {}
 
-    bool matches(ds_type_t _type, klee::ref<klee::Expr> _addr) const {
+    bool matches(ds_type_t _type, obj_addr_t _addr) const {
       if (type != _type) {
         return false;
       }
@@ -48,8 +48,8 @@ public:
       return matches(_addr);
     }
 
-    bool matches(klee::ref<klee::Expr> _addr) const {
-      if (!kutil::solver_toolbox.are_exprs_always_equal(addr, _addr)) {
+    bool matches(obj_addr_t _addr) const {
+      if (addr != _addr) {
         return false;
       }
 
@@ -60,15 +60,14 @@ public:
   struct map_t : ds_t {
     bits_t value_size;
 
-    map_t(klee::ref<klee::Expr> _addr, bits_t _value_size, BDD::node_id_t _node_id)
+    map_t(obj_addr_t _addr, bits_t _value_size, BDD::node_id_t _node_id)
         : ds_t(ds_type_t::MAP, _addr, _node_id), value_size(_value_size) {}
   };
 
   struct dchain_t : ds_t {
     uint64_t index_range;
 
-    dchain_t(klee::ref<klee::Expr> _addr, BDD::node_id_t _node_id,
-             uint64_t _index_range)
+    dchain_t(obj_addr_t _addr, BDD::node_id_t _node_id, uint64_t _index_range)
         : ds_t(ds_type_t::DCHAIN, _addr, _node_id), index_range(_index_range) {}
   };
 
@@ -106,7 +105,7 @@ public:
   }
 
   klee::ref<klee::Expr>
-  get_vector_borrow_value(klee::ref<klee::Expr> vector_addr) {
+  get_vector_borrow_value(obj_addr_t vector_addr) {
     auto found_it = find_vector_borrow(vector_addr);
 
     if (found_it == vector_borrows.end()) {
@@ -117,7 +116,7 @@ public:
     return value;
   }
 
-  bool has_data_structure(klee::ref<klee::Expr> addr) const {
+  bool has_data_structure(obj_addr_t addr) const {
     for (auto ds : data_structures) {
       if (ds->matches(addr)) {
         return true;
@@ -143,11 +142,9 @@ public:
 
 private:
   std::vector<vector_borrow_t>::iterator
-  find_vector_borrow(klee::ref<klee::Expr> vector_addr) {
+  find_vector_borrow(obj_addr_t vector_addr) {
     for (auto it = vector_borrows.begin(); it != vector_borrows.end(); it++) {
-      auto eq = kutil::solver_toolbox.are_exprs_always_equal(it->vector_addr,
-                                                             vector_addr);
-      if (eq) {
+      if (it->vector_addr == vector_addr) {
         return it;
       }
     }
