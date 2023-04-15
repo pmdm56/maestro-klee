@@ -13,13 +13,27 @@
 #include <math.h>
 #include <unistd.h>
 
-#define VISIT_PRINT_MODULE_NAME(M)                                             \
+#define DEFAULT_VISIT_PRINT_MODULE_NAME(M)                                     \
   void Graphviz::visit(const M *node) {                                        \
-    function_call(node->get_target(), node->get_target_name(),                 \
-                  node->get_name());                                           \
+    function_call(node->get_target(), node->get_name());                       \
   }
 
 namespace synapse {
+
+void find_and_replace(
+    std::string &str,
+    const std::vector<std::pair<std::string, std::string>> &replacements) {
+  for (const auto &replacement : replacements) {
+    auto before = replacement.first;
+    auto after = replacement.second;
+
+    std::string::size_type n = 0;
+    while ((n = str.find(before, n)) != std::string::npos) {
+      str.replace(n, before.size(), after);
+      n += after.size();
+    }
+  }
+}
 
 Graphviz::Graphviz(const std::string &path, const SearchSpace *_search_space)
     : fpath(path), search_space(_search_space) {
@@ -76,10 +90,9 @@ void Graphviz::open() {
   system(cmd.c_str());
 }
 
-void Graphviz::function_call(TargetType target, std::string target_name,
-                             std::string label) {
+void Graphviz::function_call(TargetType target, std::string label) {
   assert(node_colors.find(target) != node_colors.end());
-  ofs << "[label=\"" << /*target_name << "::" << */ label << "\", ";
+  ofs << "[label=\"" << label << "\", ";
   ofs << "color=" << node_colors[target] << "];";
   ofs << "\n";
 }
@@ -364,27 +377,27 @@ void Graphviz::log(const ExecutionPlanNode *ep_node) const {
  *
  ********************************************/
 
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::MapGet)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::CurrentTime)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketBorrowNextChunk)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketGetMetadata)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketReturnChunk)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::If)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Then)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Else)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Forward)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Broadcast)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Drop)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::ExpireItemsSingleMap)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::RteEtherAddrHash)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainRejuvenateIndex)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::VectorBorrow)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::VectorReturn)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainAllocateNewIndex)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::MapPut)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketGetUnreadLength)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::SetIpv4UdpTcpChecksum)
-VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainIsIndexAllocated)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::MapGet)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::CurrentTime)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketBorrowNextChunk)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketGetMetadata)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketReturnChunk)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::If)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Then)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Else)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Forward)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Broadcast)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Drop)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::ExpireItemsSingleMap)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::RteEtherAddrHash)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainRejuvenateIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::VectorBorrow)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::VectorReturn)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainAllocateNewIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::MapPut)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketGetUnreadLength)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::SetIpv4UdpTcpChecksum)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainIsIndexAllocated)
 
 /********************************************
  *
@@ -392,24 +405,24 @@ VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainIsIndexAllocated)
  *
  ********************************************/
 
-VISIT_PRINT_MODULE_NAME(targets::bmv2::SendToController)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::Ignore)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::SetupExpirationNotifications)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::If)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::Then)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::Else)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::EthernetConsume)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::EthernetModify)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::TableLookup)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::IPv4Consume)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::IPv4Modify)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::TcpUdpConsume)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::TcpUdpModify)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::IPOptionsConsume)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::IPOptionsModify)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::Drop)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::Forward)
-VISIT_PRINT_MODULE_NAME(targets::bmv2::VectorReturn)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::SendToController)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Ignore)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::SetupExpirationNotifications)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::If)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Then)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Else)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::EthernetConsume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::EthernetModify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::TableLookup)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::IPv4Consume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::IPv4Modify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::TcpUdpConsume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::TcpUdpModify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::IPOptionsConsume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::IPOptionsModify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Drop)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Forward)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::VectorReturn)
 
 /********************************************
  *
@@ -417,26 +430,122 @@ VISIT_PRINT_MODULE_NAME(targets::bmv2::VectorReturn)
  *
  ********************************************/
 
-VISIT_PRINT_MODULE_NAME(targets::tofino::Ignore)
-VISIT_PRINT_MODULE_NAME(targets::tofino::If)
-VISIT_PRINT_MODULE_NAME(targets::tofino::IfHeaderValid)
-VISIT_PRINT_MODULE_NAME(targets::tofino::Then)
-VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
-VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
-VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetConsume)
-VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetModify)
-VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4Consume)
-VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4Modify)
-VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4OptionsConsume)
-VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4OptionsModify)
-VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPConsume)
-VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPModify)
-VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4TCPUDPChecksumsUpdate)
-VISIT_PRINT_MODULE_NAME(targets::tofino::TableLookup)
-VISIT_PRINT_MODULE_NAME(targets::tofino::RegisterRead)
-VISIT_PRINT_MODULE_NAME(targets::tofino::Drop)
-VISIT_PRINT_MODULE_NAME(targets::tofino::SendToController)
-VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Ignore)
+
+void Graphviz::visit(const targets::tofino::If *node) {
+  std::stringstream label_builder;
+
+  auto target = node->get_target();
+  auto conditions = node->get_conditions();
+
+  label_builder << "if(";
+  for (auto i = 0u; i < conditions.size(); i++) {
+    auto condition = conditions[i];
+
+    if (i > 0) {
+      label_builder << "\n&& ";
+    }
+
+    label_builder << kutil::expr_to_string(condition, true) << "\n";
+  }
+  label_builder << ")";
+
+  auto label = label_builder.str();
+  find_and_replace(label, {{"\n", "\n"}});
+
+  function_call(target, label);
+}
+
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IfHeaderValid)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Then)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetConsume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetModify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4Consume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4Modify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4OptionsConsume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4OptionsModify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPConsume)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPModify)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4TCPUDPChecksumsUpdate)
+
+void Graphviz::visit(const targets::tofino::TableLookup *node) {
+  std::stringstream label_builder;
+
+  auto target = node->get_target();
+  auto name = node->get_name();
+
+  auto table_name = node->get_table_name();
+  auto nodes = node->get_nodes();
+  auto objs = node->get_objs();
+  auto keys = node->get_keys();
+  auto params = node->get_params();
+  auto contains = node->get_contains_symbols();
+
+  label_builder << name << "\n";
+
+  label_builder << "  table: " << table_name << "\n";
+
+  label_builder << "  nodes: [";
+  for (auto node : nodes) {
+    label_builder << node << ",";
+  }
+  label_builder << "]\n";
+
+  label_builder << "  objs: [";
+  for (auto obj : objs) {
+    label_builder << obj << ",";
+  }
+  label_builder << "]\n";
+
+  label_builder << "  keys (" << keys.size() << "): [";
+  for (auto key : keys) {
+    label_builder << "\n";
+    label_builder << "    ";
+    label_builder << "[";
+    for (auto meta : key.meta) {
+      label_builder << meta.symbol << ",";
+    }
+    label_builder << "]";
+  }
+  label_builder << "]\n";
+
+  label_builder << "  params (" << params.size() << "): [";
+  for (auto param : params) {
+    label_builder << "\n";
+    label_builder << "    ";
+    label_builder << "[";
+    label_builder << "objs:[";
+    for (auto obj : param.objs) {
+      label_builder << obj << ",";
+    }
+    label_builder << "]";
+    label_builder << "exprs:[";
+    for (auto expr : param.exprs) {
+      label_builder << kutil::expr_to_string(expr, true) << ",";
+    }
+    label_builder << "]";
+    label_builder << "]";
+  }
+  label_builder << "]\n";
+
+  label_builder << "  hit: [";
+  for (auto c : contains) {
+    label_builder << c.label << ",";
+  }
+  label_builder << "]\n";
+
+  auto label = label_builder.str();
+  find_and_replace(label, {{"\n", "\\l"}});
+
+  function_call(target, label);
+}
+
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::RegisterRead)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Drop)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::SendToController)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)
 
 /********************************************
  *
@@ -444,27 +553,27 @@ VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)
  *
  ********************************************/
 
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Ignore)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseCPU)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseEthernet)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyEthernet)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::ForwardThroughTofino)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseIPv4)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyIPv4)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseIPv4Options)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyIPv4Options)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseTCPUDP)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyTCPUDP)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyChecksums)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::If)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Then)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Else)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Drop)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::MapGet)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::MapPut)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::EtherAddrHash)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainAllocateNewIndex)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainIsIndexAllocated)
-VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainRejuvenateIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Ignore)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseCPU)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseEthernet)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyEthernet)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::ForwardThroughTofino)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseIPv4)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyIPv4)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseIPv4Options)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyIPv4Options)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseTCPUDP)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyTCPUDP)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyChecksums)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::If)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Then)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Else)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Drop)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::MapGet)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::MapPut)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::EtherAddrHash)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainAllocateNewIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainIsIndexAllocated)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainRejuvenateIndex)
 
 } // namespace synapse

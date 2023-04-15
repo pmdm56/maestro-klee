@@ -238,8 +238,8 @@ protected:
 
     coalesced_data_t() : can_coalesce(false) {}
 
-    std::vector<obj_addr_t> get_objs() const {
-      std::vector<obj_addr_t> objs;
+    std::unordered_set<obj_addr_t> get_objs() const {
+      std::unordered_set<obj_addr_t> objs;
 
       assert(map_get);
 
@@ -248,7 +248,7 @@ protected:
       auto obj = call.args[symbex::FN_MAP_ARG_MAP].expr;
       auto addr = kutil::expr_addr_to_obj_addr(obj);
 
-      objs.push_back(addr);
+      objs.insert(addr);
 
       for (auto vector_borrow : vector_borrows) {
         assert(vector_borrow);
@@ -258,7 +258,7 @@ protected:
         obj = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
         addr = kutil::expr_addr_to_obj_addr(obj);
 
-        objs.push_back(addr);
+        objs.insert(addr);
       }
 
       return objs;

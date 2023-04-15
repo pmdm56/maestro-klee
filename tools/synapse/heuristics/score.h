@@ -27,8 +27,8 @@ public:
     NumberOfMergedTables,
     Depth,
     ExactMatchNodes,
-    ConsecutiveObjectOperations,
-    HasNextStatefulOperation,
+    ConsecutiveObjectOperationsInSwitch,
+    HasNextStatefulOperationInSwitch,
   };
 
   enum Objective { MIN, MAX };
@@ -51,8 +51,8 @@ private:
   int get_nr_reordered_nodes() const;
   int get_nr_exact_match_nodes() const;
   int get_nr_switch_leaves() const;
-  int next_op_same_obj() const;
-  int next_op_is_stateful() const;
+  int next_op_same_obj_in_switch() const;
+  int next_op_is_stateful_in_switch() const;
 
   DummyModule target_ep;
 
@@ -68,8 +68,8 @@ public:
         {NumberOfControllerNodes, &Score::get_nr_controller_nodes},
         {Depth, &Score::get_depth},
         {ExactMatchNodes, &Score::get_nr_exact_match_nodes},
-        {ConsecutiveObjectOperations, &Score::next_op_same_obj},
-        {HasNextStatefulOperation, &Score::next_op_is_stateful},
+        {ConsecutiveObjectOperationsInSwitch, &Score::next_op_same_obj_in_switch},
+        {HasNextStatefulOperationInSwitch, &Score::next_op_is_stateful_in_switch},
     };
   }
 

@@ -145,7 +145,13 @@ int Score::get_nr_switch_leaves() const {
   return switch_leaves;
 }
 
-int Score::next_op_same_obj() const {
+int Score::next_op_same_obj_in_switch() const {
+  auto target = execution_plan.get_current_platform();
+
+  if (target != TargetType::BMv2 && target != TargetType::Tofino) {
+    return 0;
+  }
+
   auto next = execution_plan.get_next_node();
 
   if (!next) {
@@ -180,7 +186,13 @@ int Score::next_op_same_obj() const {
   return 0;
 }
 
-int Score::next_op_is_stateful() const {
+int Score::next_op_is_stateful_in_switch() const {
+  auto target = execution_plan.get_current_platform();
+
+  if (target != TargetType::BMv2 && target != TargetType::Tofino) {
+    return 0;
+  }
+
   auto next = execution_plan.get_next_node();
 
   if (!next) {

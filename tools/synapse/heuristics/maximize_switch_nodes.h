@@ -12,9 +12,13 @@ struct MaximizeSwitchNodesComparator : public HeuristicConfiguration {
     score.add(Score::Category::NumberOfMergedTables, Score::MAX);
     score.add(Score::Category::NumberOfSwitchNodes, Score::MAX);
     score.add(Score::Category::NumberOfSwitchLeaves, Score::MAX);
-    score.add(Score::Category::HasNextStatefulOperation, Score::MAX);
-    score.add(Score::Category::ConsecutiveObjectOperations, Score::MAX);
-    // score.add(Score::Category::NumberOfNodes, Score::MIN);
+    score.add(Score::Category::HasNextStatefulOperationInSwitch, Score::MAX);
+    score.add(Score::Category::ConsecutiveObjectOperationsInSwitch, Score::MAX);
+
+    // Let's add this one to just speed up the process when we are generating
+    // Controller nodes. After all, we only get to this point if all the metrics
+    // behind this one are the same, and by that point who cares.
+    score.add(Score::Category::NumberOfControllerNodes, Score::MAX);
 
     return score;
   }

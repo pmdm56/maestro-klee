@@ -20,14 +20,18 @@ public:
   };
 
   struct param_t {
+    std::unordered_set<obj_addr_t> objs;
     std::vector<klee::ref<klee::Expr>> exprs;
 
-    param_t(klee::ref<klee::Expr> expr) { exprs.push_back(expr); }
+    param_t(obj_addr_t obj, klee::ref<klee::Expr> expr) {
+      objs.insert(obj);
+      exprs.push_back(expr);
+    }
   };
 
 private:
   std::string table_name;
-  std::vector<obj_addr_t> objs;
+  std::unordered_set<obj_addr_t> objs;
   std::vector<key_t> keys;
   std::vector<param_t> params;
   std::vector<BDD::symbol_t> contains_symbols;
@@ -39,7 +43,7 @@ public:
                "TableLookup") {}
 
   TableLookup(BDD::BDDNode_ptr node, std::string _table_name,
-              const std::vector<obj_addr_t> &_objs,
+              const std::unordered_set<obj_addr_t> &_objs,
               const std::vector<key_t> &_keys,
               const std::vector<param_t> &_params,
               const std::vector<BDD::symbol_t> &_contains_symbols,
@@ -54,7 +58,7 @@ private:
     bool valid;
     std::string fname;
     std::unordered_set<BDD::node_id_t> node_ids;
-    std::vector<obj_addr_t> objs;
+    std::unordered_set<obj_addr_t> objs;
     std::vector<key_t> keys;
     std::vector<param_t> values;
     std::vector<BDD::symbol_t> contains_symbols;
@@ -71,6 +75,8 @@ private:
       return data;
     }
 
+    auto node_id = casted->get_id();
+
     assert(!call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr.isNull());
     assert(!call.args[symbex::FN_DCHAIN_ARG_INDEX].expr.isNull());
     assert(!call.ret.isNull());
@@ -86,8 +92,8 @@ private:
     auto _dchain_addr = kutil::expr_addr_to_obj_addr(_dchain);
 
     data.valid = true;
-    data.node_ids.insert(casted->get_id());
-    data.objs.push_back(_dchain_addr);
+    data.node_ids.insert(node_id);
+    data.objs.insert(_dchain_addr);
     data.keys.emplace_back(_index);
     data.contains_symbols.push_back(contains_symbol);
 
@@ -101,6 +107,8 @@ private:
     if (call.function_name != symbex::FN_MAP_GET) {
       return data;
     }
+
+    auto node_id = casted->get_id();
 
     assert(call.function_name == symbex::FN_MAP_GET);
     assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
@@ -122,10 +130,10 @@ private:
     auto _map_addr = kutil::expr_addr_to_obj_addr(_map);
 
     data.valid = true;
-    data.node_ids.insert(casted->get_id());
-    data.objs.push_back(_map_addr);
+    data.node_ids.insert(node_id);
+    data.objs.insert(_map_addr);
     data.keys.emplace_back(_key, _key_meta);
-    data.values.emplace_back(_value);
+    data.values.emplace_back(_map_addr, _value);
     data.contains_symbols.push_back(_map_has_this_key);
 
     return data;
@@ -139,6 +147,8 @@ private:
       return data;
     }
 
+    auto node_id = casted->get_id();
+
     assert(call.function_name == symbex::FN_VECTOR_BORROW);
     assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
     assert(!call.args[symbex::FN_VECTOR_ARG_INDEX].expr.isNull());
@@ -151,16 +161,17 @@ private:
     auto _vector_addr = kutil::expr_addr_to_obj_addr(_vector);
 
     data.valid = true;
-    data.node_ids.insert(casted->get_id());
-    data.objs.push_back(_vector_addr);
+    data.node_ids.insert(node_id);
+    data.objs.insert(_vector_addr);
     data.keys.emplace_back(_index);
-    data.values.emplace_back(_borrowed_cell);
+    data.values.emplace_back(_vector_addr, _borrowed_cell);
 
     return data;
   }
 
   bool check_compatible_placements_decisions(
-      const ExecutionPlan &ep, const std::vector<obj_addr_t> &objs) const {
+      const ExecutionPlan &ep,
+      const std::unordered_set<obj_addr_t> &objs) const {
     auto mb = ep.get_memory_bank();
 
     for (auto obj : objs) {
@@ -179,7 +190,7 @@ private:
   }
 
   void save_decision(const ExecutionPlan &ep,
-                     const std::vector<obj_addr_t> &objs,
+                     const std::unordered_set<obj_addr_t> &objs,
                      Module_ptr new_table) {
     auto mb = ep.get_memory_bank();
 
@@ -189,19 +200,6 @@ private:
       auto tmb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
       tmb->save_table(obj, new_table);
     }
-  }
-
-  std::string build_table_name(const extracted_data_t &data) const {
-    std::stringstream table_label_builder;
-
-    table_label_builder << data.fname;
-
-    for (auto node_id : data.node_ids) {
-      table_label_builder << "_";
-      table_label_builder << node_id;
-    }
-
-    return table_label_builder.str();
   }
 
   extracted_data_t extract_data(const BDD::Call *casted) const {
@@ -234,8 +232,14 @@ private:
     }
   }
 
+  bool was_coalesced(const ExecutionPlan &ep, BDD::BDDNode_ptr node) const {
+    auto mb = ep.get_memory_bank();
+    return mb->check_if_can_be_ignored(node);
+  }
+
   void merge_coalesced_data(extracted_data_t &extracted_data,
-                            const coalesced_data_t &coalesced_data) const {
+                            const coalesced_data_t &coalesced_data,
+                            std::vector<TableLookup *> prev_tables) const {
     assert(coalesced_data.vector_borrows.size() > 0);
 
     for (auto vector : coalesced_data.vector_borrows) {
@@ -243,30 +247,122 @@ private:
       auto call_node = static_cast<const BDD::Call *>(vector.get());
       auto vector_extracted_data = extract_data(call_node);
 
+      for (auto prev_table : prev_tables) {
+        prev_table->add_nodes(vector_extracted_data.node_ids);
+        prev_table->add_objs(vector_extracted_data.objs);
+        prev_table->add_params(vector_extracted_data.values);
+      }
+
       extracted_data.node_ids.insert(vector_extracted_data.node_ids.begin(),
                                      vector_extracted_data.node_ids.end());
 
-      extracted_data.objs.insert(extracted_data.objs.end(),
-                                 vector_extracted_data.objs.begin(),
+      extracted_data.objs.insert(vector_extracted_data.objs.begin(),
                                  vector_extracted_data.objs.end());
 
-      extracted_data.values.insert(extracted_data.values.end(),
-                                   vector_extracted_data.values.begin(),
-                                   vector_extracted_data.values.end());
+      add_to_params(extracted_data.values, vector_extracted_data.values);
     }
   }
 
-  bool try_merge_with_previous_table(const ExecutionPlan &ep,
-                                     const BDD::Call *node,
-                                     extracted_data_t &extracted_data) {
+  bool match(TableLookup *other, extracted_data_t &extracted_data) const {
+    auto other_keys = other->get_keys();
+
+    if (extracted_data.keys.size() != other_keys.size()) {
+      return false;
+    }
+
+    for (auto i = 0u; i < extracted_data.keys.size(); i++) {
+      // The keys must have the same metadata
+
+      auto this_meta = extracted_data.keys[i].meta;
+      auto other_meta = other_keys[i].meta;
+
+      if (this_meta.size() != other_meta.size()) {
+        return false;
+      }
+
+      for (auto j = 0u; j < this_meta.size(); j++) {
+        if (this_meta[i].symbol != other_meta[i].symbol ||
+            this_meta[i].offset != other_meta[i].offset ||
+            this_meta[i].size != other_meta[i].size) {
+          return false;
+        }
+      }
+
+      // And access the same packet bytes, in the same order.
+      // This check is generally covered by the previous step,
+      // but sometimes the same map can be used for multiple checks,
+      // and in those cases they will have the same metadata (e.g. bridge
+      // with external and internal checks on the map).
+
+      auto this_expr = extracted_data.keys[i].expr;
+      auto other_expr = other_keys[i].expr;
+
+      kutil::RetrieveSymbols this_retriever;
+      this_retriever.visit(this_expr);
+      auto this_chunks = this_retriever.get_retrieved_packet_chunks();
+
+      kutil::RetrieveSymbols other_retriever;
+      other_retriever.visit(other_expr);
+      auto other_chunks = other_retriever.get_retrieved_packet_chunks();
+
+      if (this_chunks.size() != other_chunks.size()) {
+        return false;
+      }
+
+      for (auto j = 0u; j < this_chunks.size(); j++) {
+        auto this_chunk = this_chunks[j];
+        auto other_chunk = other_chunks[j];
+
+        auto same_index = kutil::solver_toolbox.are_exprs_always_equal(
+            this_chunk, other_chunk);
+
+        if (!same_index) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  bool table_prev_on_this_path(const ExecutionPlan &ep,
+                               const TableLookup *other_table) const {
+    auto ep_node = ep.get_active_leaf();
+
+    while (ep_node) {
+      auto current = ep_node;
+      ep_node = current->get_prev();
+
+      auto module = current->get_module();
+      assert(module);
+
+      if (module->get_type() != ModuleType::Tofino_TableLookup) {
+        continue;
+      }
+
+      auto table = static_cast<TableLookup *>(module.get());
+
+      if (other_table->get_name() == table->get_name()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  std::vector<TableLookup *>
+  try_merge_with_previous_tables(const ExecutionPlan &ep, const BDD::Call *node,
+                                 extracted_data_t &extracted_data) {
+    auto prev_tables = std::vector<TableLookup *>();
+
     assert(extracted_data.objs.size() == 1);
-    auto obj = extracted_data.objs[0];
+    auto obj = *extracted_data.objs.begin();
 
     auto tmb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
     auto have_tables = tmb->does_obj_have_tables(obj);
 
     if (!have_tables) {
-      return false;
+      return prev_tables;
     }
 
     auto tables_modules = tmb->get_obj_tables(obj);
@@ -276,56 +372,31 @@ private:
       assert(table_module->get_type() == ModuleType::Tofino_TableLookup);
       auto table = static_cast<TableLookup *>(table_module.get());
 
-      // The keys must have the same metadata
-      auto other_keys = table->get_keys();
-
-      if (extracted_data.keys.size() != other_keys.size()) {
-        continue;
-      }
-
-      auto equal = true;
-
-      for (auto i = 0u; i < extracted_data.keys.size(); i++) {
-        auto this_meta = extracted_data.keys[i].meta;
-        auto other_meta = other_keys[i].meta;
-
-        if (this_meta.size() != other_meta.size()) {
-          equal = false;
-          break;
-        }
-
-        for (auto j = 0u; j < this_meta.size(); j++) {
-          if (this_meta[i].symbol != other_meta[i].symbol ||
-              this_meta[i].offset != other_meta[i].offset ||
-              this_meta[i].size != other_meta[i].size) {
-            equal = false;
-            break;
-          }
-        }
-      }
-
-      if (!equal) {
+      if (!match(table, extracted_data)) {
         continue;
       }
 
       // Merge the contains symbols, so that the code generation can also find
       // information from this second table
 
-      table->append_to_name(extracted_data.node_ids);
       table->add_contains_symbols(extracted_data.contains_symbols);
       table->add_nodes(extracted_data.node_ids);
-      table->add_exprs_to_params(extracted_data.values);
+      table->add_params(extracted_data.values);
 
-      return true;
+      extracted_data.contains_symbols = table->get_contains_symbols();
+      extracted_data.node_ids = table->get_nodes();
+      extracted_data.values = table->get_params();
+
+      prev_tables.push_back(table);
     }
 
-    return false;
+    return prev_tables;
   }
 
   bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                const BDD::Call *casted, const extracted_data_t data,
                processing_result_t &result) {
-    auto _table_name = build_table_name(data);
+    auto _table_name = build_table_name(data.node_ids);
 
     auto new_module = std::make_shared<TableLookup>(
         node, _table_name, data.objs, data.keys, data.values,
@@ -352,21 +423,33 @@ private:
       return result;
     }
 
+    // No point in generating modules for already coalesced tables.
+    if (was_coalesced(ep, node)) {
+      return result;
+    }
+
     if (!check_compatible_placements_decisions(ep, extracted_data.objs)) {
       return result;
     }
 
-    if (try_merge_with_previous_table(ep, casted, extracted_data)) {
-      // If we merged, then we should ignore this node and keep going,
-      // as its information was added to a previous TableLookup instance.
+    auto prev_tables =
+        try_merge_with_previous_tables(ep, casted, extracted_data);
 
-      auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::Tofino);
+    for (auto prev_table : prev_tables) {
+      auto already_seen = table_prev_on_this_path(ep, prev_table);
 
-      result.module = new_module;
-      result.next_eps.push_back(new_ep);
+      if (already_seen) {
+        // If we merged, then we should ignore this node and keep going,
+        // as its information was added to a previous TableLookup instance.
 
-      return result;
+        auto new_module = std::make_shared<Ignore>(node);
+        auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::Tofino);
+
+        result.module = new_module;
+        result.next_eps.push_back(new_ep);
+
+        return result;
+      }
     }
 
     auto coalesced_data = get_coalescing_data(ep, node);
@@ -376,7 +459,7 @@ private:
         check_compatible_placements_decisions(ep, coalesced_data.get_objs());
 
     if (can_coalesce) {
-      merge_coalesced_data(extracted_data, coalesced_data);
+      merge_coalesced_data(extracted_data, coalesced_data, prev_tables);
       remember_to_ignore_coalesced(ep, coalesced_data);
     }
 
@@ -409,17 +492,8 @@ public:
 
     const auto &other_objs = other_cast->get_objs();
 
-    if (other_objs.size() != objs.size()) {
+    if (other_objs != objs) {
       return false;
-    }
-
-    for (auto i = 0u; i < objs.size(); i++) {
-      auto this_obj = objs[i];
-      auto other_obj = other_objs[i];
-
-      if (this_obj != other_obj) {
-        return false;
-      }
     }
 
     const auto &other_keys = other_cast->get_keys();
@@ -475,8 +549,56 @@ public:
     return true;
   }
 
+  std::ostream &dump(std::ostream &os) const {
+    os << "table: " << table_name << "\n";
+
+    os << "nodes: [";
+    for (auto node : nodes) {
+      os << node << ",";
+    }
+    os << "]\n";
+
+    os << "objs: [";
+    for (auto obj : objs) {
+      os << obj << ",";
+    }
+    os << "]\n";
+
+    os << "keys:\n";
+    for (auto key : keys) {
+      os << "  meta: [";
+      for (auto meta : key.meta) {
+        os << meta.symbol << ",";
+      }
+      os << "]\n";
+      os << "  expr: " << kutil::expr_to_string(key.expr, true) << "\n";
+    }
+
+    os << "params:\n";
+    for (auto param : params) {
+      os << "  objs: ";
+      for (auto obj : param.objs) {
+        os << obj << ", ";
+      }
+      os << "\n";
+      os << "  exprs: ";
+      for (auto expr : param.exprs) {
+        os << kutil::expr_to_string(expr, true) << ", ";
+      }
+      os << "\n";
+    }
+
+    os << "contains: [";
+    for (auto contains : contains_symbols) {
+      os << contains.label << ",";
+    }
+    os << "]\n";
+
+    return os;
+  }
+
   const std::string &get_table_name() const { return table_name; }
-  const std::vector<obj_addr_t> &get_objs() const { return objs; }
+  const std::unordered_set<obj_addr_t> &get_objs() const { return objs; }
   const std::vector<key_t> &get_keys() const { return keys; }
   const std::vector<param_t> &get_params() const { return params; }
   const std::vector<BDD::symbol_t> &get_contains_symbols() const {
@@ -484,10 +606,8 @@ public:
   }
   const std::unordered_set<BDD::node_id_t> &get_nodes() const { return nodes; }
 
-  void append_to_name(const std::unordered_set<BDD::node_id_t>& node_ids) {
-    for (auto node_id : node_ids) {
-      table_name += "_" + std::to_string(node_id);
-    }
+  void add_objs(const std::unordered_set<obj_addr_t> other_objs) {
+    objs.insert(other_objs.begin(), other_objs.end());
   }
 
   void add_contains_symbols(const std::vector<BDD::symbol_t> &other_symbols) {
@@ -497,19 +617,70 @@ public:
 
   void add_nodes(const std::unordered_set<BDD::node_id_t> other_nodes) {
     nodes.insert(other_nodes.begin(), other_nodes.end());
+    table_name = build_table_name(nodes);
   }
 
-  void add_exprs_to_params(const std::vector<param_t> &other_params) {
-    // Careful: we actually want to add expression to each param,
-    // not increase the number of params overall
+  void add_params(const std::vector<param_t> &other_params) {
+    add_to_params(params, other_params);
+  }
 
-    for (auto i = 0u; i < other_params.size() && i < params.size(); i++) {
-      auto &exprs = params[i].exprs;
-      const auto &other_exprs = other_params[i].exprs;
-      exprs.insert(exprs.end(), other_exprs.begin(), other_exprs.end());
+  static std::string
+  build_table_name(const std::unordered_set<BDD::node_id_t> &_node_ids) {
+    // Use a counter to avoid name collision.
+
+    static int counter = 0;
+    std::stringstream table_label_builder;
+
+    table_label_builder << "table";
+
+    for (auto node_id : _node_ids) {
+      table_label_builder << "_";
+      table_label_builder << node_id;
+    }
+
+    table_label_builder << "_";
+    table_label_builder << counter;
+
+    counter++;
+
+    return table_label_builder.str();
+  }
+
+  static void add_to_params(std::vector<param_t> &dst,
+                            const std::vector<param_t> &src) {
+    // Careful: we actually want to add expression to each param when they match
+    // the same objects
+
+    for (const auto &other_param : src) {
+      const auto &other_objs = other_param.objs;
+
+      auto param_finder = [&](const param_t param) {
+        // The stored parameter must contain _all_ the objects referenced by
+        // this parameter in order for them to match
+
+        for (const auto &other_obj : other_objs) {
+          auto found_it = param.objs.find(other_obj);
+
+          if (found_it == param.objs.end()) {
+            return false;
+          }
+        }
+
+        return true;
+      };
+
+      auto param_it = std::find_if(dst.begin(), dst.end(), param_finder);
+
+      if (param_it != dst.end()) {
+        param_it->exprs.insert(param_it->exprs.end(), other_param.exprs.begin(),
+                               other_param.exprs.end());
+      } else {
+        dst.push_back(other_param);
+      }
     }
   }
-}; // namespace tofino
+};
+
 } // namespace tofino
 } // namespace targets
 } // namespace synapse

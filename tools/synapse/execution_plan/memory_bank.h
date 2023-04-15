@@ -83,8 +83,6 @@ public:
     can_be_ignored_bdd_nodes.insert(id);
   }
 
-  
-
   virtual MemoryBank_ptr clone() const {
     return MemoryBank_ptr(new MemoryBank(*this));
   }
