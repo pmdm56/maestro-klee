@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../visitor.h"
 #include "../../target.h"
+#include "../visitor.h"
 #include "call-paths-to-bdd.h"
 
 #include <vector>
@@ -43,8 +43,7 @@ private:
     search_space_fpath = get_rand_fname();
   }
 
-  void function_call(TargetType target, std::string target_name,
-                     std::string label);
+  void function_call(TargetType target, std::string label);
 
   struct rgb_t {
     int r;
@@ -149,6 +148,7 @@ public:
   DECLARE_VISIT(targets::tofino::TCPUDPModify)
   DECLARE_VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
   DECLARE_VISIT(targets::tofino::TableLookup)
+  DECLARE_VISIT(targets::tofino::RegisterRead)
   DECLARE_VISIT(targets::tofino::Drop)
   DECLARE_VISIT(targets::tofino::SendToController)
   DECLARE_VISIT(targets::tofino::SetupExpirationNotifications)

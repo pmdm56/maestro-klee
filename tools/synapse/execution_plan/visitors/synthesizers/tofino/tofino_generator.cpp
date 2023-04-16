@@ -407,11 +407,12 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   auto table_name = node->get_table_name();
   auto keys = node->get_keys();
   auto params = node->get_params();
-  auto contains_symbol = node->get_contains_symbol();
+  auto contains_symbols = node->get_contains_symbols();
 
   assert(keys.size());
 
   std::vector<std::string> key_labels;
+  std::vector<std::vector<std::string>> assignments;
 
   for (auto key : keys) {
     auto key_vars = get_key_vars(ingress, key.expr, key.meta);
@@ -419,19 +420,16 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
     for (auto kv : key_vars) {
       key_labels.push_back(kv.variable.get_label());
     }
-  }
 
-  std::vector<std::vector<std::string>> assignments;
-
-  for (auto key : keys) {
-    auto key_assignments = transpiler.assign_key_bytes(key.expr, key.meta);
+    auto key_assignments = transpiler.assign_key_bytes(key.expr, key_vars);
     assignments.push_back(key_assignments);
   }
 
   Variables meta_params;
 
   for (auto i = 0u; i < params.size(); i++) {
-    auto meta_param = ingress.allocate_meta_param(table_name, i, params[i]);
+    auto meta_param =
+        ingress.allocate_meta_param(table_name, i, params[i].exprs);
     meta_params.push_back(meta_param);
   }
 
@@ -476,9 +474,15 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
     }
   }
 
-  if (contains_symbol) {
-    auto symbol_label = contains_symbol->label;
-    auto hit_var = Variable(table_name + "_hit", 1, {symbol_label});
+  if (contains_symbols.size() > 0) {
+    std::vector<std::string> symbols_labels;
+
+    for (auto symbol : contains_symbols) {
+      symbols_labels.push_back(symbol.label);
+    }
+
+    auto hit_var = ingress.allocate_local_auxiliary(table_name + "_hit", 1);
+    hit_var.add_symbols(symbols_labels);
 
     ingress.local_vars.append(hit_var);
 

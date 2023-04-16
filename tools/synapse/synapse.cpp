@@ -163,15 +163,14 @@ int main(int argc, char **argv) {
     auto end_synthesis = std::chrono::steady_clock::now();
 
     synthesis_dt = std::chrono::duration_cast<std::chrono::seconds>(
-                            end_synthesis - start_synthesis)
-                            .count();
+                       end_synthesis - start_synthesis)
+                       .count();
   }
 
-
-  synapse::Log::log() << "Search time:    " << search_dt << " sec\n";
+  synapse::Log::log() << "Search time:     " << search_dt << " sec\n";
 
   if (synthesis_dt >= 0) {
-    synapse::Log::log() << "Synthesis time: " << synthesis_dt << " sec\n";
+    synapse::Log::log() << "Generation time: " << synthesis_dt << " sec\n";
   }
 
   return 0;

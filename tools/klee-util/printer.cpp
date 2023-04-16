@@ -110,6 +110,31 @@ public:
     return klee::ExprVisitor::Action::skipChildren();
   }
 
+  std::vector<std::vector<unsigned>>
+  group_bytes(const std::vector<unsigned> bytes) {
+    std::vector<std::vector<unsigned>> groups;
+    std::vector<unsigned> group;
+
+    if (bytes.size() == 0) {
+      return groups;
+    }
+
+    for (auto byte : bytes) {
+      if (group.size() > 0 && byte + 1 != group.back()) {
+        groups.push_back(group);
+        group.clear();
+      }
+
+      group.push_back(byte);
+    }
+
+    if (group.size() > 0) {
+      groups.push_back(group);
+    }
+
+    return groups;
+  }
+
   klee::ExprVisitor::Action visitConcat(const klee::ConcatExpr &e) {
     klee::ref<klee::Expr> eref = const_cast<klee::ConcatExpr *>(&e);
     std::stringstream ss;
@@ -128,44 +153,20 @@ public:
 
     std::vector<unsigned> bytes_read;
     auto success = get_bytes_read(eref, bytes_read);
-    std::sort(bytes_read.begin(), bytes_read.end());
 
     if (success && bytes_read.size() && retrieved_strs.size() == 1) {
-      bool processed = false;
-      auto lower = bytes_read[0];
-      auto higher = lower;
+      auto bytes_grouped = group_bytes(bytes_read);
 
-      for (unsigned ibyte = 1; ibyte < bytes_read.size(); ibyte++) {
-        auto byte = bytes_read[ibyte];
-
-        if (byte == higher + 1) {
-          higher = byte;
-          processed = false;
-          continue;
-        }
-
-        if (ss.str().size()) {
+      for (auto i = 0u; i < bytes_grouped.size(); i++) {
+        if (i > 0) {
           ss << "++";
         }
 
-        ss << symbol;
+        auto group = bytes_grouped[i];
+        assert(group.size() > 0);
 
-        if (lower == higher) {
-          ss << "[" << lower << "]";
-        } else {
-          ss << "[" << lower << ":" << higher << "]";
-        }
-
-        lower = byte;
-        higher = byte;
-
-        processed = true;
-      }
-
-      if (!processed) {
-        if (ss.str().size()) {
-          ss << "++";
-        }
+        auto higher = group[0];
+        auto lower = group.back();
 
         ss << symbol;
 

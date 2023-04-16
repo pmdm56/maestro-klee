@@ -9,7 +9,7 @@ namespace x86_tofino {
 
 class DchainAllocateNewIndex : public Module {
 private:
-  klee::ref<klee::Expr> dchain_addr;
+  obj_addr_t dchain_addr;
   klee::ref<klee::Expr> time;
   klee::ref<klee::Expr> index_out;
   klee::ref<klee::Expr> success;
@@ -21,8 +21,7 @@ public:
       : Module(ModuleType::x86_Tofino_DchainAllocateNewIndex,
                TargetType::x86_Tofino, "DchainAllocate") {}
 
-  DchainAllocateNewIndex(BDD::BDDNode_ptr node,
-                         klee::ref<klee::Expr> _dchain_addr,
+  DchainAllocateNewIndex(BDD::BDDNode_ptr node, obj_addr_t _dchain_addr,
                          klee::ref<klee::Expr> _time,
                          klee::ref<klee::Expr> _index_out,
                          klee::ref<klee::Expr> _success,
@@ -45,12 +44,13 @@ private:
       assert(!call.args[symbex::FN_DCHAIN_ARG_OUT].out.isNull());
       assert(!call.ret.isNull());
 
-      auto _dchain_addr = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
+      auto _dchain = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
       auto _time = call.args[symbex::FN_DCHAIN_ARG_TIME].expr;
       auto _index_out = call.args[symbex::FN_DCHAIN_ARG_OUT].out;
       auto _success = call.ret;
 
       auto _generated_symbols = casted->get_local_generated_symbols();
+      auto _dchain_addr = kutil::expr_addr_to_obj_addr(_dchain);
 
       auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
       auto saved = mb->has_data_structure(_dchain_addr);
@@ -92,8 +92,7 @@ public:
 
     auto other_cast = static_cast<const DchainAllocateNewIndex *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(
-            dchain_addr, other_cast->get_dchain_addr())) {
+    if (dchain_addr != other_cast->get_dchain_addr()) {
       return false;
     }
 
@@ -119,7 +118,7 @@ public:
     return true;
   }
 
-  const klee::ref<klee::Expr> &get_dchain_addr() const { return dchain_addr; }
+  const obj_addr_t &get_dchain_addr() const { return dchain_addr; }
   const klee::ref<klee::Expr> &get_time() const { return time; }
   const klee::ref<klee::Expr> &get_index_out() const { return index_out; }
   const klee::ref<klee::Expr> &get_success() const { return success; }

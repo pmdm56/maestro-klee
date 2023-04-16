@@ -29,10 +29,8 @@ private:
   bool pass_compiler_packet_bytes_constraint(conditions_t _conditions) const {
     constexpr int MAX_PACKET_BYTES = 4;
 
-    kutil::RetrieveSymbols retriever;
-
     for (auto condition : _conditions) {
-      retriever.clear();
+      kutil::RetrieveSymbols retriever;
       retriever.visit(condition);
 
       auto chunks = retriever.get_retrieved_packet_chunks();

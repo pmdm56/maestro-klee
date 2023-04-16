@@ -8,7 +8,7 @@ namespace synapse {
 struct DFSComparator : public HeuristicConfiguration {
   virtual Score get_score(const ExecutionPlan &e) const override {
     Score score(e);
-    score.add(Score::Category::Depth);
+    score.add(Score::Category::Depth, Score::MAX);
     return score;
   }
 

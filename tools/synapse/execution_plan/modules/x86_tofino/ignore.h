@@ -57,8 +57,12 @@ private:
     auto _vector = call.args[symbex::FN_EXPIRE_MAP_ARG_VECTOR].expr;
     auto _time = call.args[symbex::FN_EXPIRE_MAP_ARG_TIME].expr;
 
-    auto expiration =
-        x86TofinoMemoryBank::expiration_t(_chain, _map, _vector, _time);
+    auto _chain_addr = kutil::expr_addr_to_obj_addr(_chain);
+    auto _map_addr = kutil::expr_addr_to_obj_addr(_map);
+    auto _vector_addr = kutil::expr_addr_to_obj_addr(_vector);
+
+    auto expiration = x86TofinoMemoryBank::expiration_t(_chain_addr, _map_addr,
+                                                        _vector_addr, _time);
 
     auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
     mb->set_expiration(expiration);

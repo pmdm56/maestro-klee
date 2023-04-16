@@ -10,7 +10,7 @@ namespace x86_tofino {
 
 class MapGet : public Module {
 private:
-  klee::ref<klee::Expr> map_addr;
+  obj_addr_t map_addr;
   klee::ref<klee::Expr> key;
   klee::ref<klee::Expr> map_has_this_key;
   klee::ref<klee::Expr> value_out;
@@ -21,7 +21,7 @@ public:
       : Module(ModuleType::x86_Tofino_MapGet, TargetType::x86_Tofino,
                "MapGet") {}
 
-  MapGet(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _map_addr,
+  MapGet(BDD::BDDNode_ptr node, obj_addr_t _map_addr,
          klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _map_has_this_key,
          klee::ref<klee::Expr> _value_out, BDD::symbols_t _generated_symbols)
       : Module(ModuleType::x86_Tofino_MapGet, TargetType::x86_Tofino, "MapGet",
@@ -31,7 +31,7 @@ public:
 
 private:
   bool check_compatible_placements_decisions(const ExecutionPlan &ep,
-                                             klee::ref<klee::Expr> obj) const {
+                                             obj_addr_t obj) const {
     auto mb = ep.get_memory_bank();
 
     if (!mb->has_placement_decision(obj)) {
@@ -57,12 +57,14 @@ private:
     assert(!call.ret.isNull());
     assert(!call.args[symbex::FN_MAP_ARG_OUT].out.isNull());
 
-    auto _map_addr = call.args[symbex::FN_MAP_ARG_MAP].expr;
+    auto _map = call.args[symbex::FN_MAP_ARG_MAP].expr;
     auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
     auto _map_has_this_key = call.ret;
     auto _value_out = call.args[symbex::FN_MAP_ARG_OUT].out;
 
     auto _generated_symbols = casted->get_local_generated_symbols();
+
+    auto _map_addr = kutil::expr_addr_to_obj_addr(_map);
 
     if (!check_compatible_placements_decisions(ep, _map_addr)) {
       return result;
@@ -101,11 +103,13 @@ private:
     assert(!call.args[symbex::FN_VECTOR_ARG_OUT].out.isNull());
     assert(!call.extra_vars[symbex::FN_VECTOR_EXTRA].second.isNull());
 
-    auto _vector_addr = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+    auto _vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
     auto _index = call.args[symbex::FN_VECTOR_ARG_INDEX].expr;
     auto _borrowed_cell = call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
 
     auto _generated_symbols = casted->get_local_generated_symbols();
+
+    auto _vector_addr = kutil::expr_addr_to_obj_addr(_vector);
 
     if (!check_compatible_placements_decisions(ep, _vector_addr)) {
       return result;
@@ -173,8 +177,7 @@ public:
 
     auto other_cast = static_cast<const MapGet *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(
-            map_addr, other_cast->get_map_addr())) {
+    if (map_addr != other_cast->get_map_addr()) {
       return false;
     }
 
@@ -196,7 +199,7 @@ public:
     return true;
   }
 
-  const klee::ref<klee::Expr> &get_map_addr() const { return map_addr; }
+  const obj_addr_t &get_map_addr() const { return map_addr; }
   const klee::ref<klee::Expr> &get_key() const { return key; }
   const klee::ref<klee::Expr> &get_map_has_this_key() const {
     return map_has_this_key;

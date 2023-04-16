@@ -88,6 +88,7 @@ public:
     Tofino_Drop,
     Tofino_SendToController,
     Tofino_SetupExpirationNotifications,
+    Tofino_RegisterRead,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
     x86_Tofino_SendToTofino,
@@ -211,12 +212,13 @@ protected:
   // General useful queries
   bool query_contains_map_has_key(const BDD::Branch *node) const;
 
-  BDD::BDDNode_ptr
-  get_past_node_that_generates_symbol(const BDD::Node *current_node,
-                                      const std::string &symbol) const;
   std::vector<BDD::BDDNode_ptr>
   get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                          const std::string &function_name) const;
+  std::vector<BDD::BDDNode_ptr>
+  get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+                         const std::vector<std::string> &functions_names) const;
+
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;
@@ -226,7 +228,45 @@ protected:
   };
 
   dchain_config_t get_dchain_config(const BDD::BDD &bdd,
-                                    klee::ref<klee::Expr> dchain_addr);
+                                    obj_addr_t dchain_addr);
+
+  struct coalesced_data_t {
+    bool can_coalesce;
+
+    BDD::BDDNode_ptr map_get;
+    std::vector<BDD::BDDNode_ptr> vector_borrows;
+
+    coalesced_data_t() : can_coalesce(false) {}
+
+    std::unordered_set<obj_addr_t> get_objs() const {
+      std::unordered_set<obj_addr_t> objs;
+
+      assert(map_get);
+
+      auto node = static_cast<const BDD::Call *>(map_get.get());
+      auto call = node->get_call();
+      auto obj = call.args[symbex::FN_MAP_ARG_MAP].expr;
+      auto addr = kutil::expr_addr_to_obj_addr(obj);
+
+      objs.insert(addr);
+
+      for (auto vector_borrow : vector_borrows) {
+        assert(vector_borrow);
+
+        node = static_cast<const BDD::Call *>(vector_borrow.get());
+        call = node->get_call();
+        obj = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+        addr = kutil::expr_addr_to_obj_addr(obj);
+
+        objs.insert(addr);
+      }
+
+      return objs;
+    }
+  };
+
+  coalesced_data_t get_coalescing_data(const ExecutionPlan &ep,
+                                       BDD::BDDNode_ptr node) const;
 };
 
 } // namespace synapse

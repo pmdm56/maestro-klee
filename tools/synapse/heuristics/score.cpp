@@ -1,6 +1,7 @@
 #include "score.h"
 #include "../execution_plan/execution_plan.h"
 #include "../execution_plan/modules/modules.h"
+#include "../symbex.h"
 
 namespace synapse {
 
@@ -19,6 +20,7 @@ int Score::get_nr_merged_tables() const {
     nodes.erase(nodes.begin());
 
     auto module = node->get_module();
+
     if (module->get_type() == Module::ModuleType::BMv2_TableLookup) {
       auto tableLookup =
           static_cast<targets::bmv2::TableLookup *>(module.get());
@@ -28,6 +30,14 @@ int Score::get_nr_merged_tables() const {
       if (merged > 1) {
         num_merged_tables += merged;
       }
+    }
+
+    else if (module->get_type() == Module::ModuleType::Tofino_TableLookup) {
+      auto tableLookup =
+          static_cast<targets::tofino::TableLookup *>(module.get());
+
+      auto nodes = tableLookup->get_nodes();
+      num_merged_tables += nodes.size() - 1;
     }
 
     for (auto branch : node->get_next()) {
@@ -133,6 +143,87 @@ int Score::get_nr_switch_leaves() const {
   }
 
   return switch_leaves;
+}
+
+int Score::next_op_same_obj_in_switch() const {
+  auto target = execution_plan.get_current_platform();
+
+  if (target != TargetType::BMv2 && target != TargetType::Tofino) {
+    return 0;
+  }
+
+  auto next = execution_plan.get_next_node();
+
+  if (!next) {
+    return 0;
+  }
+
+  auto prev = next->get_prev();
+
+  if (!prev) {
+    return 0;
+  }
+
+  if (next->get_type() != BDD::Node::CALL ||
+      prev->get_type() != BDD::Node::CALL) {
+    return 0;
+  }
+
+  auto next_call = static_cast<const BDD::Call *>(next.get());
+  auto prev_call = static_cast<const BDD::Call *>(prev.get());
+
+  auto next_obj = symbex::get_obj_from_call(next_call);
+  auto prev_obj = symbex::get_obj_from_call(prev_call);
+
+  if (!next_obj.first || !prev_obj.first) {
+    return 0;
+  }
+
+  if (next_obj.second == prev_obj.second) {
+    return 1;
+  }
+
+  return 0;
+}
+
+int Score::next_op_is_stateful_in_switch() const {
+  auto target = execution_plan.get_current_platform();
+
+  if (target != TargetType::BMv2 && target != TargetType::Tofino) {
+    return 0;
+  }
+
+  auto next = execution_plan.get_next_node();
+
+  if (!next) {
+    return 0;
+  }
+
+  if (next->get_type() != BDD::Node::CALL) {
+    return 0;
+  }
+
+  auto next_call = static_cast<const BDD::Call *>(next.get());
+  auto call = next_call->get_call();
+
+  auto stateful_ops = std::vector<std::string>{
+      symbex::FN_MAP_GET,
+      symbex::FN_MAP_PUT,
+      symbex::FN_VECTOR_BORROW,
+      symbex::FN_VECTOR_RETURN,
+      symbex::FN_DCHAIN_ALLOCATE_NEW_INDEX,
+      symbex::FN_DCHAIN_REJUVENATE,
+      symbex::DCHAIN_IS_INDEX_ALLOCATED,
+  };
+
+  auto found_it =
+      std::find(stateful_ops.begin(), stateful_ops.end(), call.function_name);
+
+  if (found_it != stateful_ops.end()) {
+    return 1;
+  }
+
+  return 0;
 }
 
 } // namespace synapse

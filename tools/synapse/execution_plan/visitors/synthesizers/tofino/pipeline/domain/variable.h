@@ -53,6 +53,10 @@ public:
 
   void add_expr(klee::ref<klee::Expr> expr) { exprs.push_back(expr); }
 
+  void add_symbols(const std::vector<std::string> &symbols) {
+    vigor_symbols.insert(vigor_symbols.end(), symbols.begin(), symbols.end());
+  }
+
   void set_expr(klee::ref<klee::Expr> expr) {
     assert(exprs.size() == 0);
     return exprs.push_back(expr);

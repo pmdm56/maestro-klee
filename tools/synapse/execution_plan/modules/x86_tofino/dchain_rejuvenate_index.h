@@ -9,7 +9,7 @@ namespace x86_tofino {
 
 class DchainRejuvenateIndex : public Module {
 private:
-  klee::ref<klee::Expr> dchain_addr;
+  obj_addr_t dchain_addr;
   klee::ref<klee::Expr> index;
   klee::ref<klee::Expr> time;
 
@@ -18,8 +18,7 @@ public:
       : Module(ModuleType::x86_Tofino_DchainRejuvenateIndex,
                TargetType::x86_Tofino, "DchainRejuvenate") {}
 
-  DchainRejuvenateIndex(BDD::BDDNode_ptr node,
-                        klee::ref<klee::Expr> _dchain_addr,
+  DchainRejuvenateIndex(BDD::BDDNode_ptr node, obj_addr_t _dchain_addr,
                         klee::ref<klee::Expr> _index,
                         klee::ref<klee::Expr> _time)
       : Module(ModuleType::x86_Tofino_DchainRejuvenateIndex,
@@ -38,9 +37,10 @@ private:
       assert(!call.args[symbex::FN_DCHAIN_ARG_INDEX].expr.isNull());
       assert(!call.args[symbex::FN_DCHAIN_ARG_TIME].expr.isNull());
 
-      auto _dchain_addr = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
+      auto _dchain = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
       auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
       auto _time = call.args[symbex::FN_DCHAIN_ARG_TIME].expr;
+      auto _dchain_addr = kutil::expr_addr_to_obj_addr(_dchain);
 
       auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
       auto saved = mb->has_data_structure(_dchain_addr);
@@ -81,8 +81,7 @@ public:
 
     auto other_cast = static_cast<const DchainRejuvenateIndex *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(
-            dchain_addr, other_cast->get_dchain_addr())) {
+    if (dchain_addr != other_cast->get_dchain_addr()) {
       return false;
     }
 
@@ -99,7 +98,7 @@ public:
     return true;
   }
 
-  const klee::ref<klee::Expr> &get_dchain_addr() const { return dchain_addr; }
+  const obj_addr_t &get_dchain_addr() const { return dchain_addr; }
   const klee::ref<klee::Expr> &get_index() const { return index; }
   const klee::ref<klee::Expr> &get_time() const { return time; }
 };
