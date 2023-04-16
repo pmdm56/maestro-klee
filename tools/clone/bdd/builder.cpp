@@ -1,5 +1,9 @@
 #include "builder.hpp"
 #include "../pch.hpp"
+#include "concretize_symbols.h"
+#include "klee/Constraints.h"
+#include "retrieve_symbols.h"
+#include "solver_toolbox.h"
 
 
 using namespace BDD;
@@ -87,6 +91,20 @@ namespace Clone {
 				case Node::NodeType::CALL: {
 					auto call { static_cast<Call*>(curr.get()) };
 					assert(call->get_next());
+
+					klee::ConstraintManager cm;
+					for(auto c: call->get_node_constraints()) {
+						kutil::RetrieveSymbols retriever;
+						retriever.visit(c);
+						if(retriever.get_retrieved_strings().find("VIGOR_DEVICE") != retriever.get_retrieved_strings().end()) {
+							kutil::ConcretizeSymbols concretizer("VIGOR_DEVICE", input_port);
+							c = concretizer.visit(c);
+						}
+						cm.addConstraint(c);
+					}
+
+					call->set_constraints(cm);
+
 
 					auto next = call->get_next()->clone();
 					call->replace_next(next);
