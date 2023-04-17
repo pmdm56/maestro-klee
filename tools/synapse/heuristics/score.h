@@ -25,6 +25,7 @@ public:
     NumberOfNodes,
     NumberOfControllerNodes,
     NumberOfMergedTables,
+    NumberOfSimpleTables,
     Depth,
     ExactMatchNodes,
     ConsecutiveObjectOperationsInSwitch,
@@ -45,6 +46,7 @@ private:
 
   int get_nr_nodes() const;
   int get_nr_merged_tables() const;
+  int get_nr_simple_tables() const;
   int get_depth() const;
   int get_nr_switch_nodes() const;
   int get_nr_controller_nodes() const;
@@ -64,12 +66,15 @@ public:
         {NumberOfNodes, &Score::get_nr_nodes},
         {NumberOfMergedTables, &Score::get_nr_merged_tables},
         {NumberOfSwitchNodes, &Score::get_nr_switch_nodes},
+        {NumberOfSimpleTables, &Score::get_nr_simple_tables},
         {NumberOfSwitchLeaves, &Score::get_nr_switch_leaves},
         {NumberOfControllerNodes, &Score::get_nr_controller_nodes},
         {Depth, &Score::get_depth},
         {ExactMatchNodes, &Score::get_nr_exact_match_nodes},
-        {ConsecutiveObjectOperationsInSwitch, &Score::next_op_same_obj_in_switch},
-        {HasNextStatefulOperationInSwitch, &Score::next_op_is_stateful_in_switch},
+        {ConsecutiveObjectOperationsInSwitch,
+         &Score::next_op_same_obj_in_switch},
+        {HasNextStatefulOperationInSwitch,
+         &Score::next_op_is_stateful_in_switch},
     };
   }
 

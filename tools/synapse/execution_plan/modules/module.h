@@ -85,6 +85,7 @@ public:
     Tofino_TCPUDPModify,
     Tofino_IPv4TCPUDPChecksumsUpdate,
     Tofino_TableLookup,
+    Tofino_TableLookupSimple,
     Tofino_Drop,
     Tofino_SendToController,
     Tofino_SetupExpirationNotifications,

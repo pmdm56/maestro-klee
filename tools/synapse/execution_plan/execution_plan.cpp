@@ -449,6 +449,8 @@ ExecutionPlan ExecutionPlan::clone(BDD::BDD new_bdd) const {
   copy.id = counter++;
   copy.bdd = new_bdd;
 
+  copy.shared_memory_bank = shared_memory_bank->clone();
+
   for (auto it = memory_banks.begin(); it != memory_banks.end(); it++) {
     copy.memory_banks[it->first] = it->second->clone();
   }
@@ -480,11 +482,12 @@ ExecutionPlan ExecutionPlan::clone(bool deep) const {
 
   if (deep) {
     copy.bdd = copy.bdd.clone();
-    // FIXME: shouldn't we shallow copy if not deep?
   }
 
-  for (auto it = memory_banks.begin(); it != memory_banks.end(); it++) {
-    copy.memory_banks[it->first] = it->second->clone();
+  copy.shared_memory_bank = shared_memory_bank->clone();
+  for (auto ep_it = memory_banks.begin(); ep_it != memory_banks.end();
+       ep_it++) {
+    copy.memory_banks[ep_it->first] = ep_it->second->clone();
   }
 
   if (root) {

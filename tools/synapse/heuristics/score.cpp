@@ -48,6 +48,33 @@ int Score::get_nr_merged_tables() const {
   return num_merged_tables;
 }
 
+int Score::get_nr_simple_tables() const {
+  if (!execution_plan.get_root()) {
+    return 0;
+  }
+
+  auto num_simple_tables = 0;
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    auto module = node->get_module();
+
+    if (module->get_type() ==
+             Module::ModuleType::Tofino_TableLookupSimple) {
+      num_simple_tables++;
+    }
+
+    for (auto branch : node->get_next()) {
+      nodes.push_back(branch);
+    }
+  }
+
+  return num_simple_tables;
+}
+
 int Score::get_depth() const { return execution_plan.get_depth(); }
 
 int Score::get_nr_switch_nodes() const {

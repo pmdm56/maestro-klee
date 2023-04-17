@@ -23,7 +23,8 @@ public:
       : MemoryBank(mb), tables(mb.tables) {}
 
   void save_table(obj_addr_t obj_addr, const Module_ptr &table) {
-    assert(table->get_type() == Module::Tofino_TableLookup);
+    assert(table->get_type() == Module::Tofino_TableLookup ||
+           table->get_type() == Module::Tofino_TableLookupSimple);
     tables[obj_addr].push_back(table);
   }
 

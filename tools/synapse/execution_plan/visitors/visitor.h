@@ -76,6 +76,7 @@ class TCPUDPConsume;
 class TCPUDPModify;
 class IPv4TCPUDPChecksumsUpdate;
 class TableLookup;
+class TableLookupSimple;
 class RegisterRead;
 class Drop;
 class SendToController;
@@ -183,6 +184,7 @@ public:
   VISIT(targets::tofino::EthernetConsume)
   VISIT(targets::tofino::EthernetModify)
   VISIT(targets::tofino::TableLookup)
+  VISIT(targets::tofino::TableLookupSimple)
   VISIT(targets::tofino::RegisterRead)
   VISIT(targets::tofino::Drop)
   VISIT(targets::tofino::SendToController)

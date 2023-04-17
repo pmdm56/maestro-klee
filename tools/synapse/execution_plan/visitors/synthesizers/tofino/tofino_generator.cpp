@@ -401,6 +401,11 @@ void TofinoGenerator::visit(
   // TODO: implement
 }
 
+void TofinoGenerator::visit(const targets::tofino::TableLookupSimple *node) {
+  auto simple_table = static_cast<const targets::tofino::TableLookup *>(node);
+  visit(simple_table);
+}
+
 void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   assert(node);
 

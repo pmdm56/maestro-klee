@@ -20,6 +20,7 @@
 #include "send_to_controller.h"
 #include "setup_expiration_notifications.h"
 #include "table_lookup.h"
+#include "table_lookup_simple.h"
 #include "register_read.h"
 #include "tcpudp_consume.h"
 #include "tcpudp_modify.h"
@@ -50,6 +51,7 @@ public:
                    MODULE(TCPUDPModify),
                    MODULE(IPv4TCPUDPChecksumsUpdate),
                    MODULE(TableLookup),
+                   MODULE(TableLookupSimple),
                    MODULE(RegisterRead),
                    MODULE(Drop),
                    MODULE(SendToController),

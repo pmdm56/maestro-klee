@@ -33,6 +33,10 @@ const ip_protocol_t IP_PROTOCOLS_ICMP = 1;
 const ip_protocol_t IP_PROTOCOLS_TCP  = 6;
 const ip_protocol_t IP_PROTOCOLS_UDP  = 17;
 
+#define INT_ALLOCATOR_BITS 16
+#define INT_ALLOCATOR_CAPACITY 65536
+typedef bit<INT_ALLOCATOR_BITS> index_t;
+
 header cpu_h {
   bit<16> code_path;
   bit<7> pad0;

@@ -29,7 +29,7 @@ public:
     }
   };
 
-private:
+protected:
   std::string table_name;
   std::unordered_set<obj_addr_t> objs;
   std::vector<key_t> keys;
@@ -53,7 +53,28 @@ public:
         table_name(_table_name), objs(_objs), keys(_keys), params(_params),
         contains_symbols(_contains_symbols), nodes(_nodes) {}
 
-private:
+  /*
+    These additional constructors are for other modules who derive from
+    TableLookup, like TableLookupSimple (which does not try to perform table
+    merging and coalescing).
+  */
+  TableLookup(Module::ModuleType table_module_type,
+              const char *table_module_name)
+      : Module(table_module_type, TargetType::Tofino, table_module_name) {}
+
+  TableLookup(Module::ModuleType table_module_type,
+              const char *table_module_name, BDD::BDDNode_ptr node,
+              std::string _table_name,
+              const std::unordered_set<obj_addr_t> &_objs,
+              const std::vector<key_t> &_keys,
+              const std::vector<param_t> &_params,
+              const std::vector<BDD::symbol_t> &_contains_symbols,
+              const std::unordered_set<BDD::node_id_t> &_nodes)
+      : Module(table_module_type, TargetType::Tofino, table_module_name, node),
+        table_name(_table_name), objs(_objs), keys(_keys), params(_params),
+        contains_symbols(_contains_symbols), nodes(_nodes) {}
+
+protected:
   struct extracted_data_t {
     bool valid;
     std::string fname;
@@ -170,8 +191,8 @@ private:
   }
 
   bool check_compatible_placements_decisions(
-      const ExecutionPlan &ep,
-      const std::unordered_set<obj_addr_t> &objs) const {
+      const ExecutionPlan &ep, const std::unordered_set<obj_addr_t> &objs,
+      PlacementDecision placement) const {
     auto mb = ep.get_memory_bank();
 
     for (auto obj : objs) {
@@ -179,7 +200,7 @@ private:
         continue;
       }
 
-      if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
+      if (mb->check_placement_decision(obj, placement)) {
         continue;
       }
 
@@ -191,11 +212,11 @@ private:
 
   void save_decision(const ExecutionPlan &ep,
                      const std::unordered_set<obj_addr_t> &objs,
-                     Module_ptr new_table) {
+                     Module_ptr new_table, PlacementDecision placement) {
     auto mb = ep.get_memory_bank();
 
     for (const auto &obj : objs) {
-      mb->save_placement_decision(obj, PlacementDecision::TofinoTable);
+      mb->save_placement_decision(obj, placement);
 
       auto tmb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
       tmb->save_table(obj, new_table);
@@ -369,7 +390,10 @@ private:
 
     // Find the right table to reuse
     for (auto table_module : tables_modules) {
-      assert(table_module->get_type() == ModuleType::Tofino_TableLookup);
+      if (table_module->get_type() != ModuleType::Tofino_TableLookup) {
+        continue;
+      }
+
       auto table = static_cast<TableLookup *>(table_module.get());
 
       if (!match(table, extracted_data)) {
@@ -393,6 +417,28 @@ private:
     return prev_tables;
   }
 
+  virtual std::string
+  build_table_name(const std::unordered_set<BDD::node_id_t> &_node_ids) const {
+    // Use a counter to avoid name collision.
+
+    static int counter = 0;
+    std::stringstream table_label_builder;
+
+    table_label_builder << "table";
+
+    for (auto node_id : _node_ids) {
+      table_label_builder << "_";
+      table_label_builder << node_id;
+    }
+
+    table_label_builder << "_";
+    table_label_builder << counter;
+
+    counter++;
+
+    return table_label_builder.str();
+  }
+
   bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                const BDD::Call *casted, const extracted_data_t data,
                processing_result_t &result) {
@@ -402,12 +448,22 @@ private:
         node, _table_name, data.objs, data.keys, data.values,
         data.contains_symbols, data.node_ids);
 
-    save_decision(ep, data.objs, new_module);
-
     auto new_ep = ep.add_leaves(new_module, node->get_next());
+
+    auto mb = ep.get_memory_bank();
+    auto has_placement = mb->has_placement_decision(*data.objs.begin());
+
+    save_decision(new_ep, data.objs, new_module,
+                  PlacementDecision::TofinoTable);
 
     result.module = new_module;
     result.next_eps.push_back(new_ep);
+
+    if (!has_placement) {
+      assert(!mb->has_placement_decision(*data.objs.begin()));
+      auto mb2 = ep.get_memory_bank();
+      assert(!mb2->has_placement_decision(*data.objs.begin()));
+    }
 
     return true;
   }
@@ -428,7 +484,8 @@ private:
       return result;
     }
 
-    if (!check_compatible_placements_decisions(ep, extracted_data.objs)) {
+    if (!check_compatible_placements_decisions(
+            ep, extracted_data.objs, PlacementDecision::TofinoTable)) {
       return result;
     }
 
@@ -456,14 +513,20 @@ private:
 
     auto can_coalesce =
         coalesced_data.can_coalesce &&
-        check_compatible_placements_decisions(ep, coalesced_data.get_objs());
+        check_compatible_placements_decisions(ep, coalesced_data.get_objs(),
+                                              PlacementDecision::TofinoTable);
 
     if (can_coalesce) {
       merge_coalesced_data(extracted_data, coalesced_data, prev_tables);
-      remember_to_ignore_coalesced(ep, coalesced_data);
     }
 
     process(ep, node, casted, extracted_data, result);
+
+    if (can_coalesce && result.module) {
+      assert(result.next_eps.size());
+      auto &new_ep = result.next_eps.back();
+      remember_to_ignore_coalesced(new_ep, coalesced_data);
+    }
 
     return result;
   }
@@ -622,28 +685,6 @@ public:
 
   void add_params(const std::vector<param_t> &other_params) {
     add_to_params(params, other_params);
-  }
-
-  static std::string
-  build_table_name(const std::unordered_set<BDD::node_id_t> &_node_ids) {
-    // Use a counter to avoid name collision.
-
-    static int counter = 0;
-    std::stringstream table_label_builder;
-
-    table_label_builder << "table";
-
-    for (auto node_id : _node_ids) {
-      table_label_builder << "_";
-      table_label_builder << node_id;
-    }
-
-    table_label_builder << "_";
-    table_label_builder << counter;
-
-    counter++;
-
-    return table_label_builder.str();
   }
 
   static void add_to_params(std::vector<param_t> &dst,

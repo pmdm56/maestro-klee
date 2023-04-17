@@ -45,6 +45,7 @@ public:
   void visit(const targets::tofino::TCPUDPModify *node) override;
   void visit(const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) override;
   void visit(const targets::tofino::TableLookup *node) override;
+  void visit(const targets::tofino::TableLookupSimple *node) override;
   void visit(const targets::tofino::Drop *node) override;
   void visit(const targets::tofino::Ignore *node) override;
   void visit(const targets::tofino::SendToController *node) override;

@@ -542,6 +542,11 @@ void Graphviz::visit(const targets::tofino::TableLookup *node) {
   function_call(target, label);
 }
 
+void Graphviz::visit(const targets::tofino::TableLookupSimple *node) {
+  auto simple_table = static_cast<const targets::tofino::TableLookup *>(node);
+  visit(simple_table);
+}
+
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::RegisterRead)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Drop)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::SendToController)

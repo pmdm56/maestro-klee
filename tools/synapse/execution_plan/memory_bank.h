@@ -27,8 +27,9 @@ struct reorder_data_t {
 };
 
 enum PlacementDecision {
-  TofinoTable,
-  TofinoRegister,
+  TofinoTable = 1,
+  TofinoTableSimple = 2,
+  TofinoRegister = 3,
 };
 
 class MemoryBank {
