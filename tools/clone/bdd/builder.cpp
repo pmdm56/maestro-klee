@@ -28,15 +28,17 @@ namespace Clone {
 		assert(root);
 
 		stack<BDDNode_ptr> s;
+		stack<unsigned> borrow_counters;
 
 		Tails tails;
 		s.push(root);
-
-		unsigned borrow_counter = 0;
+		borrow_counters.push(0);
 
 		while(!s.empty()) {
 			auto curr = s.top();
+			unsigned borrow_counter = borrow_counters.top();
 			s.pop();
+			borrow_counters.pop();
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -74,10 +76,12 @@ namespace Clone {
 					if(!maybe_true) {
 						trim_node(curr, next_false);
 						s.push(next_false);
+						borrow_counters.push(borrow_counter);
 					}
 					else if(!maybe_false) {
 						trim_node(curr, next_true);
 						s.push(next_true);
+						borrow_counters.push(borrow_counter);
 					}
 					else {
 						branch->add_on_true(next_true);
@@ -87,6 +91,8 @@ namespace Clone {
 						branch->add_on_false(next_false);
 						next_false->replace_prev(curr);
 						s.push(next_false);
+						borrow_counters.push(borrow_counter);
+						borrow_counters.push(borrow_counter);
 					}
 
 					break;
@@ -120,6 +126,7 @@ namespace Clone {
 					call->replace_next(next);
 					next->replace_prev(curr);
 					s.push(next);
+					borrow_counters.push(borrow_counter);
 
 					break;
 				}

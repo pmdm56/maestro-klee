@@ -1074,7 +1074,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     hdr_expr = call.extra_vars["the_chunk"].second;
 
-    Variable_ptr hdr_var = Variable::build(hdr_symbol, hdr_type);
+    Variable_ptr hdr_var = Variable::build(hdr_symbol  + "_" + std::to_string(counter_borrows++), hdr_type);
     hdr_var->set_addr(hdr_addr);
 
     VariableDecl_ptr hdr_decl = VariableDecl::build(hdr_var);
@@ -1089,7 +1089,6 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     auto p_casted = Cast::build(p_offseted, hdr_type);
     auto p_offseted_assignment = Assignment::build(hdr_decl, p_casted);
     exprs.push_back(p_offseted_assignment);
-    hdr_var->change_symbol(hdr_var->get_symbol() + "_" + std::to_string(counter_borrows++));
     push_to_local(hdr_var, hdr_expr);
   } else if (fname == "packet_get_unread_length") {
     Variable_ptr p = get_from_local("p");
