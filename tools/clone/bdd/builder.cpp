@@ -2,6 +2,7 @@
 #include "../pch.hpp"
 #include "concretize_symbols.h"
 #include "klee/Constraints.h"
+#include "load-call-paths.h"
 #include "retrieve_symbols.h"
 #include "solver_toolbox.h"
 
@@ -30,6 +31,8 @@ namespace Clone {
 
 		Tails tails;
 		s.push(root);
+
+		unsigned borrow_counter = 0;
 
 		while(!s.empty()) {
 			auto curr = s.top();
@@ -103,8 +106,15 @@ namespace Clone {
 						cm.addConstraint(c);
 					}
 
-					call->set_constraints(cm);
+					call_t function_call = call->get_call();
+					if(function_call.function_name == "packet_borrow_next_chunk") {
+						auto borrow_type { solver_toolbox.create_new_symbol("BORROW_TYPE", 8) };
+						auto value { solver_toolbox.exprBuilder->Constant(++borrow_counter, borrow_type->getWidth()) };
+						auto eq { solver_toolbox.exprBuilder->Eq(borrow_type, value) };
+						cm.addConstraint(eq);
+					}
 
+					call->set_constraints(cm);
 
 					auto next = call->get_next()->clone();
 					call->replace_next(next);

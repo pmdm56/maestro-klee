@@ -1,4 +1,6 @@
 #include "ast.h"
+#include "klee/Expr.h"
+#include "retrieve_symbols.h"
 
 constexpr char AST::CHUNK_LAYER_2[];
 constexpr char AST::CHUNK_LAYER_3[];
@@ -489,6 +491,7 @@ void AST::push_to_local(Variable_ptr var) {
 }
 
 void AST::push_to_local(Variable_ptr var, klee::ref<klee::Expr> expr) {
+  std::cout << var->get_symbol() << std::endl;
   assert(get_from_local(var->get_symbol()) == nullptr);
   assert(local_variables.size() > 0);
   local_variables.back().push_back(std::make_pair(var, expr));
@@ -941,6 +944,8 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
   bool check_write_attempt = false;
   bool write_attempt = false;
 
+  static int counter_borrows = 0;
+
   if (fname == "current_time") {
     associate_expr_to_local("now", call.ret);
     ignore = true;
@@ -959,8 +964,20 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     std::string hdr_symbol;
     klee::ref<klee::Expr> hdr_expr;
 
-    switch (layer.back()) {
-    case 2: {
+    int layer_num = 0;
+
+    for(auto &c: bdd_call->get_node_constraints()) {
+      if(kutil::RetrieveSymbols::contains(c, "BORROW_TYPE")) {
+        assert(c->getNumKids() == 2);
+        auto val_symbol = static_cast<klee::ConstantExpr*>(c->getKid(1).get());
+        layer_num = val_symbol->getZExtValue();
+      }
+    }
+
+    assert(layer_num != 0);
+
+    switch (layer_num) {
+    case 1: {
       Array_ptr _uint8_t_6 = Array::build(
           PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T), 6);
 
@@ -984,7 +1001,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       layer.back()++;
       break;
     }
-    case 3: {
+    case 2: {
       std::vector<Variable_ptr> ipv4_hdr_fields{
           Variable::build(
               "version_ihl",
@@ -1025,6 +1042,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       layer.back()++;
       break;
     }
+    case 3:
     case 4: {
       if (pkt_len->get_kind() != Node::NodeKind::CONSTANT) {
         hdr_type = Pointer::build(
@@ -1071,6 +1089,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     auto p_casted = Cast::build(p_offseted, hdr_type);
     auto p_offseted_assignment = Assignment::build(hdr_decl, p_casted);
     exprs.push_back(p_offseted_assignment);
+    hdr_var->change_symbol(hdr_var->get_symbol() + "_" + std::to_string(counter_borrows++));
     push_to_local(hdr_var, hdr_expr);
   } else if (fname == "packet_get_unread_length") {
     Variable_ptr p = get_from_local("p");
