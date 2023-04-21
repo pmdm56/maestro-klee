@@ -211,6 +211,8 @@ set(NEEDED_LLVM_VARS
   TARGET_TRIPLE
 )
 
+set(LLVM_ENABLE_RTTI ON)
+
 foreach (vname ${NEEDED_LLVM_VARS})
   message(STATUS "${vname}: \"${${vname}}\"")
   if (NOT (DEFINED "${vname}"))
