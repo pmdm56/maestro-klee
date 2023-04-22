@@ -29,7 +29,7 @@ namespace Clone {
 	public:
 		~Builder();
 
-		static std::unique_ptr<Builder> create();
+		static std::shared_ptr<Builder> create();
 
 		bool is_init_empty() const;
 		bool is_process_empty() const;

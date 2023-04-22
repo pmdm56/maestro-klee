@@ -27,7 +27,6 @@ namespace Clone {
 	typedef std::unordered_set<NodePtr> NodeSet;
 	typedef std::unordered_map<std::string, NodePtr> NodeMap;
 
-
 	struct NodeTransition {
 		unsigned input_port;
 		NodePtr node;
@@ -46,10 +45,10 @@ namespace Clone {
 		NodeMap nodes;
 		NodeSet sources;
 
-		const std::unique_ptr<Builder> builder = Builder::create();
+		std::shared_ptr<Builder> builder;
 
 		Network(Devices &&devices, NFs &&nfs, Links &&links);
-		
+
 		void build_graph();
 		void explore_source(const std::shared_ptr<Node> &origin);
 		void traverse(unsigned device_port, const std::shared_ptr<Node> &origin, unsigned nf_port);
@@ -58,7 +57,7 @@ namespace Clone {
 		~Network();
 
 		static std::unique_ptr<Network> create(Devices &&devices, NFs &&nfs, Links &&links);
-		
+
 		void consolidate();
 		void print() const;
 	};

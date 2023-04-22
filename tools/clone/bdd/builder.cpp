@@ -188,9 +188,9 @@ namespace Clone {
 
 	/* Static methods */
 
-	unique_ptr<Builder> Builder::create() {
+	shared_ptr<Builder> Builder::create() {
 		auto builder { new Builder(unique_ptr<BDD::BDD>(new BDD::BDD())) };
-		return unique_ptr<Builder>(move(builder));
+		return shared_ptr<Builder>(move(builder));
 	}
 
 	/* Public methods */

@@ -3,6 +3,7 @@
 
 //#include "call-paths-to-bdd.h"
 
+#include "bdd/visitors/graphviz-generator.h"
 #include "device.hpp"
 #include "nf.hpp"
 #include "link.hpp"
@@ -107,14 +108,10 @@ namespace Clone {
 				} 
 				else {
 					builder->replace_with_drop(tail);
-					// replace with drop
 				}
 			}
-
 		}
-		auto file = std::ofstream("graph.gv");
-		BDD::GraphvizGenerator g(file);
-		g.visualize(*builder->get_bdd(), false, false);
+		BDD::GraphvizGenerator::visualize(*builder->get_bdd(), false, false);
 	}
 
 	void Network::print_graph() const {
@@ -133,7 +130,7 @@ namespace Clone {
 		if(devices.size() == 0) danger("No devices found");
 		if(nfs.size() == 0)	danger("No NFs found");
 		if(links.size() == 0) danger("No links found");
-		
+
 		unordered_map<string, shared_ptr<const BDD::BDD>> bdds;
 
 		for (auto it = nfs.begin(); it != nfs.end(); ++it) {
@@ -151,18 +148,20 @@ namespace Clone {
 		return unique_ptr<Network>(new Network(move(devices), move(nfs), move(links)));
 	}
 
-
 	/* Public methods */
 	void Network::consolidate() {
 		build_graph();
-				
-		for(auto &source: sources) {			
+
+		vector<shared_ptr<Builder>> builders(sources.size());
+
+		for(const shared_ptr<Node> &source: sources) {			
 			assert(source->get_node_type() == NodeType::DEVICE);
 			info("Traversing source: ", source->get_name());
+			builder = Builder::create();
 			explore_source(source);
+			builder->dump(source->get_name() + ".bdd");
+			builders.push_back(builder);
 		}
-
-		builder->dump("output.bdd");
 	}
 
 	void Network::print() const {
