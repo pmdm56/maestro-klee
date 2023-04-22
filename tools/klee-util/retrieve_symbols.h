@@ -1,5 +1,6 @@
 #pragma once
 
+#include "klee/Expr.h"
 #include "klee/ExprBuilder.h"
 #include "klee/util/ExprSMTLIBPrinter.h"
 #include "klee/util/ExprVisitor.h"
