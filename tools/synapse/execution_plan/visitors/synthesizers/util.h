@@ -49,9 +49,6 @@ public:
 bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
                                       synapse::TargetType target);
 
-bool has_label(BDD::symbols_t symbols, std::string base);
-std::string get_label(BDD::symbols_t symbols, std::string base);
-BDD::symbol_t get_symbol(BDD::symbols_t symbols, std::string base);
 bool is_primitive_type(bits_t size);
 
 } // namespace synthesizer

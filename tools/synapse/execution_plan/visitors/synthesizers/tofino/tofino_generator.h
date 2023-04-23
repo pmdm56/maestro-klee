@@ -2,6 +2,7 @@
 
 #include "../../../../log.h"
 #include "../../../execution_plan.h"
+#include "../../../modules/tofino/data_structures/data_structures.h"
 #include "../synthesizer.h"
 #include "constants.h"
 #include "pipeline/pipeline.h"
@@ -44,11 +45,14 @@ public:
   void visit(const targets::tofino::TCPUDPConsume *node) override;
   void visit(const targets::tofino::TCPUDPModify *node) override;
   void visit(const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) override;
-  void visit(const targets::tofino::TableLookup *node) override;
-  void visit(const targets::tofino::TableLookupSimple *node) override;
   void visit(const targets::tofino::Drop *node) override;
   void visit(const targets::tofino::Ignore *node) override;
   void visit(const targets::tofino::SendToController *node) override;
+  void visit(const targets::tofino::TableLookup *node) override;
+  void visit(const targets::tofino::TableLookupSimple *node) override;
+  void visit(const targets::tofino::IntegerAllocatorAllocate *node) override;
+  void visit(const targets::tofino::IntegerAllocatorRejuvenate *node) override;
+  void visit(const targets::tofino::IntegerAllocatorQuery *node) override;
 
   std::string transpile(klee::ref<klee::Expr> expr);
 
@@ -56,6 +60,10 @@ public:
   variable_query_t search_variable(klee::ref<klee::Expr> expr) const;
 
 private:
+  void allocate_state(const ExecutionPlan &ep);
+  void allocate_table(const targets::tofino::Table *table);
+  void allocate_int_allocator(
+      const targets::tofino::IntegerAllocator *int_allocator);
   void
   visit_if_multiple_conditions(std::vector<klee::ref<klee::Expr>> conditions);
   void visit_if_simple_condition(klee::ref<klee::Expr> condition);

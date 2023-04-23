@@ -10,6 +10,8 @@
 #include "domain/table.h"
 #include "domain/variable.h"
 
+#include "data_structures/int_allocator.h"
+
 #include "headers.h"
 
 namespace synapse {
@@ -21,7 +23,9 @@ private:
   Variables intrinsic_metadata;
   Variables user_metadata;
   Variables key_bytes;
+
   tables_t tables;
+  integer_allocators_t int_allocators;
 
 public:
   CodeBuilder state_builder;
@@ -139,8 +143,9 @@ public:
     return key_bytes[byte];
   }
 
-  Variable allocate_meta_param(const std::string &table_label, int param_num,
-                               std::vector<klee::ref<klee::Expr>> meta_params) {
+  Variable
+  allocate_meta_param(const std::string &table_label, int param_num,
+                      const std::vector<klee::ref<klee::Expr>> &meta_params) {
     std::stringstream meta_param_label_builder;
 
     meta_param_label_builder << table_label;
@@ -174,8 +179,73 @@ public:
     return meta_param_var;
   }
 
+  Variable allocate_meta(const std::string &label,
+                         const std::vector<klee::ref<klee::Expr>> &meta_exprs) {
+    assert(meta_exprs.size() > 0);
+
+    auto size_bits = meta_exprs[0]->getWidth();
+    auto meta_var = Variable(label, size_bits);
+
+    auto found_it =
+        std::find(user_metadata.begin(), user_metadata.end(), meta_var);
+
+    if (found_it != user_metadata.end()) {
+      for (auto expr : meta_exprs) {
+        found_it->add_expr(expr);
+      }
+      return *found_it;
+    }
+
+    meta_var.set_prefix(INGRESS_USER_METADATA_VARIABLE);
+
+    for (auto expr : meta_exprs) {
+      meta_var.add_expr(expr);
+    }
+
+    user_metadata.push_back(meta_var);
+    return meta_var;
+  }
+
+  Variable allocate_meta(const std::string &label, bits_t size) {
+    auto meta_var = Variable(label, size);
+
+    auto found_it =
+        std::find(user_metadata.begin(), user_metadata.end(), meta_var);
+
+    if (found_it != user_metadata.end()) {
+      return *found_it;
+    }
+
+    meta_var.set_prefix(INGRESS_USER_METADATA_VARIABLE);
+    user_metadata.push_back(meta_var);
+
+    return meta_var;
+  }
+
   Variable allocate_local_auxiliary(const std::string &base_label,
                                     bits_t size) {
+    std::vector<klee::ref<klee::Expr>> exprs;
+    std::vector<std::string> labels;
+    return allocate_local_auxiliary(base_label, size, exprs, labels);
+  }
+
+  Variable allocate_local_auxiliary(const std::string &base_label, bits_t size,
+                                    const BDD::symbols_t &symbols) {
+    std::vector<klee::ref<klee::Expr>> exprs;
+    std::vector<std::string> labels;
+
+    for (auto symbol : symbols) {
+      exprs.push_back(symbol.expr);
+      labels.push_back(symbol.label);
+    }
+
+    return allocate_local_auxiliary(base_label, size, exprs, labels);
+  }
+
+  Variable
+  allocate_local_auxiliary(const std::string &base_label, bits_t size,
+                           const std::vector<klee::ref<klee::Expr>> exprs,
+                           const std::vector<std::string> &symbols) {
     variable_query_t local_var_query;
     std::stringstream label_builder;
     int counter = -1;
@@ -194,6 +264,14 @@ public:
     auto label = label_builder.str();
     auto var = Variable(label, size);
 
+    if (symbols.size()) {
+      var.add_symbols(symbols);
+    }
+
+    for (auto expr : exprs) {
+      var.add_expr(expr);
+    }
+
     local_vars.append(var);
 
     return var;
@@ -201,9 +279,37 @@ public:
 
   void add_table(const table_t &table) { tables.insert(table); }
 
+  const table_t &get_table(const std::string &label) const {
+    auto it =
+        std::find_if(tables.begin(), tables.end(), [&](const table_t &table) {
+          return table.get_label() == label;
+        });
+
+    assert(it != tables.end());
+    return *it;
+  }
+
+  void add_integer_allocator(const integer_allocator_t &int_allocator) {
+    int_allocators.insert(int_allocator);
+  }
+
+  const integer_allocator_t &get_int_allocator(obj_addr_t obj) const {
+    auto it = std::find_if(int_allocators.begin(), int_allocators.end(),
+                           [&](const integer_allocator_t &int_allocator) {
+                             return int_allocator.dchain == obj;
+                           });
+
+    assert(it != int_allocators.end());
+    return *it;
+  }
+
   void synthesize_state(std::ostream &os) {
     for (const auto &table : tables) {
-      table.synthesize(state_builder);
+      table.synthesize_declaration(state_builder);
+    }
+
+    for (const auto &int_allocator : int_allocators) {
+      int_allocator.synthesize_declaration(state_builder);
     }
 
     state_builder.dump(os);

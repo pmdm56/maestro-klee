@@ -21,7 +21,6 @@ public:
     functions_to_ignore = {
         {symbex::FN_CURRENT_TIME, &Ignore::always_ignore},
         {symbex::FN_ETHER_HASH, &Ignore::always_ignore},
-        {symbex::FN_DCHAIN_REJUVENATE, &Ignore::always_ignore},
         {symbex::FN_VECTOR_RETURN, &Ignore::read_only_vector_op},
     };
   }

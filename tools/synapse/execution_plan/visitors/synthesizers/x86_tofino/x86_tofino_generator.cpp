@@ -88,7 +88,8 @@ bool get_dataplane_table_names(const ExecutionPlan &ep, obj_addr_t obj,
     auto obj_tables = tmb->get_obj_tables(obj);
     for (auto table : obj_tables) {
       auto t = static_cast<const targets::tofino::TableLookup *>(table.get());
-      auto table_name = t->get_table_name();
+      auto _table = t->get_table();
+      auto table_name = _table->get_name();
       table_names.insert(table_name);
     }
 

@@ -18,6 +18,16 @@ public:
                TargetType::Tofino, "SetupExpirationNotifications", node) {}
 
 private:
+  void remember_expiration_data(const ExecutionPlan &ep,
+                                klee::ref<klee::Expr> time,
+                                const BDD::symbol_t &number_of_freed_flows) {
+    // TODO: get expiration time from time expression
+    expiration_data_t expiration_data(0, number_of_freed_flows);
+
+    auto mb = ep.get_memory_bank();
+    mb->set_expiration_data(expiration_data);
+  }
+
   processing_result_t process_call(const ExecutionPlan &ep,
                                    BDD::BDDNode_ptr node,
                                    const BDD::Call *casted) override {
@@ -38,10 +48,12 @@ private:
     auto _vector_addr = call.args[symbex::FN_EXPIRE_MAP_ARG_VECTOR].expr;
     auto _map_addr = call.args[symbex::FN_EXPIRE_MAP_ARG_MAP].expr;
     auto _time = call.args[symbex::FN_EXPIRE_MAP_ARG_TIME].expr;
-    auto _number_of_freed_flows = call.ret;
+    auto _generated_symbols = casted->get_local_generated_symbols();
 
-    // we should ignore this, but remember the expiration setup
-    // TODO:
+    assert(_generated_symbols.size() == 1);
+    auto _number_of_freed_flows = *_generated_symbols.begin();
+
+    remember_expiration_data(ep, _time, _number_of_freed_flows);
 
     auto new_module = std::make_shared<Ignore>(node);
     auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::Tofino);

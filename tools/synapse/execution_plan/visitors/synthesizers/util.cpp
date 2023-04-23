@@ -1,4 +1,5 @@
 #include "util.h"
+#include "../../../log.h"
 #include "../../../symbex.h"
 #include "../../execution_plan_node.h"
 #include "../../modules/module.h"
@@ -49,35 +50,10 @@ bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
   return false;
 }
 
-bool has_label(BDD::symbols_t symbols, std::string base) {
-  auto found_it = std::find_if(
-      symbols.begin(), symbols.end(),
-      [&](const BDD::symbol_t &symbol) { return symbol.label_base == base; });
-
-  return found_it != symbols.end();
-}
-
-std::string get_label(BDD::symbols_t symbols, std::string base) {
-  auto found_it = std::find_if(
-      symbols.begin(), symbols.end(),
-      [&](const BDD::symbol_t &symbol) { return symbol.label_base == base; });
-
-  assert(found_it != symbols.end());
-  return found_it->label;
-}
-
-BDD::symbol_t get_symbol(BDD::symbols_t symbols, std::string base) {
-  auto found_it = std::find_if(
-      symbols.begin(), symbols.end(),
-      [&](const BDD::symbol_t &symbol) { return symbol.label_base == base; });
-
-  assert(found_it != symbols.end());
-  return *found_it;
-}
-
 bool is_primitive_type(bits_t size) {
   return size == 8 || size == 16 || size == 32 || size == 64;
 }
+
 
 } // namespace synthesizer
 } // namespace synapse

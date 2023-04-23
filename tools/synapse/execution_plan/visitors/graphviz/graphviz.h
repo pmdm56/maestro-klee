@@ -43,7 +43,8 @@ private:
     search_space_fpath = get_rand_fname();
   }
 
-  void function_call(TargetType target, std::string label);
+  void function_call(BDD::BDDNode_ptr node, TargetType target,
+                     std::string label);
 
   struct rgb_t {
     int r;
@@ -150,6 +151,9 @@ public:
   DECLARE_VISIT(targets::tofino::TableLookup)
   DECLARE_VISIT(targets::tofino::TableLookupSimple)
   DECLARE_VISIT(targets::tofino::RegisterRead)
+  DECLARE_VISIT(targets::tofino::IntegerAllocatorAllocate)
+  DECLARE_VISIT(targets::tofino::IntegerAllocatorRejuvenate)
+  DECLARE_VISIT(targets::tofino::IntegerAllocatorQuery)
   DECLARE_VISIT(targets::tofino::Drop)
   DECLARE_VISIT(targets::tofino::SendToController)
   DECLARE_VISIT(targets::tofino::SetupExpirationNotifications)

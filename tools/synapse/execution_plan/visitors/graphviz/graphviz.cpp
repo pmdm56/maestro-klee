@@ -15,7 +15,7 @@
 
 #define DEFAULT_VISIT_PRINT_MODULE_NAME(M)                                     \
   void Graphviz::visit(const M *node) {                                        \
-    function_call(node->get_target(), node->get_name());                       \
+    function_call(node->get_node(), node->get_target(), node->get_name());     \
   }
 
 namespace synapse {
@@ -90,9 +90,18 @@ void Graphviz::open() {
   system(cmd.c_str());
 }
 
-void Graphviz::function_call(TargetType target, std::string label) {
+void Graphviz::function_call(BDD::BDDNode_ptr node, TargetType target,
+                             std::string label) {
   assert(node_colors.find(target) != node_colors.end());
-  ofs << "[label=\"" << label << "\", ";
+  ofs << "[label=\"";
+
+  if (node) {
+    ofs << "[";
+    ofs << node->get_id();
+    ofs << "] ";
+  }
+
+  ofs << label << "\", ";
   ofs << "color=" << node_colors[target] << "];";
   ofs << "\n";
 }
@@ -435,6 +444,7 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Ignore)
 void Graphviz::visit(const targets::tofino::If *node) {
   std::stringstream label_builder;
 
+  auto bdd_node = node->get_node();
   auto target = node->get_target();
   auto conditions = node->get_conditions();
 
@@ -453,7 +463,7 @@ void Graphviz::visit(const targets::tofino::If *node) {
   auto label = label_builder.str();
   find_and_replace(label, {{"\n", "\n"}});
 
-  function_call(target, label);
+  function_call(bdd_node, target, label);
 }
 
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IfHeaderValid)
@@ -473,19 +483,20 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4TCPUDPChecksumsUpdate)
 void Graphviz::visit(const targets::tofino::TableLookup *node) {
   std::stringstream label_builder;
 
+  auto bdd_node = node->get_node();
   auto target = node->get_target();
   auto name = node->get_name();
 
-  auto table_name = node->get_table_name();
-  auto nodes = node->get_nodes();
-  auto objs = node->get_objs();
-  auto keys = node->get_keys();
-  auto params = node->get_params();
-  auto contains = node->get_contains_symbols();
+  auto table = node->get_table();
+  auto nodes = table->get_nodes();
+  auto objs = table->get_objs();
+  auto keys = table->get_keys();
+  auto params = table->get_params();
+  auto contains = table->get_hit();
 
   label_builder << name << "\n";
 
-  label_builder << "  table: " << table_name << "\n";
+  label_builder << "  table: " << table->get_name() << "\n";
 
   label_builder << "  nodes: [";
   for (auto node : nodes) {
@@ -504,8 +515,12 @@ void Graphviz::visit(const targets::tofino::TableLookup *node) {
     label_builder << "\n";
     label_builder << "    ";
     label_builder << "[";
-    for (auto meta : key.meta) {
-      label_builder << meta.symbol << ",";
+    if (key.meta.size()) {
+      for (auto meta : key.meta) {
+        label_builder << meta.symbol << ",";
+      }
+    } else {
+      label_builder << kutil::expr_to_string(key.expr, true) << ",";
     }
     label_builder << "]";
   }
@@ -515,18 +530,18 @@ void Graphviz::visit(const targets::tofino::TableLookup *node) {
   for (auto param : params) {
     label_builder << "\n";
     label_builder << "    ";
-    label_builder << "[";
+    label_builder << "\\{";
     label_builder << "objs:[";
     for (auto obj : param.objs) {
       label_builder << obj << ",";
     }
     label_builder << "]";
-    label_builder << "exprs:[";
+    label_builder << ",exprs:[";
     for (auto expr : param.exprs) {
       label_builder << kutil::expr_to_string(expr, true) << ",";
     }
     label_builder << "]";
-    label_builder << "]";
+    label_builder << "\\}";
   }
   label_builder << "]\n";
 
@@ -539,7 +554,7 @@ void Graphviz::visit(const targets::tofino::TableLookup *node) {
   auto label = label_builder.str();
   find_and_replace(label, {{"\n", "\\l"}});
 
-  function_call(target, label);
+  function_call(bdd_node, target, label);
 }
 
 void Graphviz::visit(const targets::tofino::TableLookupSimple *node) {
@@ -548,6 +563,9 @@ void Graphviz::visit(const targets::tofino::TableLookupSimple *node) {
 }
 
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::RegisterRead)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IntegerAllocatorAllocate)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IntegerAllocatorRejuvenate)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IntegerAllocatorQuery)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Drop)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::SendToController)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)

@@ -52,7 +52,112 @@ TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   return variable_query_t();
 }
 
+void TofinoGenerator::allocate_table(const targets::tofino::Table *_table) {
+  assert(_table);
+
+  auto table_name = _table->get_name();
+  auto keys = _table->get_keys();
+  auto params = _table->get_params();
+
+  // TODO: get table size
+  auto size = 1024;
+
+  assert(keys.size());
+
+  std::vector<std::vector<key_var_t>> keys_vars;
+
+  for (auto key : keys) {
+    auto kvs = get_key_vars(ingress, key.expr, key.meta);
+    keys_vars.push_back(kvs);
+  }
+
+  Variables meta_params;
+
+  for (auto i = 0u; i < params.size(); i++) {
+    auto meta_param =
+        ingress.allocate_meta_param(table_name, i, params[i].exprs);
+    meta_params.push_back(meta_param);
+  }
+
+  table_t table(table_name, keys_vars, meta_params, size);
+  ingress.add_table(table);
+}
+
+void TofinoGenerator::allocate_int_allocator(
+    const targets::tofino::IntegerAllocator *_int_allocator) {
+  assert(_int_allocator);
+
+  auto objs = _int_allocator->get_objs();
+  assert(objs.size() == 1);
+
+  auto dchain = *objs.begin();
+  auto integer = _int_allocator->get_integer();
+  auto out_of_space = _int_allocator->get_out_of_space();
+  auto capacity = _int_allocator->get_capacity();
+  auto integer_size = _int_allocator->get_integer_size();
+
+  assert(integer.size() > 0);
+
+  auto head_label = integer_allocator_t::get_expected_head_label(dchain);
+  auto tail_label = integer_allocator_t::get_expected_tail_label(dchain);
+  auto table_label = integer_allocator_t::get_expected_table_label(dchain);
+
+  auto head_var = ingress.allocate_local_auxiliary(head_label, integer_size);
+  auto tail_var = ingress.allocate_meta(tail_label, integer_size);
+
+  auto out_of_space_var =
+      ingress.allocate_local_auxiliary("out_of_space", 1, out_of_space);
+
+  auto allocated_var = ingress.allocate_meta("allocated", integer);
+
+  auto allocated_values =
+      table_t(table_label, {allocated_var.get_label()}, {}, capacity);
+  ingress.add_table(allocated_values);
+
+  auto int_allocator =
+      integer_allocator_t(dchain, capacity, integer_size, head_var, tail_var,
+                          out_of_space_var, allocated_var, allocated_values);
+  ingress.add_integer_allocator(int_allocator);
+}
+
+void TofinoGenerator::allocate_state(const ExecutionPlan &ep) {
+  auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
+  auto implementations = tmb->get_implementations();
+
+  for (const auto &impl : implementations) {
+    switch (impl->get_type()) {
+    case targets::tofino::DataStructure::TABLE_NON_MERGEABLE:
+    case targets::tofino::DataStructure::TABLE: {
+      auto table = static_cast<targets::tofino::Table *>(impl.get());
+      allocate_table(table);
+    } break;
+    case targets::tofino::DataStructure::INTEGER_ALLOCATOR: {
+      auto int_allocator =
+          static_cast<targets::tofino::IntegerAllocator *>(impl.get());
+      allocate_int_allocator(int_allocator);
+    } break;
+    }
+  }
+}
+
 void TofinoGenerator::visit(ExecutionPlan ep) {
+  // add expiration data
+  auto mb = ep.get_memory_bank();
+  auto expiration_data = mb->get_expiration_data();
+
+  if (expiration_data.valid) {
+    // Hack: replace it with a constant, as we don't care about it.
+    // The Tofino compiler will optimize it away.
+    auto expired_flows_expr = expiration_data.number_of_freed_flows.expr;
+    auto expired_flows_label = expiration_data.number_of_freed_flows.label;
+
+    auto var =
+        Variable("0", expired_flows_expr->getWidth(), expired_flows_expr);
+    ingress.local_vars.append(var);
+  }
+
+  allocate_state(ep);
+
   ExecutionPlanVisitor::visit(ep);
 
   std::stringstream ingress_metadata_code;
@@ -409,39 +514,24 @@ void TofinoGenerator::visit(const targets::tofino::TableLookupSimple *node) {
 void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
   assert(node);
 
-  auto table_name = node->get_table_name();
-  auto keys = node->get_keys();
-  auto params = node->get_params();
-  auto contains_symbols = node->get_contains_symbols();
+  auto _table = node->get_table();
 
-  assert(keys.size());
+  auto table_name = _table->get_name();
+  auto keys = _table->get_keys();
+  auto params = _table->get_params();
+  auto hit = _table->get_hit();
 
-  std::vector<std::string> key_labels;
+  const auto &table = ingress.get_table(table_name);
+
   std::vector<std::vector<std::string>> assignments;
 
-  for (auto key : keys) {
-    auto key_vars = get_key_vars(ingress, key.expr, key.meta);
+  assert(table.keys_vars.size() == keys.size());
 
-    for (auto kv : key_vars) {
-      key_labels.push_back(kv.variable.get_label());
-    }
-
-    auto key_assignments = transpiler.assign_key_bytes(key.expr, key_vars);
+  for (auto i = 0u; i < keys.size(); i++) {
+    auto key_assignments =
+        transpiler.assign_key_bytes(keys[i].expr, table.keys_vars[i]);
     assignments.push_back(key_assignments);
   }
-
-  Variables meta_params;
-
-  for (auto i = 0u; i < params.size(); i++) {
-    auto meta_param =
-        ingress.allocate_meta_param(table_name, i, params[i].exprs);
-    meta_params.push_back(meta_param);
-  }
-
-  table_t table(table_name, key_labels, meta_params);
-  ingress.add_table(table);
-
-  assert(keys.size() == assignments.size());
 
   if (keys.size() == 1) {
     for (auto assignment : assignments[0]) {
@@ -479,31 +569,89 @@ void TofinoGenerator::visit(const targets::tofino::TableLookup *node) {
     }
   }
 
-  if (contains_symbols.size() > 0) {
+  if (hit.size() > 0) {
     std::vector<std::string> symbols_labels;
 
-    for (auto symbol : contains_symbols) {
+    for (auto symbol : hit) {
       symbols_labels.push_back(symbol.label);
     }
 
-    auto hit_var = ingress.allocate_local_auxiliary(table_name + "_hit", 1);
-    hit_var.add_symbols(symbols_labels);
-
-    ingress.local_vars.append(hit_var);
-
-    ingress.apply_block_builder.indent();
-    ingress.apply_block_builder.append("bool ");
-    ingress.apply_block_builder.append(hit_var.get_label());
-    ingress.apply_block_builder.append(" = ");
-    ingress.apply_block_builder.append(table_name);
-    ingress.apply_block_builder.append(".apply().hit;");
-    ingress.apply_block_builder.append_new_line();
+    auto hit_var = ingress.allocate_local_auxiliary(table_name + "_hit", 1, {},
+                                                    symbols_labels);
+    table.synthesize_apply(ingress.apply_block_builder, hit_var);
   } else {
-    ingress.apply_block_builder.indent();
-    ingress.apply_block_builder.append(table_name);
-    ingress.apply_block_builder.append(".apply();");
-    ingress.apply_block_builder.append_new_line();
+    table.synthesize_apply(ingress.apply_block_builder);
   }
+}
+
+void TofinoGenerator::visit(
+    const targets::tofino::IntegerAllocatorAllocate *node) {
+  assert(node);
+
+  auto _int_allocator = node->get_int_allocator();
+  auto objs = _int_allocator->get_objs();
+  assert(objs.size() == 1);
+
+  auto dchain = *objs.begin();
+
+  const auto &int_allocator = ingress.get_int_allocator(dchain);
+  int_allocator.synthesize_allocate(ingress.apply_block_builder);
+}
+
+void TofinoGenerator::visit(
+    const targets::tofino::IntegerAllocatorRejuvenate *node) {
+  assert(node);
+
+  auto _int_allocator = node->get_int_allocator();
+  auto index = node->get_index();
+  auto objs = _int_allocator->get_objs();
+  assert(objs.size() == 1);
+
+  auto dchain = *objs.begin();
+
+  const auto &int_allocator = ingress.get_int_allocator(dchain);
+  auto allocated_meta = int_allocator.allocated;
+
+  auto transpiled_integer = transpile(index);
+
+  ingress.apply_block_builder.indent();
+  ingress.apply_block_builder.append(allocated_meta.get_label());
+  ingress.apply_block_builder.append(" = ");
+  ingress.apply_block_builder.append(transpiled_integer);
+  ingress.apply_block_builder.append(";");
+  ingress.apply_block_builder.append_new_line();
+
+  int_allocator.synthesize_rejuvenate(ingress.apply_block_builder);
+}
+
+void TofinoGenerator::visit(
+    const targets::tofino::IntegerAllocatorQuery *node) {
+  assert(node);
+
+  auto _int_allocator = node->get_int_allocator();
+  auto index = node->get_index();
+  auto is_allocated = node->get_is_allocated();
+  auto objs = _int_allocator->get_objs();
+  assert(objs.size() == 1);
+
+  auto dchain = *objs.begin();
+
+  const auto &int_allocator = ingress.get_int_allocator(dchain);
+  auto allocated_meta = int_allocator.allocated;
+
+  auto transpiled_integer = transpile(index);
+
+  auto hit_var =
+      ingress.allocate_local_auxiliary("is_allocated", 1, {is_allocated});
+
+  ingress.apply_block_builder.indent();
+  ingress.apply_block_builder.append(allocated_meta.get_label());
+  ingress.apply_block_builder.append(" = ");
+  ingress.apply_block_builder.append(transpiled_integer);
+  ingress.apply_block_builder.append(";");
+  ingress.apply_block_builder.append_new_line();
+
+  int_allocator.synthesize_query(ingress.apply_block_builder, hit_var);
 }
 
 void TofinoGenerator::visit(const targets::tofino::Drop *node) {

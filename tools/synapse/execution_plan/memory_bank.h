@@ -5,6 +5,8 @@
 
 #include <unordered_map>
 
+typedef uint64_t time_ns_t;
+
 namespace synapse {
 
 class MemoryBank;
@@ -30,6 +32,20 @@ enum PlacementDecision {
   TofinoTable = 1,
   TofinoTableSimple = 2,
   TofinoRegister = 3,
+  IntegerAllocator = 4,
+};
+
+struct expiration_data_t {
+  bool valid;
+  time_ns_t expiration_time;
+  BDD::symbol_t number_of_freed_flows;
+
+  expiration_data_t() : valid(false) {}
+  
+  expiration_data_t(time_ns_t _expiration_time,
+                    const BDD::symbol_t &_number_of_freed_flows)
+      : valid(true), expiration_time(_expiration_time),
+        number_of_freed_flows(_number_of_freed_flows) {}
 };
 
 class MemoryBank {
@@ -37,10 +53,24 @@ private:
   std::vector<reorder_data_t> reorder_data;
   std::unordered_map<obj_addr_t, PlacementDecision> placement_decisions;
   std::unordered_set<BDD::node_id_t> can_be_ignored_bdd_nodes;
+  expiration_data_t expiration_data;
 
 public:
   MemoryBank() {}
-  MemoryBank(const MemoryBank &mb) : reorder_data(mb.reorder_data) {}
+
+  MemoryBank(const MemoryBank &mb)
+      : reorder_data(mb.reorder_data),
+        placement_decisions(mb.placement_decisions),
+        can_be_ignored_bdd_nodes(mb.can_be_ignored_bdd_nodes),
+        expiration_data(mb.expiration_data) {}
+
+  void set_expiration_data(const expiration_data_t &_expiration_data) {
+    expiration_data = _expiration_data;
+  }
+
+  const expiration_data_t &get_expiration_data() const {
+    return expiration_data;
+  }
 
   reorder_data_t get_reorder_data(int node_id) const {
     for (const auto &data : reorder_data) {
@@ -64,6 +94,14 @@ public:
   bool has_placement_decision(obj_addr_t obj_addr) {
     auto found_it = placement_decisions.find(obj_addr);
     return found_it != placement_decisions.end();
+  }
+
+  bool check_compatible_placement_decision(obj_addr_t obj_addr,
+                                           PlacementDecision decision) const {
+    auto found_it = placement_decisions.find(obj_addr);
+
+    return found_it == placement_decisions.end() ||
+           found_it->second == decision;
   }
 
   bool check_placement_decision(obj_addr_t obj_addr,

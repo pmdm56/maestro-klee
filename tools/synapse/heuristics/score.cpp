@@ -33,10 +33,11 @@ int Score::get_nr_merged_tables() const {
     }
 
     else if (module->get_type() == Module::ModuleType::Tofino_TableLookup) {
-      auto tableLookup =
+      auto table_lookup =
           static_cast<targets::tofino::TableLookup *>(module.get());
 
-      auto nodes = tableLookup->get_nodes();
+      auto table = table_lookup->get_table();
+      auto nodes = table->get_nodes();
       num_merged_tables += nodes.size() - 1;
     }
 
@@ -62,8 +63,7 @@ int Score::get_nr_simple_tables() const {
 
     auto module = node->get_module();
 
-    if (module->get_type() ==
-             Module::ModuleType::Tofino_TableLookupSimple) {
+    if (module->get_type() == Module::ModuleType::Tofino_TableLookupSimple) {
       num_simple_tables++;
     }
 

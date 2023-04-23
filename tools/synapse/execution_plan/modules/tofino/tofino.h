@@ -11,17 +11,20 @@
 #include "if.h"
 #include "if_header_valid.h"
 #include "ignore.h"
+#include "int_allocator_allocate.h"
+#include "int_allocator_rejuvenate.h"
+#include "int_allocator_query.h"
 #include "ipv4_consume.h"
 #include "ipv4_modify.h"
 #include "ipv4_options_consume.h"
 #include "ipv4_options_modify.h"
 #include "ipv4_tcpudp_checksums_update.h"
 #include "memory_bank.h"
+#include "register_read.h"
 #include "send_to_controller.h"
 #include "setup_expiration_notifications.h"
 #include "table_lookup.h"
 #include "table_lookup_simple.h"
-#include "register_read.h"
 #include "tcpudp_consume.h"
 #include "tcpudp_modify.h"
 #include "then.h"
@@ -50,12 +53,15 @@ public:
                    MODULE(TCPUDPConsume),
                    MODULE(TCPUDPModify),
                    MODULE(IPv4TCPUDPChecksumsUpdate),
-                   MODULE(TableLookup),
-                   MODULE(TableLookupSimple),
-                   MODULE(RegisterRead),
                    MODULE(Drop),
                    MODULE(SendToController),
                    MODULE(SetupExpirationNotifications),
+                   MODULE(TableLookup),
+                   MODULE(TableLookupSimple),
+                   MODULE(RegisterRead),
+                   MODULE(IntegerAllocatorAllocate),
+                   MODULE(IntegerAllocatorRejuvenate),
+                   MODULE(IntegerAllocatorQuery),
                },
                MemoryBank_ptr(new TofinoMemoryBank())) {}
 
