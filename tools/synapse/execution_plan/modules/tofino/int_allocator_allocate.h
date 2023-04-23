@@ -89,7 +89,9 @@ private:
     }
 
     if (!_int_allocator) {
-      _int_allocator = IntegerAllocator::build(_index_out, _out_of_space,
+      auto dchain_config = get_dchain_config(ep.get_bdd(), _dchain_addr);
+      auto _capacity = dchain_config.index_range;
+      _int_allocator = IntegerAllocator::build(_index_out, _out_of_space, _capacity,
                                                _dchain_addr, {node->get_id()});
     } else {
       _int_allocator->add_integer(_index_out);

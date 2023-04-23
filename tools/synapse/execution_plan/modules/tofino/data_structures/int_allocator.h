@@ -27,20 +27,19 @@ private:
 
 public:
   IntegerAllocator(klee::ref<klee::Expr> _integer,
-                   const BDD::symbol_t &_out_of_space, obj_addr_t _obj,
+                   const BDD::symbol_t &_out_of_space, uint64_t _capacity,
+                   obj_addr_t _obj,
                    const std::unordered_set<BDD::node_id_t> &_nodes)
-      : IntegerAllocator(_obj, _nodes) {
+      : IntegerAllocator(_capacity, _obj, _nodes) {
     integer.push_back(_integer);
     out_of_space.insert(_out_of_space);
   }
 
-  IntegerAllocator(obj_addr_t _obj,
+  IntegerAllocator(uint64_t _capacity, obj_addr_t _obj,
                    const std::unordered_set<BDD::node_id_t> &_nodes)
       : DataStructure(Type::INTEGER_ALLOCATOR, {_obj}, _nodes),
-        table("int_allocator", {}, {}, {}, {_obj}, _nodes) {
-    // TODO: get capacity from dchain initialization
-    capacity = 65536;
-
+        table("int_allocator", {}, {}, {}, {_obj}, _nodes),
+        capacity(_capacity) {
     integer_size = bits_required_for_capacity(capacity);
   }
 
@@ -76,14 +75,16 @@ public:
 
   static IntegerAllocatorRef
   build(klee::ref<klee::Expr> _integer, const BDD::symbol_t &_out_of_space,
-        obj_addr_t _obj, const std::unordered_set<BDD::node_id_t> &_nodes) {
+        uint64_t _capacity, obj_addr_t _obj,
+        const std::unordered_set<BDD::node_id_t> &_nodes) {
     return IntegerAllocatorRef(
-        new IntegerAllocator(_integer, _out_of_space, _obj, _nodes));
+        new IntegerAllocator(_integer, _out_of_space, _capacity, _obj, _nodes));
   }
 
   static IntegerAllocatorRef
-  build(obj_addr_t _obj, const std::unordered_set<BDD::node_id_t> &_nodes) {
-    return IntegerAllocatorRef(new IntegerAllocator(_obj, _nodes));
+  build(uint64_t _capacity, obj_addr_t _obj,
+        const std::unordered_set<BDD::node_id_t> &_nodes) {
+    return IntegerAllocatorRef(new IntegerAllocator(_capacity, _obj, _nodes));
   }
 
   bool equals(const IntegerAllocator *other) const {
