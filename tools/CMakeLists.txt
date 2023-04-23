@@ -22,8 +22,8 @@ add_subdirectory(call-paths-to-bdd)
 add_subdirectory(bdd-to-c)
 add_subdirectory(call-path-hit-rate-graphviz-generator)
 add_subdirectory(bdd-reorderer)
-#add_subdirectory(synapse)
-#add_subdirectory(packet-modification-detector)
+add_subdirectory(synapse)
+add_subdirectory(packet-modification-detector)
 
 ## Disabling warnings for my code
 add_compile_options(-w)
