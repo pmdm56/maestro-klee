@@ -66,6 +66,8 @@ public:
 
   const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
   get_targets_bdd_starting_points() const;
+  std::unordered_set<BDD::node_id_t>
+  get_current_target_bdd_starting_points() const;
   BDD::BDDNode_ptr get_bdd_root(BDD::BDDNode_ptr node) const;
 
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
@@ -124,6 +126,8 @@ public:
   float get_percentage_of_processed_bdd_nodes() const;
   void remove_from_processed_bdd_nodes(BDD::node_id_t id);
   void add_processed_bdd_node(BDD::node_id_t id);
+  void replace_current_target_starting_points(BDD::node_id_t _old,
+                                              BDD::node_id_t _new);
 
   void visit(ExecutionPlanVisitor &visitor) const;
 

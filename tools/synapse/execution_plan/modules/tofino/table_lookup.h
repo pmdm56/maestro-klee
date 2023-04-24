@@ -115,7 +115,7 @@ protected:
     return data;
   }
 
-  bool check_compatible_placements_decisions(
+  virtual bool check_compatible_placements_decisions(
       const ExecutionPlan &ep,
       const std::unordered_set<obj_addr_t> &objs) const {
     auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
@@ -201,20 +201,11 @@ protected:
     }
   }
 
-  bool lookup_already_done(const ExecutionPlan &ep, TableRef target) const {
-    auto ep_node = ep.get_active_leaf();
+  virtual bool lookup_already_done(const ExecutionPlan &ep,
+                                   TableRef target) const {
+    auto prev_modules = get_prev_modules(ep, {ModuleType::Tofino_TableLookup});
 
-    while (ep_node) {
-      auto current = ep_node;
-      ep_node = current->get_prev();
-
-      auto module = current->get_module();
-      assert(module);
-
-      if (module->get_type() != ModuleType::Tofino_TableLookup) {
-        continue;
-      }
-
+    for (auto module : prev_modules) {
       auto lookup = static_cast<TableLookup *>(module.get());
       auto table = lookup->get_table();
 
@@ -279,19 +270,45 @@ protected:
     auto dchain = call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr;
     auto dchain_addr = kutil::expr_addr_to_obj_addr(dchain);
 
-    auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
+    auto tmb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
 
     // We are only interested in ignoring the rejuvenate operation
     // if the only implementation found is of a Table.
-    auto compatible = mb->check_implementation_compatibility(
+    auto compatible = tmb->check_implementation_compatibility(
         dchain_addr, {DataStructure::Type::TABLE});
 
-    return compatible;
+    if (!compatible) {
+      return false;
+    }
+
+    // By this point we have decided to manage expirations for this table.
+    auto impls = tmb->get_implementations(dchain_addr);
+
+    // If there are no implementations yet, we are not ready to ignore this
+    // rejuvenate. We should only ignore if there are tables which implement it.
+    if (impls.size() == 0) {
+      return false;
+    }
+
+    assert(impls.size() <= 1);
+    return false; // FIXME: remove this
+
+    for (auto impl : impls) {
+      // These should all be tables, by the previously performed compatibility
+      // check.
+      // FIXME: Should ALL of them manage expirations?
+      assert(impl->get_type() == DataStructure::Type::TABLE);
+      auto table = static_cast<Table *>(impl.get());
+      table->should_manage_expirations();
+      break;
+    }
+
+    return true;
   }
 
-  bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
-               const BDD::Call *casted, TableRef table,
-               processing_result_t &result) {
+  virtual bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+                       const BDD::Call *casted, TableRef table,
+                       processing_result_t &result) {
     auto new_module = std::make_shared<TableLookup>(node, table);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 

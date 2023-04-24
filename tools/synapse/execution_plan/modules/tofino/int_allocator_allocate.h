@@ -1,61 +1,24 @@
 #pragma once
 
-#include "../module.h"
-#include "data_structures/int_allocator.h"
-#include "ignore.h"
-#include "memory_bank.h"
+#include "int_allocator_operation.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IntegerAllocatorAllocate : public Module {
-private:
-  IntegerAllocatorRef int_allocator;
-
+class IntegerAllocatorAllocate : public IntegerAllocatorOperation {
 public:
   IntegerAllocatorAllocate()
-      : Module(ModuleType::Tofino_IntegerAllocatorAllocate, TargetType::Tofino,
-               "IntegerAllocatorAllocate") {}
+      : IntegerAllocatorOperation(ModuleType::Tofino_IntegerAllocatorAllocate,
+                                  "IntegerAllocatorAllocate") {}
 
   IntegerAllocatorAllocate(BDD::BDDNode_ptr node,
                            IntegerAllocatorRef _int_allocator)
-      : Module(ModuleType::Tofino_IntegerAllocatorAllocate, TargetType::Tofino,
-               "IntegerAllocatorAllocate", node),
-        int_allocator(_int_allocator) {}
+      : IntegerAllocatorOperation(ModuleType::Tofino_IntegerAllocatorAllocate,
+                                  "IntegerAllocatorAllocate", node,
+                                  _int_allocator) {}
 
 private:
-  bool can_place(const ExecutionPlan &ep, obj_addr_t obj,
-                 IntegerAllocatorRef &implementation) const {
-    auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
-
-    auto possible = mb->check_implementation_compatibility(
-        obj, {
-                 DataStructure::Type::INTEGER_ALLOCATOR,
-                 DataStructure::Type::TABLE,
-             });
-
-    if (!possible) {
-      return false;
-    }
-
-    auto impls = mb->get_implementations(obj);
-
-    for (auto impl : impls) {
-      if (impl->get_type() == DataStructure::INTEGER_ALLOCATOR) {
-        implementation = std::dynamic_pointer_cast<IntegerAllocator>(impl);
-      }
-    }
-
-    return true;
-  }
-
-  void save_decision(const ExecutionPlan &ep,
-                     DataStructureRef int_allocator) const {
-    auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
-    mb->save_implementation(int_allocator);
-  }
-
   processing_result_t process_call(const ExecutionPlan &ep,
                                    BDD::BDDNode_ptr node,
                                    const BDD::Call *casted) override {
@@ -88,11 +51,17 @@ private:
       return result;
     }
 
+    if (operations_already_done(
+            ep, _int_allocator,
+            {ModuleType::Tofino_IntegerAllocatorAllocate})) {
+      return result;
+    }
+
     if (!_int_allocator) {
       auto dchain_config = get_dchain_config(ep.get_bdd(), _dchain_addr);
       auto _capacity = dchain_config.index_range;
-      _int_allocator = IntegerAllocator::build(_index_out, _out_of_space, _capacity,
-                                               _dchain_addr, {node->get_id()});
+      _int_allocator = IntegerAllocator::build(
+          _index_out, _out_of_space, _capacity, _dchain_addr, {node->get_id()});
     } else {
       _int_allocator->add_integer(_index_out);
       _int_allocator->add_out_of_space(_out_of_space);
@@ -120,18 +89,6 @@ public:
     auto cloned = new IntegerAllocatorAllocate(node, int_allocator);
     return std::shared_ptr<Module>(cloned);
   }
-
-  virtual bool equals(const Module *other) const override {
-    if (other->get_type() != type) {
-      return false;
-    }
-
-    auto other_cast = static_cast<const IntegerAllocatorAllocate *>(other);
-
-    return int_allocator->equals(other_cast->get_int_allocator().get());
-  }
-
-  IntegerAllocatorRef get_int_allocator() const { return int_allocator; }
 };
 
 } // namespace tofino

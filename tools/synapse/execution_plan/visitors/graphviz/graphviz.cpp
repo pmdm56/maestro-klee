@@ -480,7 +480,7 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPConsume)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPModify)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4TCPUDPChecksumsUpdate)
 
-void Graphviz::visit(const targets::tofino::TableLookup *node) {
+void Graphviz::visit_table(const targets::tofino::TableLookup *node, bool simple) {
   std::stringstream label_builder;
 
   auto bdd_node = node->get_node();
@@ -497,6 +497,11 @@ void Graphviz::visit(const targets::tofino::TableLookup *node) {
   label_builder << name << "\n";
 
   label_builder << "  table: " << table->get_name() << "\n";
+  label_builder << "  simple: " << simple << "\n";
+
+  label_builder << "  expiring: ";
+  label_builder << table->is_managing_expirations();
+  label_builder << "\n";
 
   label_builder << "  nodes: [";
   for (auto node : nodes) {
@@ -555,11 +560,15 @@ void Graphviz::visit(const targets::tofino::TableLookup *node) {
   find_and_replace(label, {{"\n", "\\l"}});
 
   function_call(bdd_node, target, label);
+
+}
+
+void Graphviz::visit(const targets::tofino::TableLookup *node) {
+  visit_table(node, false);
 }
 
 void Graphviz::visit(const targets::tofino::TableLookupSimple *node) {
-  auto simple_table = static_cast<const targets::tofino::TableLookup *>(node);
-  visit(simple_table);
+  visit_table(node, true);
 }
 
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::RegisterRead)

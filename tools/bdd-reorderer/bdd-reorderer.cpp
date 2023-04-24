@@ -686,11 +686,6 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
   auto old_next = root->get_next();
   assert(old_next);
 
-  if (!old_next) {
-    std::cerr << "old_next NULL!\n";
-    exit(1);
-  }
-
   if (!candidate.extra_condition.isNull()) {
     klee::ConstraintManager no_constraints;
 
@@ -891,15 +886,6 @@ reorder(const BDD &bdd, BDDNode_ptr root,
     candidate.node = candidate_cloned;
 
     reorder(bdd_cloned, root_cloned, candidate);
-
-    if (candidate.node->get_type() == Node::NodeType::CALL) {
-      auto call = static_cast<const Call *>(candidate.node.get());
-      if (call->get_call().function_name == "packet_borrow_next_chunk") {
-        std::cerr << "root " << root->get_id() << "\n";
-        std::cerr << "pulled " << call->get_call() << "\n";
-        // GraphvizGenerator::visualize(bdd_cloned);
-      }
-    }
 
     reordered.emplace_back(bdd_cloned,
                            bdd_cloned.get_node_by_id(candidate.node->get_id()),

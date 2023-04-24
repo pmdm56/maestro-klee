@@ -39,6 +39,54 @@ private:
     return table;
   }
 
+  virtual bool lookup_already_done(const ExecutionPlan &ep,
+                                   TableRef target) const override {
+    auto prev_modules =
+        get_prev_modules(ep, {ModuleType::Tofino_TableLookupSimple});
+
+    for (auto module : prev_modules) {
+      auto lookup = static_cast<TableLookupSimple *>(module.get());
+      auto table = lookup->get_table();
+
+      if (table->equals(target.get())) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  virtual bool check_compatible_placements_decisions(
+      const ExecutionPlan &ep,
+      const std::unordered_set<obj_addr_t> &objs) const override {
+    auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
+
+    for (auto obj : objs) {
+      auto compatible = mb->check_implementation_compatibility(
+          obj, {DataStructure::Type::TABLE_NON_MERGEABLE});
+
+      if (!compatible) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  virtual bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+                       const BDD::Call *casted, TableRef table,
+                       processing_result_t &result) override {
+    auto new_module = std::make_shared<TableLookupSimple>(node, table);
+    auto new_ep = ep.add_leaves(new_module, node->get_next());
+
+    save_decision(new_ep, table);
+
+    result.module = new_module;
+    result.next_eps.push_back(new_ep);
+
+    return true;
+  }
+
   processing_result_t process_call(const ExecutionPlan &ep,
                                    BDD::BDDNode_ptr node,
                                    const BDD::Call *casted) override {

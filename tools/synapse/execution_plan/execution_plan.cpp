@@ -80,6 +80,18 @@ ExecutionPlan::get_targets_bdd_starting_points() const {
   return targets_bdd_starting_points;
 }
 
+std::unordered_set<BDD::node_id_t>
+ExecutionPlan::get_current_target_bdd_starting_points() const {
+  auto current_target = get_current_platform();
+  auto found_it = targets_bdd_starting_points.find(current_target);
+
+  if (found_it == targets_bdd_starting_points.end()) {
+    return std::unordered_set<BDD::node_id_t>();
+  }
+
+  return found_it->second;
+}
+
 BDD::BDDNode_ptr ExecutionPlan::get_bdd_root(BDD::BDDNode_ptr node) const {
   assert(node);
 
@@ -187,6 +199,27 @@ void ExecutionPlan::update_targets_starting_points(
       targets_bdd_starting_points[next_target].insert(starting_point);
     }
   }
+}
+
+void ExecutionPlan::replace_current_target_starting_points(
+    BDD::node_id_t _old, BDD::node_id_t _new) {
+  auto current_target = get_current_platform();
+  auto found_it = targets_bdd_starting_points.find(current_target);
+
+  if (found_it == targets_bdd_starting_points.end()) {
+    return;
+  }
+
+  // Remove only if the _old node is found.
+
+  auto found_node_it = found_it->second.find(_old);
+
+  if (found_node_it == found_it->second.end()) {
+    return;
+  }
+
+  found_it->second.erase(_old);
+  found_it->second.insert(_new);
 }
 
 void ExecutionPlan::update_leaves(std::vector<leaf_t> _leaves,

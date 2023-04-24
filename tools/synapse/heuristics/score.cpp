@@ -7,18 +7,42 @@ namespace synapse {
 
 int Score::get_nr_nodes() const { return execution_plan.get_nodes(); }
 
-int Score::get_nr_merged_tables() const {
+std::vector<ExecutionPlanNode_ptr>
+Score::get_nodes_with_type(const std::vector<Module::ModuleType> &types) const {
+  std::vector<ExecutionPlanNode_ptr> found;
+
   if (!execution_plan.get_root()) {
-    return 0;
+    return found;
   }
 
-  auto num_merged_tables = 0;
   auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
 
   while (nodes.size()) {
     auto node = nodes[0];
     nodes.erase(nodes.begin());
 
+    auto module = node->get_module();
+
+    auto found_it = std::find(types.begin(), types.end(), module->get_type());
+
+    if (found_it != types.end()) {
+      found.push_back(node);
+    }
+
+    for (auto branch : node->get_next()) {
+      nodes.push_back(branch);
+    }
+  }
+
+  return found;
+}
+
+int Score::get_nr_merged_tables() const {
+  auto nodes = get_nodes_with_type({Module::ModuleType::BMv2_TableLookup,
+                                    Module::ModuleType::Tofino_TableLookup});
+  int num_merged_tables = 0;
+
+  for (auto node : nodes) {
     auto module = node->get_module();
 
     if (module->get_type() == Module::ModuleType::BMv2_TableLookup) {
@@ -40,39 +64,23 @@ int Score::get_nr_merged_tables() const {
       auto nodes = table->get_nodes();
       num_merged_tables += nodes.size() - 1;
     }
-
-    for (auto branch : node->get_next()) {
-      nodes.push_back(branch);
-    }
   }
 
   return num_merged_tables;
 }
 
 int Score::get_nr_simple_tables() const {
-  if (!execution_plan.get_root()) {
-    return 0;
-  }
+  auto nodes =
+      get_nodes_with_type({Module::ModuleType::Tofino_TableLookupSimple});
+  return nodes.size();
+}
 
-  auto num_simple_tables = 0;
-  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
-
-  while (nodes.size()) {
-    auto node = nodes[0];
-    nodes.erase(nodes.begin());
-
-    auto module = node->get_module();
-
-    if (module->get_type() == Module::ModuleType::Tofino_TableLookupSimple) {
-      num_simple_tables++;
-    }
-
-    for (auto branch : node->get_next()) {
-      nodes.push_back(branch);
-    }
-  }
-
-  return num_simple_tables;
+int Score::get_nr_int_allocator_ops() const {
+  auto nodes = get_nodes_with_type(
+      {Module::ModuleType::Tofino_IntegerAllocatorAllocate,
+       Module::ModuleType::Tofino_IntegerAllocatorQuery,
+       Module::ModuleType::Tofino_IntegerAllocatorRejuvenate});
+  return nodes.size();
 }
 
 int Score::get_depth() const { return execution_plan.get_depth(); }

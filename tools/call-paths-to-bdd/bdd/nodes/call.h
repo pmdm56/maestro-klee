@@ -29,4 +29,6 @@ public:
   std::string dump(bool one_liner = false) const;
 };
 
+#define BDD_CAST_CALL(NODE_PTR) (static_cast<BDD::Call *>((NODE_PTR).get()))
+
 } // namespace BDD

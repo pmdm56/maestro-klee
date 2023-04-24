@@ -43,6 +43,7 @@ protected:
   std::vector<key_t> keys;
   std::vector<param_t> params;
   std::vector<BDD::symbol_t> hit;
+  bool manage_expirations;
 
 public:
   Table(const std::string &_base_name, const std::vector<key_t> &_keys,
@@ -51,7 +52,7 @@ public:
         const std::unordered_set<obj_addr_t> &_objs,
         const std::unordered_set<BDD::node_id_t> &_nodes)
       : DataStructure(Type::TABLE, _objs, _nodes), base_name(_base_name),
-        keys(_keys), params(_params), hit(_hit) {
+        keys(_keys), params(_params), hit(_hit), manage_expirations(false) {
     reset_name();
   }
 
@@ -103,6 +104,9 @@ public:
       }
     }
   }
+
+  void should_manage_expirations() { manage_expirations = true; }
+  bool is_managing_expirations() const { return manage_expirations; }
 
   bool operator==(const Table &other) const { return name == other.name; }
 

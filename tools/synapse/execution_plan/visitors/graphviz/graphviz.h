@@ -186,5 +186,8 @@ public:
   DECLARE_VISIT(targets::x86_tofino::DchainAllocateNewIndex)
   DECLARE_VISIT(targets::x86_tofino::DchainIsIndexAllocated)
   DECLARE_VISIT(targets::x86_tofino::DchainRejuvenateIndex)
+
+private:
+  void visit_table(const targets::tofino::TableLookup *node, bool simple);
 };
 } // namespace synapse

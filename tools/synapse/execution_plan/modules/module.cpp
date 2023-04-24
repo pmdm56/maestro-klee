@@ -49,6 +49,11 @@ std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
     ep_cloned.replace_active_leaf_node(reordered_bdd.candidate, false);
     ep_cloned.inc_reordered_nodes();
 
+    // If the next node was a BDD starting point, then actually the starting
+    // point becomes the candidate node.
+    ep_cloned.replace_current_target_starting_points(
+        next_node->get_id(), reordered_bdd.candidate->get_id());
+
     reordered.push_back(ep_cloned);
   }
 
@@ -175,12 +180,8 @@ std::vector<BDD::BDDNode_ptr> Module::get_all_prev_functions(
   };
 
   assert(node);
-  auto proceed = true;
 
-  while (proceed && node->get_prev()) {
-    node = node->get_prev();
-    proceed = !is_starting_point(node);
-
+  while (node && (node = node->get_prev()) && !is_starting_point(node)) {
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       continue;
     }
@@ -204,6 +205,31 @@ Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                                const std::string &function_name) const {
   auto functions_names = std::vector<std::string>{function_name};
   return get_all_prev_functions(ep, node, functions_names);
+}
+
+std::vector<Module_ptr>
+Module::get_prev_modules(const ExecutionPlan &ep,
+                         const std::vector<ModuleType> &targets) const {
+  std::vector<Module_ptr> modules;
+  auto ep_node = ep.get_active_leaf();
+
+  while (ep_node) {
+    auto current = ep_node;
+    ep_node = current->get_prev();
+
+    auto module = current->get_module();
+    assert(module);
+
+    auto type = module->get_type();
+
+    auto found_it = std::find(targets.begin(), targets.end(), type);
+
+    if (found_it != targets.end()) {
+      modules.push_back(module);
+    }
+  }
+
+  return modules;
 }
 
 std::vector<Module::modification_t>

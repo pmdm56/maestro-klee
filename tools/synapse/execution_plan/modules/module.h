@@ -223,6 +223,10 @@ protected:
   get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
                          const std::vector<std::string> &functions_names) const;
 
+  std::vector<Module_ptr>
+  get_prev_modules(const ExecutionPlan &ep,
+                   const std::vector<ModuleType> &) const;
+
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;

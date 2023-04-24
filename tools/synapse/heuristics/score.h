@@ -26,6 +26,7 @@ public:
     NumberOfControllerNodes,
     NumberOfMergedTables,
     NumberOfSimpleTables,
+    NumberOfIntAllocatorOps,
     Depth,
     ExactMatchNodes,
     ConsecutiveObjectOperationsInSwitch,
@@ -44,8 +45,12 @@ private:
   // It defines a lexicographic order.
   std::vector<std::pair<Category, Objective>> categories;
 
+  std::vector<ExecutionPlanNode_ptr>
+  get_nodes_with_type(const std::vector<Module::ModuleType> &types) const;
+
   int get_nr_nodes() const;
   int get_nr_merged_tables() const;
+  int get_nr_int_allocator_ops() const;
   int get_nr_simple_tables() const;
   int get_depth() const;
   int get_nr_switch_nodes() const;
@@ -75,6 +80,7 @@ public:
          &Score::next_op_same_obj_in_switch},
         {HasNextStatefulOperationInSwitch,
          &Score::next_op_is_stateful_in_switch},
+        {NumberOfIntAllocatorOps, &Score::get_nr_int_allocator_ops},
     };
   }
 

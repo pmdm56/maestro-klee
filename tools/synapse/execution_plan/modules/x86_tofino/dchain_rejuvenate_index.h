@@ -26,6 +26,14 @@ public:
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
 private:
+  bool is_expiration_managed_by_integer_allocator(const ExecutionPlan &ep,
+                                                  obj_addr_t obj) const {
+    auto mb = ep.get_memory_bank();
+    auto uses_int_allocator =
+        mb->check_placement_decision(obj, PlacementDecision::IntegerAllocator);
+    return uses_int_allocator;
+  }
+
   processing_result_t process_call(const ExecutionPlan &ep,
                                    BDD::BDDNode_ptr node,
                                    const BDD::Call *casted) override {
@@ -41,6 +49,10 @@ private:
       auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
       auto _time = call.args[symbex::FN_DCHAIN_ARG_TIME].expr;
       auto _dchain_addr = kutil::expr_addr_to_obj_addr(_dchain);
+
+      if (is_expiration_managed_by_integer_allocator(ep, _dchain_addr)) {
+        return result;
+      }
 
       auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
       auto saved = mb->has_data_structure(_dchain_addr);

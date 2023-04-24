@@ -1,62 +1,29 @@
 #pragma once
 
-#include "../module.h"
-#include "ignore.h"
-#include "memory_bank.h"
+#include "int_allocator_operation.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IntegerAllocatorRejuvenate : public Module {
+class IntegerAllocatorRejuvenate : public IntegerAllocatorOperation {
 private:
-  IntegerAllocatorRef int_allocator;
   klee::ref<klee::Expr> index;
 
 public:
   IntegerAllocatorRejuvenate()
-      : Module(ModuleType::Tofino_IntegerAllocatorRejuvenate,
-               TargetType::Tofino, "IntegerAllocatorRejuvenate") {}
+      : IntegerAllocatorOperation(ModuleType::Tofino_IntegerAllocatorRejuvenate,
+                                  "IntegerAllocatorRejuvenate") {}
 
   IntegerAllocatorRejuvenate(BDD::BDDNode_ptr node,
                              IntegerAllocatorRef _int_allocator,
                              klee::ref<klee::Expr> _index)
-      : Module(ModuleType::Tofino_IntegerAllocatorRejuvenate,
-               TargetType::Tofino, "IntegerAllocatorRejuvenate", node),
-        int_allocator(_int_allocator), index(_index) {}
+      : IntegerAllocatorOperation(ModuleType::Tofino_IntegerAllocatorRejuvenate,
+                                  "IntegerAllocatorRejuvenate", node,
+                                  _int_allocator),
+        index(_index) {}
 
 private:
-  bool can_place(const ExecutionPlan &ep, obj_addr_t obj,
-                 IntegerAllocatorRef &implementation) const {
-    auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
-
-    auto possible = mb->check_implementation_compatibility(
-        obj, {
-                 DataStructure::Type::INTEGER_ALLOCATOR,
-                 DataStructure::Type::TABLE,
-             });
-
-    if (!possible) {
-      return false;
-    }
-
-    auto impls = mb->get_implementations(obj);
-
-    for (auto impl : impls) {
-      if (impl->get_type() == DataStructure::INTEGER_ALLOCATOR) {
-        implementation = std::dynamic_pointer_cast<IntegerAllocator>(impl);
-      }
-    }
-
-    return true;
-  }
-
-  void save_decision(const ExecutionPlan &ep,
-                     DataStructureRef int_allocator) const {
-    auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
-    mb->save_implementation(int_allocator);
-  }
-
   processing_result_t process_call(const ExecutionPlan &ep,
                                    BDD::BDDNode_ptr node,
                                    const BDD::Call *casted) override {
@@ -78,6 +45,13 @@ private:
     IntegerAllocatorRef _int_allocator;
 
     if (!can_place(ep, _dchain_addr, _int_allocator)) {
+      return result;
+    }
+
+    if (operations_already_done(
+            ep, _int_allocator,
+            {ModuleType::Tofino_IntegerAllocatorQuery,
+             ModuleType::Tofino_IntegerAllocatorRejuvenate})) {
       return result;
     }
 
@@ -113,17 +87,11 @@ public:
   }
 
   virtual bool equals(const Module *other) const override {
-    if (other->get_type() != type) {
+    if (!IntegerAllocatorOperation::equals(other)) {
       return false;
     }
 
     auto other_cast = static_cast<const IntegerAllocatorRejuvenate *>(other);
-
-    auto other_int_allocator = other_cast->get_int_allocator();
-
-    if (!int_allocator->equals(other_int_allocator.get())) {
-      return false;
-    }
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
             index, other_cast->get_index())) {
@@ -133,7 +101,6 @@ public:
     return true;
   }
 
-  IntegerAllocatorRef get_int_allocator() const { return int_allocator; }
   klee::ref<klee::Expr> get_index() const { return index; }
 };
 
