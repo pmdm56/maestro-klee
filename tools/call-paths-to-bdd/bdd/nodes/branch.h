@@ -47,4 +47,6 @@ public:
   std::string dump_recursive(int lvl = 0) const override;
 };
 
+#define BDD_CAST_BRANCH(NODE_PTR) (static_cast<BDD::Branch *>((NODE_PTR).get()))
+
 } // namespace BDD

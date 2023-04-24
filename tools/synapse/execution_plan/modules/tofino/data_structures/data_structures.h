@@ -37,6 +37,17 @@ public:
 
   const std::vector<DataStructureRef> &get() const { return data_structures; }
 
+  std::vector<DataStructureRef> get(DataStructure::Type type) const {
+    std::vector<DataStructureRef> filtered;
+
+    std::copy_if(data_structures.begin(), data_structures.end(),
+                 std::back_inserter(filtered), [&](const DataStructureRef &ds) {
+                   return ds->get_type() == type;
+                 });
+
+    return filtered;
+  }
+
   std::vector<DataStructureRef> get_ones_that_implement(obj_addr_t obj) const {
     std::vector<DataStructureRef> implementations;
 

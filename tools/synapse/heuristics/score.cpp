@@ -38,8 +38,11 @@ Score::get_nodes_with_type(const std::vector<Module::ModuleType> &types) const {
 }
 
 int Score::get_nr_merged_tables() const {
-  auto nodes = get_nodes_with_type({Module::ModuleType::BMv2_TableLookup,
-                                    Module::ModuleType::Tofino_TableLookup});
+  auto nodes = get_nodes_with_type({
+      Module::ModuleType::BMv2_TableLookup,
+      Module::ModuleType::Tofino_TableLookup,
+  });
+
   int num_merged_tables = 0;
 
   for (auto node : nodes) {
@@ -76,10 +79,12 @@ int Score::get_nr_simple_tables() const {
 }
 
 int Score::get_nr_int_allocator_ops() const {
-  auto nodes = get_nodes_with_type(
-      {Module::ModuleType::Tofino_IntegerAllocatorAllocate,
-       Module::ModuleType::Tofino_IntegerAllocatorQuery,
-       Module::ModuleType::Tofino_IntegerAllocatorRejuvenate});
+  auto nodes = get_nodes_with_type({
+      Module::ModuleType::Tofino_IntegerAllocatorAllocate,
+      Module::ModuleType::Tofino_IntegerAllocatorQuery,
+      Module::ModuleType::Tofino_IntegerAllocatorRejuvenate,
+  });
+
   return nodes.size();
 }
 
@@ -101,7 +106,12 @@ int Score::get_nr_switch_nodes() const {
     switch_nodes += tofino_nodes_it->second;
   }
 
-  return switch_nodes;
+  auto send_to_controller = get_nodes_with_type({
+      Module::ModuleType::Tofino_SendToController,
+  });
+
+  // Let's ignore the SendToController nodes
+  return switch_nodes - send_to_controller.size();
 }
 
 int Score::get_nr_controller_nodes() const {

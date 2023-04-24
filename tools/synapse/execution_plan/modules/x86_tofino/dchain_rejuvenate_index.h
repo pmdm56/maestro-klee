@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../module.h"
+#include "ignore.h"
 #include "memory_bank.h"
 
 namespace synapse {
@@ -26,12 +27,24 @@ public:
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
 private:
-  bool is_expiration_managed_by_integer_allocator(const ExecutionPlan &ep,
-                                                  obj_addr_t obj) const {
+  bool already_rejuvenated_by_data_plane(const ExecutionPlan &ep,
+                                         obj_addr_t obj) const {
     auto mb = ep.get_memory_bank();
     auto uses_int_allocator =
         mb->check_placement_decision(obj, PlacementDecision::IntegerAllocator);
-    return uses_int_allocator;
+
+    if (!uses_int_allocator) {
+      return false;
+    }
+
+    auto prev =
+        get_prev_modules(ep, {ModuleType::Tofino_IntegerAllocatorRejuvenate});
+
+    assert(
+        prev.size() > 0 &&
+        "Preemptive pruning on SendToController shouldn't allow this to fail");
+
+    return true;
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
@@ -50,7 +63,19 @@ private:
       auto _time = call.args[symbex::FN_DCHAIN_ARG_TIME].expr;
       auto _dchain_addr = kutil::expr_addr_to_obj_addr(_dchain);
 
-      if (is_expiration_managed_by_integer_allocator(ep, _dchain_addr)) {
+      auto already_rejuvenated =
+          already_rejuvenated_by_data_plane(ep, _dchain_addr);
+
+      if (already_rejuvenated) {
+        auto new_module = std::make_shared<Ignore>(node);
+        auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
+
+        result.module = new_module;
+        result.next_eps.push_back(new_ep);
+
+        std::cerr << "IGNORING!\n";
+        DEBUG_PAUSE
+
         return result;
       }
 

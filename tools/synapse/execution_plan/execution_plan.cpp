@@ -157,6 +157,39 @@ ExecutionPlan::get_prev_nodes_of_current_target() const {
   return prev_nodes;
 }
 
+std::vector<BDD::BDDNode_ptr> ExecutionPlan::get_incoming_bdd_nodes() const {
+  std::vector<BDD::BDDNode_ptr> incoming_nodes;
+  std::vector<BDD::BDDNode_ptr> nodes;
+
+  auto node = get_next_node();
+
+  if (node) {
+    nodes.push_back(node);
+  }
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    assert(node);
+
+    incoming_nodes.push_back(node);
+
+    if (node->get_type() == BDD::Node::NodeType::CALL) {
+      auto call_node = BDD_CAST_CALL(node);
+      nodes.push_back(call_node->get_next());
+    }
+
+    else if (node->get_type() == BDD::Node::NodeType::BRANCH) {
+      auto branch_node = BDD_CAST_BRANCH(node);
+      nodes.push_back(branch_node->get_on_true());
+      nodes.push_back(branch_node->get_on_false());
+    }
+  }
+
+  return incoming_nodes;
+}
+
 void ExecutionPlan::add_target(TargetType type, MemoryBank_ptr mb) {
   assert(targets.find(type) == targets.end());
   assert(memory_banks.find(type) == memory_banks.end());

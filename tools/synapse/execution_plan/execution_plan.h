@@ -66,8 +66,10 @@ public:
 
   const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
   get_targets_bdd_starting_points() const;
+  
   std::unordered_set<BDD::node_id_t>
   get_current_target_bdd_starting_points() const;
+
   BDD::BDDNode_ptr get_bdd_root(BDD::BDDNode_ptr node) const;
 
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
@@ -80,6 +82,8 @@ public:
 
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes() const;
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes_of_current_target() const;
+
+  std::vector<BDD::BDDNode_ptr> get_incoming_bdd_nodes() const;
 
   void inc_reordered_nodes();
   const ExecutionPlanNode_ptr &get_root() const;

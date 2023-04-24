@@ -33,6 +33,11 @@ public:
     return implementations.get();
   }
 
+  std::vector<DataStructureRef>
+  get_implementations(DataStructure::Type ds_type) const {
+    return implementations.get(ds_type);
+  }
+
   std::vector<DataStructureRef> get_implementations(obj_addr_t obj) const {
     return implementations.get_ones_that_implement(obj);
   }

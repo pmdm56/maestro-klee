@@ -276,6 +276,10 @@ struct integer_allocator_t {
     auto read_value = get_action_read_value();
 
     builder.indent();
+    builder.append("// integer allocator: allocate");
+    builder.append_new_line();
+
+    builder.indent();
     builder.append(tail.get_label());
     builder.append(" = ");
     builder.append(read_tail);
@@ -315,10 +319,18 @@ struct integer_allocator_t {
   }
 
   void synthesize_rejuvenate(CodeBuilder &builder) const {
+    builder.indent();
+    builder.append("// integer allocator: rejuvenate");
+    builder.append_new_line();
+
     allocated_values.synthesize_apply(builder);
   }
 
   void synthesize_query(CodeBuilder &builder, Variable hit) const {
+    builder.indent();
+    builder.append("// integer allocator: query");
+    builder.append_new_line();
+
     allocated_values.synthesize_apply(builder, hit);
   }
 

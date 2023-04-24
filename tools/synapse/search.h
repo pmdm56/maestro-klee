@@ -169,6 +169,7 @@ public:
     // Graphviz::visualize(h.get_all().back());
 
     // for (auto &ep : h.get_all()) {
+    //   std::cerr << "score: " << h.get_score(ep) << "\n";
     //   Graphviz::visualize(ep);
     // }
 
