@@ -105,8 +105,13 @@ void TofinoGenerator::allocate_int_allocator(
   auto head_var = ingress.allocate_local_auxiliary(head_label, integer_size);
   auto tail_var = ingress.allocate_meta(tail_label, integer_size);
 
-  auto out_of_space_var =
-      ingress.allocate_local_auxiliary("out_of_space", 1, out_of_space);
+  std::vector<std::string> out_of_space_labels;
+  for (auto oos : out_of_space) {
+    out_of_space_labels.push_back(oos.label);
+  }
+
+  auto out_of_space_var = ingress.allocate_local_auxiliary(
+      "out_of_space", 1, {}, out_of_space_labels);
 
   auto allocated_var = ingress.allocate_meta("allocated", integer);
 
