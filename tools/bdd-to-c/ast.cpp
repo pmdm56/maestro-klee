@@ -1,6 +1,8 @@
 #include "ast.h"
-#include "klee/Expr.h"
-#include "retrieve_symbols.h"
+#include "bdd/bdd.h"
+#include "bdd/nodes/node.h"
+
+using std::string;
 
 constexpr char AST::CHUNK_LAYER_2[];
 constexpr char AST::CHUNK_LAYER_3[];
@@ -491,7 +493,6 @@ void AST::push_to_local(Variable_ptr var) {
 }
 
 void AST::push_to_local(Variable_ptr var, klee::ref<klee::Expr> expr) {
-  std::cout << var->get_symbol() << std::endl;
   assert(get_from_local(var->get_symbol()) == nullptr);
   assert(local_variables.size() > 0);
   local_variables.back().push_back(std::make_pair(var, expr));
@@ -922,6 +923,47 @@ void AST::dec_pkt_offset() {
   pkt_buffer_offset.top().pop();
 }
 
+std::vector<BDD::BDDNode_ptr> 
+get_prev_functions(BDD::BDDNode_ptr start, std::string function_name, std::unordered_set<std::string> stop_nodes) {
+  std::vector<BDD::BDDNode_ptr> return_nodes;
+
+  bool loop = true;
+  BDD::BDDNode_ptr node = start;
+
+  auto is_stop_node = [&stop_nodes](BDD::BDDNode_ptr node) {
+    if (node->get_type() != BDD::Node::NodeType::CALL) {
+      return false;
+    }
+
+    auto call = static_cast<BDD::Call *>(node.get())->get_call();
+
+    return stop_nodes.find(call.function_name) != stop_nodes.end();
+  };
+
+  auto is_target_node = [&function_name](BDD::BDDNode_ptr node) {
+    if (node->get_type() != BDD::Node::NodeType::CALL) {
+      return false;
+    }
+
+    auto call = static_cast<BDD::Call *>(node.get())->get_call();
+    return call.function_name == function_name;
+  };
+
+
+  while(loop && node != nullptr) {
+    loop = !is_stop_node(node);
+
+    if (is_target_node(node)) {
+      return_nodes.push_back(node);
+    }
+
+    node = node->get_prev();
+  }
+
+  return return_nodes;
+}
+
+
 Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
                                            TargetOption target) {
   auto call = bdd_call->get_call();
@@ -944,8 +986,6 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
   bool check_write_attempt = false;
   bool write_attempt = false;
 
-  static int counter_borrows = 0;
-
   if (fname == "current_time") {
     associate_expr_to_local("now", call.ret);
     ignore = true;
@@ -964,20 +1004,10 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
     std::string hdr_symbol;
     klee::ref<klee::Expr> hdr_expr;
 
-    int layer_num = 0;
+    auto prev_functions = get_prev_functions(bdd_call->get_prev(), "packet_borrow_next_chunk", {"current_time"});
 
-    for(auto &c: bdd_call->get_node_constraints()) {
-      if(kutil::RetrieveSymbols::contains(c, "BORROW_TYPE")) {
-        assert(c->getNumKids() == 2);
-        auto val_symbol = static_cast<klee::ConstantExpr*>(c->getKid(1).get());
-        layer_num = val_symbol->getZExtValue();
-      }
-    }
-
-    assert(layer_num != 0);
-
-    switch (layer_num) {
-    case 1: {
+    switch (prev_functions.size()) {
+    case 0: {
       Array_ptr _uint8_t_6 = Array::build(
           PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T), 6);
 
@@ -1001,7 +1031,7 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       layer.back()++;
       break;
     }
-    case 2: {
+    case 1: {
       std::vector<Variable_ptr> ipv4_hdr_fields{
           Variable::build(
               "version_ihl",
@@ -1042,8 +1072,8 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
       layer.back()++;
       break;
     }
-    case 3:
-    case 4: {
+    case 2:
+    case 3: {
       if (pkt_len->get_kind() != Node::NodeKind::CONSTANT) {
         hdr_type = Pointer::build(
             PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T));
@@ -1074,7 +1104,9 @@ Node_ptr AST::process_state_node_from_call(const BDD::Call *bdd_call,
 
     hdr_expr = call.extra_vars["the_chunk"].second;
 
-    Variable_ptr hdr_var = Variable::build(hdr_symbol  + "_" + std::to_string(counter_borrows++), hdr_type);
+    auto nf_count = get_prev_functions(bdd_call->get_prev(), "current_time", {});
+
+    Variable_ptr hdr_var = Variable::build(hdr_symbol + "_" + std::to_string(nf_count.size()), hdr_type);
     hdr_var->set_addr(hdr_addr);
 
     VariableDecl_ptr hdr_decl = VariableDecl::build(hdr_var);
