@@ -73,9 +73,6 @@ private:
         result.module = new_module;
         result.next_eps.push_back(new_ep);
 
-        std::cerr << "IGNORING!\n";
-        DEBUG_PAUSE
-
         return result;
       }
 

@@ -1,8 +1,9 @@
 #pragma once
 
+#include "call-paths-to-bdd.h"
+
 #include "../../target.h"
 #include "../visitor.h"
-#include "call-paths-to-bdd.h"
 
 #include <vector>
 
@@ -17,8 +18,6 @@ private:
   std::ofstream ofs;
   std::string fpath;
 
-  const SearchSpace *search_space;
-  std::string search_space_fpath;
   std::vector<std::string> bdd_fpaths;
 
   std::map<TargetType, std::string> node_colors;
@@ -33,16 +32,23 @@ private:
   void open();
 
 public:
-  Graphviz(const std::string &path, const SearchSpace *_search_space);
-  Graphviz(const std::string &path);
+  Graphviz(const std::string &path) : fpath(path) {
+    node_colors = std::map<TargetType, std::string>{
+        {TargetType::BMv2, "darkolivegreen2"},
+        {TargetType::Tofino, "cornflowerblue"},
+        {TargetType::Netronome, "gold"},
+        {TargetType::FPGA, "coral1"},
+        {TargetType::x86_BMv2, "darkorange2"},
+        {TargetType::x86_Tofino, "firebrick2"},
+    };
 
-private:
-  Graphviz() : Graphviz(get_rand_fname()) {}
-  Graphviz(const SearchSpace *_search_space)
-      : Graphviz(get_rand_fname(), _search_space) {
-    search_space_fpath = get_rand_fname();
+    ofs.open(fpath);
+    assert(ofs);
   }
 
+  Graphviz() : Graphviz(get_rand_fname()) {}
+
+private:
   void function_call(BDD::BDDNode_ptr node, TargetType target,
                      std::string label);
 
@@ -64,13 +70,13 @@ private:
 
 public:
   static void visualize(const ExecutionPlan &ep, bool interrupt = true);
-  static void visualize(const ExecutionPlan &ep, SearchSpace &_search_space,
-                        bool interrupt = true);
+  static void visualize(const SearchSpace &search_space, bool interrupt = true);
 
   ~Graphviz() { ofs.close(); }
 
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
+  void visit(const SearchSpace &search_space);
 
   void log(const ExecutionPlanNode *ep_node) const override;
 

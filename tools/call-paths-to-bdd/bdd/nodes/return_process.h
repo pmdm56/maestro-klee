@@ -40,4 +40,8 @@ public:
   void visit(BDDVisitor &visitor) const override;
   std::string dump(bool one_liner = false) const;
 };
+
+#define BDD_CAST_RETURN_PROCESS(NODE_PTR)                                      \
+  (static_cast<BDD::ReturnProcess *>((NODE_PTR).get()))
+
 } // namespace BDD

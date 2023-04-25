@@ -35,22 +35,17 @@ void find_and_replace(
   }
 }
 
-Graphviz::Graphviz(const std::string &path, const SearchSpace *_search_space)
-    : fpath(path), search_space(_search_space) {
-  node_colors = std::map<TargetType, std::string>{
-      {TargetType::BMv2, "darkolivegreen2"},
-      {TargetType::Tofino, "cornflowerblue"},
-      {TargetType::Netronome, "gold"},
-      {TargetType::FPGA, "coral1"},
-      {TargetType::x86_BMv2, "darkorange2"},
-      {TargetType::x86_Tofino, "firebrick2"},
-  };
-
-  ofs.open(fpath);
-  assert(ofs);
+void sanitize_html_label(std::string &label) {
+  find_and_replace(label, {
+                              {"{", "&#123;"},
+                              {"}", "&#125;"},
+                              {"[", "&#91;"},
+                              {"]", "&#93;"},
+                              {"<", "&lt;"},
+                              {">", "&gt;"},
+                              {"\n", "<br/>"},
+                          });
 }
-
-Graphviz::Graphviz(const std::string &path) : Graphviz(path, nullptr) {}
 
 std::string Graphviz::get_rand_fname() const {
   std::stringstream ss;
@@ -83,9 +78,9 @@ void Graphviz::open() {
     counter++;
   }
 
-  if (search_space) {
-    cmd += " " + search_space_fpath;
-  }
+#ifndef NDEBUG
+  std::cerr << "Opening " << fpath << "\n";
+#endif
 
   system(cmd.c_str());
 }
@@ -240,70 +235,6 @@ std::string Graphviz::get_bdd_node_name(const BDD::Node *node) const {
   return ss.str();
 }
 
-void Graphviz::dump_search_space() const {
-  assert(search_space);
-  assert(search_space->get_root());
-
-  std::ofstream search_space_ofs;
-
-  search_space_ofs.open(search_space_fpath);
-
-  search_space_ofs << "digraph SearchSpace {\n";
-  search_space_ofs << "layout=\"twopi\";";
-  // search_space_ofs << "ratio=\"fill\";\n";
-  // search_space_ofs << "size=\"12,12!\";\n";
-  // search_space_ofs << "margin=0;\n";
-  search_space_ofs << "node [shape=ellipse,style=filled];\n";
-
-  std::vector<search_space_node_t *> nodes;
-  nodes.push_back(search_space->get_root().get());
-
-  while (nodes.size()) {
-    auto node = nodes[0];
-    nodes.erase(nodes.begin());
-
-    search_space_ofs << node->execution_plan_id;
-    // search_space_ofs << " [color=\"#";
-    // auto color = get_color(node->score);
-    // search_space_ofs << std::setw(2) << std::setfill('0') << std::hex;
-    // search_space_ofs << color.r;
-    // search_space_ofs << std::setw(2) << std::setfill('0') << std::hex;
-    // search_space_ofs << color.g;
-    // search_space_ofs << std::setw(2) << std::setfill('0') << std::hex;
-    // search_space_ofs << color.b;
-    // search_space_ofs << std::dec;
-    // search_space_ofs << "\"";
-
-    search_space_ofs << " [label=\"";
-    search_space_ofs << node->score;
-    search_space_ofs << "\"";
-
-    if (node->m) {
-      assert(node->m->get_node());
-      search_space_ofs << ", tooltip=\""
-                       << get_bdd_node_name(node->m->get_node().get()) << " -> "
-                       << node->m->get_target_name()
-                       << "::" << node->m->get_name() << "\"";
-      // search_space_ofs << ", label=\"" << node->m->get_target_name()
-      //                  << "::" << node->m->get_name() << "\"";
-    }
-    search_space_ofs << "];\n";
-
-    if (node->prev) {
-      search_space_ofs << node->prev->execution_plan_id << " -> "
-                       << node->execution_plan_id << ";\n";
-    }
-
-    for (auto leaf : node->space) {
-      nodes.push_back(leaf.get());
-    }
-  }
-
-  search_space_ofs << "}\n";
-
-  search_space_ofs.close();
-}
-
 void Graphviz::visualize(const ExecutionPlan &ep, bool interrupt) {
   if (ep.get_root()) {
     Graphviz gv;
@@ -317,20 +248,216 @@ void Graphviz::visualize(const ExecutionPlan &ep, bool interrupt) {
   }
 }
 
-void Graphviz::visualize(const ExecutionPlan &ep, SearchSpace &_search_space,
-                         bool interrupt) {
-  if (!ep.get_root()) {
-    return;
-  }
-
-  Graphviz gv(&_search_space);
-  ep.visit(gv);
+void Graphviz::visualize(const SearchSpace &search_space, bool interrupt) {
+  Graphviz gv;
+  gv.visit(search_space);
   gv.open();
 
   if (interrupt) {
-    std::cout << "\nPress Enter to continue ";
+    std::cout << "Press Enter to continue ";
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
   }
+}
+
+std::string stringify_score(const Score &score) {
+  auto score_builder = std::stringstream();
+  score_builder << score;
+  auto score_str = score_builder.str();
+  sanitize_html_label(score_str);
+
+  return score_str;
+}
+
+std::string stringify_bdd_node(BDD::BDDNode_ptr node) {
+  assert(node);
+
+  constexpr int MAX_STR_SIZE = 250;
+
+  auto node_builder = std::stringstream();
+
+  node_builder << node->get_id();
+  node_builder << ": ";
+
+  switch (node->get_type()) {
+  case BDD::Node::NodeType::CALL: {
+    auto call_node = BDD_CAST_CALL(node);
+    node_builder << call_node->get_call().function_name;
+  } break;
+  case BDD::Node::NodeType::BRANCH: {
+    auto branch_node = BDD_CAST_BRANCH(node);
+    auto condition = branch_node->get_condition();
+    node_builder << "if (";
+    node_builder << kutil::expr_to_string(condition);
+    node_builder << ")";
+  } break;
+  case BDD::Node::NodeType::RETURN_PROCESS: {
+    auto return_process = BDD_CAST_RETURN_PROCESS(node);
+
+    switch (return_process->get_return_operation()) {
+    case BDD::ReturnProcess::Operation::BCAST: {
+      node_builder << "broadcast()";
+    } break;
+    case BDD::ReturnProcess::Operation::DROP: {
+      node_builder << "drop()";
+    } break;
+    case BDD::ReturnProcess::Operation::FWD: {
+      node_builder << "forward(";
+      node_builder << return_process->get_return_value();
+      node_builder << ")";
+    } break;
+    default:
+      assert(false);
+    }
+  } break;
+  default:
+    assert(false);
+  }
+
+  auto node_str = node_builder.str();
+
+  if (node_str.size() > MAX_STR_SIZE) {
+    node_str = node_str.substr(0, MAX_STR_SIZE);
+    node_str += " [...]";
+  }
+
+  sanitize_html_label(node_str);
+
+  return node_str;
+}
+
+void visit_definitions(std::ofstream &ofs,
+                       const std::map<TargetType, std::string> &node_colors,
+                       const SearchSpace &search_space,
+                       ss_node_ref search_space_node) {
+  assert(search_space_node);
+
+  auto node_id = search_space_node->node_id;
+  auto next_nodes = search_space_node->next;
+  auto data = search_space_node->data;
+  auto target = search_space_node->data.target;
+  auto target_color = node_colors.at(target);
+
+  auto indent = [&](int lvl) { ofs << std::string(lvl, '\t'); };
+
+  indent(1);
+  ofs << node_id;
+  ofs << " [label=<\n";
+
+  indent(2);
+  ofs << "<table";
+
+  if (search_space.is_winner(search_space_node)) {
+    ofs << " border=\"4\"";
+    ofs << " bgcolor=\"blue\"";
+    ofs << " color=\"green\"";
+  }
+  ofs << ">\n";
+
+  // First row
+
+  indent(3);
+  ofs << "<tr>\n";
+
+  indent(4);
+  ofs << "<td ";
+  ofs << "bgcolor=\"" << target_color << "\"";
+  ofs << ">";
+  ofs << "EP: " << data.execution_plan_id;
+  ofs << "</td>\n";
+
+  indent(4);
+  ofs << "<td ";
+  ofs << "bgcolor=\"" << target_color << "\"";
+  ofs << ">";
+
+  ofs << stringify_score(data.score);
+  ofs << "</td>\n";
+
+  indent(3);
+  ofs << "</tr>\n";
+
+  // Second row
+
+  indent(3);
+  ofs << "<tr>\n";
+
+  indent(4);
+  ofs << "<td";
+  ofs << " bgcolor=\"" << target_color << "\"";
+  ofs << " colspan=\"2\"";
+  ofs << ">";
+  if (data.module) {
+    ofs << data.module->get_name();
+  } else {
+    ofs << "ROOT";
+  }
+  ofs << "</td>\n";
+
+  indent(3);
+  ofs << "</tr>\n";
+
+  // Third row
+
+  indent(3);
+  ofs << "<tr>\n";
+
+  indent(4);
+  ofs << "<td ";
+  ofs << " bgcolor=\"" << target_color << "\"";
+  ofs << " colspan=\"2\"";
+  ofs << ">";
+  if (data.node) {
+    ofs << stringify_bdd_node(data.node);
+  }
+  ofs << "</td>\n";
+
+  indent(3);
+  ofs << "</tr>\n";
+
+  indent(2);
+  ofs << "</table>\n";
+
+  indent(1);
+  ofs << ">]\n\n";
+
+  for (auto next : next_nodes) {
+    visit_definitions(ofs, node_colors, search_space, next);
+  }
+}
+
+void visit_links(std::ofstream &ofs, ss_node_ref search_space_node) {
+  assert(search_space_node);
+
+  auto node_id = search_space_node->node_id;
+  auto next_nodes = search_space_node->next;
+
+  for (auto next : next_nodes) {
+    ofs << node_id;
+    ofs << " -> ";
+    ofs << next->node_id;
+    ofs << ";\n";
+  }
+
+  for (auto next : next_nodes) {
+    visit_links(ofs, next);
+  }
+}
+
+void Graphviz::visit(const SearchSpace &search_space) {
+  ofs << "digraph SearchSpace {\n";
+
+  ofs << "\tlayout=\"dot\";\n";
+  ofs << "\tnode [shape=none];\n";
+
+  auto root = search_space.get_root();
+
+  visit_definitions(ofs, node_colors, search_space, root);
+  visit_links(ofs, root);
+
+  ofs << "}";
+  ofs.flush();
+
+  bdd_fpaths.clear();
 }
 
 void Graphviz::visit(ExecutionPlan ep) {
@@ -356,10 +483,6 @@ void Graphviz::visit(ExecutionPlan ep) {
 
   bdd_fpaths.clear();
   dump_bdd(bdd, processed, next_node);
-
-  if (search_space) {
-    dump_search_space();
-  }
 }
 
 void Graphviz::visit(const ExecutionPlanNode *ep_node) {
@@ -480,7 +603,8 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPConsume)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::TCPUDPModify)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4TCPUDPChecksumsUpdate)
 
-void Graphviz::visit_table(const targets::tofino::TableLookup *node, bool simple) {
+void Graphviz::visit_table(const targets::tofino::TableLookup *node,
+                           bool simple) {
   std::stringstream label_builder;
 
   auto bdd_node = node->get_node();
@@ -560,7 +684,6 @@ void Graphviz::visit_table(const targets::tofino::TableLookup *node, bool simple
   find_and_replace(label, {{"\n", "\\l"}});
 
   function_call(bdd_node, target, label);
-
 }
 
 void Graphviz::visit(const targets::tofino::TableLookup *node) {
