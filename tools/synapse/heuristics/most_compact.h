@@ -6,9 +6,10 @@
 namespace synapse {
 
 struct MostCompactComparator : public HeuristicConfiguration {
-  Score get_score(const ExecutionPlan &e) const override {
-    Score score(e);
-    score.add(Score::Category::NumberOfNodes, Score::MIN);
+  Score get_score(const ExecutionPlan &ep) const override {
+    Score score(ep, {
+                        {Score::Category::NumberOfNodes, Score::MIN},
+                    });
     return score;
   }
 

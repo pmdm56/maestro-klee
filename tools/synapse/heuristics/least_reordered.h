@@ -6,12 +6,11 @@
 namespace synapse {
 
 struct LeastReorderedComparator : public HeuristicConfiguration {
-  Score get_score(const ExecutionPlan &e) const override {
-    Score score(e);
-
-    score.add(Score::Category::NumberOfReorderedNodes, Score::MIN);
-    score.add(Score::Category::NumberOfNodes, Score::MAX);
-
+  Score get_score(const ExecutionPlan &ep) const override {
+    Score score(ep, {
+                        {Score::Category::NumberOfReorderedNodes, Score::MIN},
+                        {Score::Category::NumberOfNodes, Score::MAX},
+                    });
     return score;
   }
 

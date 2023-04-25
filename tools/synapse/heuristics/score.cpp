@@ -1,27 +1,35 @@
 #include "score.h"
 #include "../execution_plan/execution_plan.h"
 #include "../execution_plan/modules/modules.h"
+#include "../log.h"
 #include "../symbex.h"
 
 namespace synapse {
 
-int Score::get_nr_nodes() const { return execution_plan.get_nodes(); }
+Score::score_value_t Score::get_nr_nodes(const ExecutionPlan &ep) const {
+  return ep.get_nodes();
+}
 
 std::vector<ExecutionPlanNode_ptr>
-Score::get_nodes_with_type(const std::vector<Module::ModuleType> &types) const {
+Score::get_nodes_with_type(const ExecutionPlan &ep,
+                           const std::vector<Module::ModuleType> &types) const {
   std::vector<ExecutionPlanNode_ptr> found;
 
-  if (!execution_plan.get_root()) {
+  auto root = ep.get_root();
+
+  if (!root) {
     return found;
   }
 
-  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{root};
 
   while (nodes.size()) {
     auto node = nodes[0];
     nodes.erase(nodes.begin());
+    assert(node);
 
     auto module = node->get_module();
+    assert(module);
 
     auto found_it = std::find(types.begin(), types.end(), module->get_type());
 
@@ -37,11 +45,13 @@ Score::get_nodes_with_type(const std::vector<Module::ModuleType> &types) const {
   return found;
 }
 
-int Score::get_nr_merged_tables() const {
-  auto nodes = get_nodes_with_type({
-      Module::ModuleType::BMv2_TableLookup,
-      Module::ModuleType::Tofino_TableLookup,
-  });
+Score::score_value_t
+Score::get_nr_merged_tables(const ExecutionPlan &ep) const {
+  auto nodes =
+      get_nodes_with_type(ep, {
+                                  Module::ModuleType::BMv2_TableLookup,
+                                  Module::ModuleType::Tofino_TableLookup,
+                              });
 
   int num_merged_tables = 0;
 
@@ -72,28 +82,33 @@ int Score::get_nr_merged_tables() const {
   return num_merged_tables;
 }
 
-int Score::get_nr_simple_tables() const {
+Score::score_value_t
+Score::get_nr_simple_tables(const ExecutionPlan &ep) const {
   auto nodes =
-      get_nodes_with_type({Module::ModuleType::Tofino_TableLookupSimple});
+      get_nodes_with_type(ep, {Module::ModuleType::Tofino_TableLookupSimple});
   return nodes.size();
 }
 
-int Score::get_nr_int_allocator_ops() const {
-  auto nodes = get_nodes_with_type({
-      Module::ModuleType::Tofino_IntegerAllocatorAllocate,
-      Module::ModuleType::Tofino_IntegerAllocatorQuery,
-      Module::ModuleType::Tofino_IntegerAllocatorRejuvenate,
-  });
+Score::score_value_t
+Score::get_nr_int_allocator_ops(const ExecutionPlan &ep) const {
+  auto nodes = get_nodes_with_type(
+      ep, {
+              Module::ModuleType::Tofino_IntegerAllocatorAllocate,
+              Module::ModuleType::Tofino_IntegerAllocatorQuery,
+              Module::ModuleType::Tofino_IntegerAllocatorRejuvenate,
+          });
 
   return nodes.size();
 }
 
-int Score::get_depth() const { return execution_plan.get_depth(); }
+Score::score_value_t Score::get_depth(const ExecutionPlan &ep) const {
+  return ep.get_depth();
+}
 
-int Score::get_nr_switch_nodes() const {
+Score::score_value_t Score::get_nr_switch_nodes(const ExecutionPlan &ep) const {
   auto switch_nodes = 0;
 
-  const auto &nodes_per_target = execution_plan.get_nodes_per_target();
+  const auto &nodes_per_target = ep.get_nodes_per_target();
 
   auto bmv2_nodes_it = nodes_per_target.find(TargetType::BMv2);
   auto tofino_nodes_it = nodes_per_target.find(TargetType::Tofino);
@@ -106,17 +121,19 @@ int Score::get_nr_switch_nodes() const {
     switch_nodes += tofino_nodes_it->second;
   }
 
-  auto send_to_controller = get_nodes_with_type({
-      Module::ModuleType::Tofino_SendToController,
-  });
+  auto send_to_controller =
+      get_nodes_with_type(ep, {
+                                  Module::ModuleType::Tofino_SendToController,
+                              });
 
   // Let's ignore the SendToController nodes
   return switch_nodes - send_to_controller.size();
 }
 
-int Score::get_nr_controller_nodes() const {
+Score::score_value_t
+Score::get_nr_controller_nodes(const ExecutionPlan &ep) const {
   auto controller_nodes = 0;
-  const auto &nodes_per_target = execution_plan.get_nodes_per_target();
+  const auto &nodes_per_target = ep.get_nodes_per_target();
 
   auto bmv2_controller_nodes_it = nodes_per_target.find(TargetType::x86_BMv2);
   auto tofino_controller_nodes_it =
@@ -133,44 +150,15 @@ int Score::get_nr_controller_nodes() const {
   return controller_nodes;
 }
 
-int Score::get_nr_reordered_nodes() const {
-  return execution_plan.get_reordered_nodes();
+Score::score_value_t
+Score::get_nr_reordered_nodes(const ExecutionPlan &ep) const {
+  return ep.get_reordered_nodes();
 }
 
-int Score::get_nr_exact_match_nodes() const {
-  auto targets = std::vector<DummyModule>{target_ep};
-  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
-  auto matches = 0;
-
-  while (nodes.size() && targets.size()) {
-    auto node = nodes[0];
-    auto target = targets[0];
-
-    nodes.erase(nodes.begin());
-    targets.erase(targets.begin());
-
-    assert(node);
-    auto module = node->get_module();
-
-    if (module->get_type() != target.type) {
-      break;
-    }
-
-    matches++;
-
-    auto next_node = node->get_next();
-    auto next_target = target.next;
-
-    nodes.insert(nodes.end(), next_node.begin(), next_node.end());
-    targets.insert(targets.end(), next_target.begin(), next_target.end());
-  }
-
-  return matches;
-}
-
-int Score::get_nr_switch_leaves() const {
+Score::score_value_t
+Score::get_nr_switch_leaves(const ExecutionPlan &ep) const {
   int switch_leaves = 0;
-  auto leaves = execution_plan.get_leaves();
+  auto leaves = ep.get_leaves();
   auto switch_types =
       std::vector<TargetType>{TargetType::BMv2, TargetType::Tofino};
 
@@ -190,14 +178,15 @@ int Score::get_nr_switch_leaves() const {
   return switch_leaves;
 }
 
-int Score::next_op_same_obj_in_switch() const {
-  auto target = execution_plan.get_current_platform();
+Score::score_value_t
+Score::next_op_same_obj_in_switch(const ExecutionPlan &ep) const {
+  auto target = ep.get_current_platform();
 
   if (target != TargetType::BMv2 && target != TargetType::Tofino) {
     return 0;
   }
 
-  auto next = execution_plan.get_next_node();
+  auto next = ep.get_next_node();
 
   if (!next) {
     return 0;
@@ -231,14 +220,15 @@ int Score::next_op_same_obj_in_switch() const {
   return 0;
 }
 
-int Score::next_op_is_stateful_in_switch() const {
-  auto target = execution_plan.get_current_platform();
+Score::score_value_t
+Score::next_op_is_stateful_in_switch(const ExecutionPlan &ep) const {
+  auto target = ep.get_current_platform();
 
   if (target != TargetType::BMv2 && target != TargetType::Tofino) {
     return 0;
   }
 
-  auto next = execution_plan.get_next_node();
+  auto next = ep.get_next_node();
 
   if (!next) {
     return 0;
