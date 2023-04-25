@@ -152,16 +152,14 @@ namespace Clone {
 	void Network::consolidate() {
 		build_graph();
 
-		vector<shared_ptr<Builder>> builders(sources.size());
+		builder = Builder::create();
 
 		for(const shared_ptr<Node> &source: sources) {			
 			assert(source->get_node_type() == NodeType::DEVICE);
 			info("Traversing source: ", source->get_name());
-			builder = Builder::create();
 			explore_source(source);
-			builder->dump(source->get_name() + ".bdd");
-			builders.push_back(builder);
 		}
+		builder->dump("output.bdd");
 	}
 
 	void Network::print() const {

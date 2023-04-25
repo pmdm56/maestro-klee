@@ -28,17 +28,13 @@ namespace Clone {
 		assert(root);
 
 		stack<BDDNode_ptr> s;
-		stack<unsigned> borrow_counters;
 
 		Tails tails;
 		s.push(root);
-		borrow_counters.push(0);
 
 		while(!s.empty()) {
 			auto curr = s.top();
-			unsigned borrow_counter = borrow_counters.top();
 			s.pop();
-			borrow_counters.pop();
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
@@ -76,12 +72,10 @@ namespace Clone {
 					if(!maybe_true) {
 						trim_node(curr, next_false);
 						s.push(next_false);
-						borrow_counters.push(borrow_counter);
 					}
 					else if(!maybe_false) {
 						trim_node(curr, next_true);
 						s.push(next_true);
-						borrow_counters.push(borrow_counter);
 					}
 					else {
 						branch->add_on_true(next_true);
@@ -91,8 +85,6 @@ namespace Clone {
 						branch->add_on_false(next_false);
 						next_false->replace_prev(curr);
 						s.push(next_false);
-						borrow_counters.push(borrow_counter);
-						borrow_counters.push(borrow_counter);
 					}
 
 					break;
@@ -112,21 +104,13 @@ namespace Clone {
 						cm.addConstraint(c);
 					}
 
-					call_t function_call = call->get_call();
-					if(function_call.function_name == "packet_borrow_next_chunk") {
-						auto borrow_type { solver_toolbox.create_new_symbol("BORROW_TYPE", 8) };
-						auto value { solver_toolbox.exprBuilder->Constant(++borrow_counter, borrow_type->getWidth()) };
-						auto eq { solver_toolbox.exprBuilder->Eq(borrow_type, value) };
-						cm.addConstraint(eq);
-					}
-
 					call->set_constraints(cm);
 
 					auto next = call->get_next()->clone();
 					call->replace_next(next);
 					next->replace_prev(curr);
 					s.push(next);
-					borrow_counters.push(borrow_counter);
+
 
 					break;
 				}
