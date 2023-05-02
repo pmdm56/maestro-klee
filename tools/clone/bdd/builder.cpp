@@ -1,5 +1,6 @@
 #include "builder.hpp"
 #include "../pch.hpp"
+
 #include "concretize_symbols.h"
 #include "klee/Constraints.h"
 #include "load-call-paths.h"
@@ -260,7 +261,7 @@ namespace Clone {
 	}
 
 	void Builder::dump(string path) {
-		debug("Dumping BDD to file");
+		info("Dumping BDD to file");
 		this->bdd->serialize(path);
 	}
 }

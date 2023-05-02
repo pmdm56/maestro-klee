@@ -1,7 +1,7 @@
 #include "pch.hpp"
 
 #include "parser/parser.hpp"
-#include "models/network.hpp"
+#include "network/network.hpp"
 
 void usage() {
 	cout << "Usage: clone [input-file]" << endl;

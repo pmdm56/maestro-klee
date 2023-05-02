@@ -32,6 +32,7 @@ public:
         value(_value), operation(_operation) {}
 
   int get_return_value() const { return value; }
+  void set_return_value(int val) { value = val; }
   Operation get_return_operation() const { return operation; }
 
   virtual BDDNode_ptr clone(bool recursive = false) const override;

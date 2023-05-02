@@ -1,15 +1,12 @@
 #include "parser.hpp"
-
-/** Common headers **/
 #include "../pch.hpp"
-#include "../constants.hpp"
-#include "../util/logger.hpp"
 
-/** Model **/
 #include "../models/device.hpp"
 #include "../models/nf.hpp"
 #include "../models/link.hpp"
-#include "../models/network.hpp"
+#include "../models/port.hpp"
+#include "../network/network.hpp"
+
 
 namespace Clone {
 	ifstream open_file(const string &path) {
@@ -44,7 +41,7 @@ namespace Clone {
 		return shared_ptr<NF>(new NF(id, path));;
 	}
 
-	unique_ptr<Link> parse_link(const vector<string> &words, const Devices &devices, const NFs &nfs) {
+	unique_ptr<Link> parse_link(const vector<string> &words, const DeviceMap &devices, const NFMap &nfs) {
 		if(words.size() != LENGTH_LINK_INPUT) {
 			throw runtime_error("Invalid link at line: ");
 		}
@@ -57,9 +54,9 @@ namespace Clone {
 			throw runtime_error("Could not find node " + node1 + " at line: ");
 		}
 
-		const string node2 { words[3] };
-		const string sport2 { words[4] };
-		const unsigned port2 { stoul(sport2) };
+		const string node2 = words[3];
+		const string sport2 = words[4];
+		const unsigned port2 = stoul(sport2);
 
 		if (nfs.find(node2) == nfs.end() && devices.find(node2) == devices.end()) { 
 			throw runtime_error("Could not find node " + node2 + " at line: ");
@@ -68,18 +65,39 @@ namespace Clone {
 		return unique_ptr<Link>(new Link(node1, port1, node2, port2));
 	}
 
+	PortPtr parse_port(const vector<string> &words, DeviceMap &devices) {
+		if(words.size() != LENGTH_PORT_INPUT) {
+			throw runtime_error("Invalid port at line: ");
+		}
+
+		const unsigned global_port = stoul(words[1]);
+		const string device_name = words[2];
+		const unsigned local_port = stoul(words[3]);
+
+		if (devices.find(device_name) == devices.end()) { 
+			throw runtime_error("Could not find device " + device_name + " at line: ");
+		}
+
+		auto device = devices.at(device_name);
+		device->add_port(local_port, global_port);
+		auto port = PortPtr(new Port(device, local_port, global_port));
+
+		return move(port);
+	}
+
 	unique_ptr<Network> parse(const string &network_file) {
 		ifstream fstream = open_file(network_file);
 
-		NFs nfs;
+		NFMap nfs;
 		BDDs bdds;
-		Links links;
-		Devices devices;
+		LinkList links;
+		DeviceMap devices;
+		PortMap ports;
 		
 		string line;
 		
 		while(getline(fstream, line)) {
-			stringstream ss{line};
+			stringstream ss(line);
 			vector<string> words;
 			string word;
 
@@ -91,7 +109,7 @@ namespace Clone {
 				continue;
 			}
 
-			const string type { words[0] };
+			const string type = words[0];
 
 			try {
 				if(type == STRING_DEVICE) {
@@ -105,7 +123,11 @@ namespace Clone {
 				else if(type == STRING_LINK) {
 					auto link = parse_link(words, devices, nfs);
 					links.push_back(move(link));
-				} 
+				}
+				else if(type == STRING_PORT) {
+					auto port = parse_port(words, devices);
+					ports[port->get_global_port()] = move(port);
+				}
 				else {
 					danger("Invalid line: ", line);
 				}
@@ -127,6 +149,6 @@ namespace Clone {
 			}
 		}
 
-		return Network::create(move(devices), move(nfs), move(links));
+		return Network::create(move(devices), move(nfs), move(links), move(ports));
 	}
 }

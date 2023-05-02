@@ -10,23 +10,37 @@ namespace BDD {
 }
 
 namespace Clone {
+	using std::string;
+	using std::shared_ptr;
+	using std::unordered_map;
 	class NF {
 	private:
-		const std::string id;
-		const std::string path;
-		std::shared_ptr<const BDD::BDD> bdd { nullptr };
+		const string id;
+		const string path;
+		shared_ptr<const BDD::BDD> bdd = nullptr;
 	public:
-		NF(const std::string &id, const std::string &path);
+		NF(const string &id, const string &path);
 		~NF();
 
-		std::string get_id() const;
-		std::string get_path() const;
+		inline const string &get_id() const {
+			return id;
+		}
+		
+		inline const string &get_path() const {
+			return path;
+		}
 
-		std::shared_ptr<const BDD::BDD> get_bdd() const;
-		void set_bdd(std::shared_ptr<const BDD::BDD> bdd);
+		inline const shared_ptr<const BDD::BDD> &get_bdd() const {
+			return bdd;
+		}
+
+		inline void set_bdd(shared_ptr<const BDD::BDD> bdd) {
+			this->bdd = bdd;
+		}
 		
 		void print() const;
 	};
 
-	typedef std::unordered_map<std::string, std::shared_ptr<NF>> NFs;
+	typedef shared_ptr<NF> NFptr;
+	typedef unordered_map<string, NFptr> NFMap;
 }

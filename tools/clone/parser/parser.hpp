@@ -4,8 +4,19 @@
 #include <memory>
 
 namespace Clone {
+	using std::string;
 	class Network;
-	
+
+	constexpr char STRING_DEVICE[] = "device";
+	constexpr char STRING_NF[] =  "nf";
+ 	constexpr char STRING_LINK[] = "link";
+	constexpr char STRING_PORT[] =  "port";
+
+	constexpr size_t LENGTH_DEVICE_INPUT = 2;
+	constexpr size_t LENGTH_NF_INPUT = 3;
+	constexpr size_t LENGTH_LINK_INPUT = 5;
+	constexpr size_t LENGTH_PORT_INPUT = 4;
+
 	/** 
 	 * Parses a file containing the description of the network 
 	 * 

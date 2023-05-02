@@ -8,10 +8,6 @@ namespace Clone {
 
 	Device::~Device() = default;
 
-	string Device::get_id() const {
-		return id;
-	}
-
 	void Device::print() const {
 		debug("Device ", id);
 	}

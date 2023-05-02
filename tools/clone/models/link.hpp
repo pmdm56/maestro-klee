@@ -1,8 +1,14 @@
 #pragma once
 
 #include <string>
+#include <vector>
+#include <memory>
 
 namespace Clone {
+	using std::string;
+	using std::unique_ptr;
+	using std::vector;
+
 	class Link {
 	private:
 		static size_t id_counter;
@@ -25,4 +31,6 @@ namespace Clone {
 
 		void print() const;
 	};
+
+	typedef vector<unique_ptr<const Link>> LinkList;
 }
