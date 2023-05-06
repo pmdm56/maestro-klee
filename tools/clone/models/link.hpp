@@ -14,18 +14,18 @@ namespace Clone {
 		static size_t id_counter;
 
 		const size_t id;
-		const std::string node1;
-		const std::string node2;
+		const string node1;
+		const string node2;
 		const unsigned port1;
 		const unsigned port2;
 
 	public:
-		Link(const std::string &node1, const unsigned port1, const std::string &node2, const unsigned port2);
+		Link(const string &node1, const unsigned port1, const string &node2, const unsigned port2);
 		~Link();
 
 		size_t get_id() const;
-		std::string get_node1() const;
-		std::string get_node2() const;
+		string get_node1() const;
+		string get_node2() const;
 		unsigned get_port1() const;
 		unsigned get_port2() const;
 
@@ -33,4 +33,5 @@ namespace Clone {
 	};
 
 	typedef vector<unique_ptr<const Link>> LinkList;
+	typedef unique_ptr<const Link> LinkPtr;
 }

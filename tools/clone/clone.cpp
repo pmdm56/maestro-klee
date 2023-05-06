@@ -17,6 +17,6 @@ int main(int argc, char **argv) {
 	auto network = Clone::parse(input_file);
 
 	network->consolidate();
-	
+
 	return EXIT_SUCCESS;
 }

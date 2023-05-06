@@ -98,9 +98,9 @@ namespace Clone {
 				tails.pop_front();
 				ReturnProcess* return_process = static_cast<ReturnProcess*>(tail.get());
 				unsigned port_next = return_process->get_return_value();
-				const pair<unsigned, NodePtr> &child = node->get_child(port_next);
 
-				if(child.second != nullptr) {
+				if(node->has_child(port_next)) {
+					const pair<unsigned, NodePtr> &child = node->get_child(port_next);
 					const unsigned local_port = child.first;
 					const NodePtr node = child.second;
 

@@ -15,14 +15,14 @@ namespace Clone {
 		const string id;
 		unordered_map<unsigned, unsigned> ports;
 	public:
-		Device(const string &id);
+		Device(string id);
 		~Device();
 
 		inline const string& get_id() const {
 			return id;
 		}
 
-		inline const unsigned get_port(const unsigned local_port) const {
+		inline unsigned get_port(const unsigned local_port) const {
 			assert(ports.find(local_port) != ports.end());
 			return ports.at(local_port);
 		}
@@ -35,5 +35,5 @@ namespace Clone {
 	};
 	
 	typedef shared_ptr<Device> DevicePtr;
-	typedef unordered_map<string, shared_ptr<Device>> DeviceMap;
+	typedef unordered_map<string, DevicePtr> DeviceMap;
 }

@@ -4,7 +4,7 @@
 
 
 namespace Clone {
-	Device::Device(const std::string &id) : id(id) {}
+	Device::Device(string id) : id(id) {}
 
 	Device::~Device() = default;
 

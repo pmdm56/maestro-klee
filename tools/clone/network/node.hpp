@@ -4,7 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
-
+#include <cassert>
 
 
 namespace Clone {
@@ -43,13 +43,13 @@ namespace Clone {
 			return children;
 		}
 
+		inline bool has_child(unsigned port) const {
+			return children.find(port) != children.end();
+		}
+
 		inline const pair<unsigned, shared_ptr<Node>> &get_child(unsigned port) const {
-			if(children.find(port) != children.end()) {
-				return children.at(port);
-			}
-			else {
-				return make_pair(0, nullptr);
-			}
+			assert(children.find(port) != children.end());
+			return children.at(port);
 		}
 
 		inline void add_child(unsigned port_from, unsigned port_to, const std::shared_ptr<Node> &node) {

@@ -20,35 +20,35 @@ namespace Clone {
 		return fstream;
 	}
 
-	unique_ptr<Device> parse_device(const vector<string> &words) {
+	DevicePtr parse_device(const vector<string> &words) {
 		if(words.size() != LENGTH_DEVICE_INPUT) {
 			throw runtime_error("Invalid device at line ");
 		}
 
-		const string id { words[1] };
+		const string id = words[1];
 
-		return unique_ptr<Device>(new Device(id));
+		return DevicePtr(new Device(id));
 	}
 
-	shared_ptr<NF> parse_nf(const vector<string> &words) {
+	NFPtr parse_nf(const vector<string> &words) {
 		if(words.size() != LENGTH_NF_INPUT) {
 			throw runtime_error("Invalid network function at line ");
 		}
 
-		const string id { words[1] };
-		const string path { words[2] };
+		const string id = words[1];
+		const string path = words[2];
 
-		return shared_ptr<NF>(new NF(id, path));;
+		return NFPtr(new NF(id, path));;
 	}
 
-	unique_ptr<Link> parse_link(const vector<string> &words, const DeviceMap &devices, const NFMap &nfs) {
+	LinkPtr parse_link(const vector<string> &words, const DeviceMap &devices, const NFMap &nfs) {
 		if(words.size() != LENGTH_LINK_INPUT) {
 			throw runtime_error("Invalid link at line: ");
 		}
 
-		const string node1 { words[1] };
-		const string sport1 { words[2] };
-		const unsigned port1 { stoul(sport1) };
+		const string node1 = words[1];
+		const string sport1 = words[2];
+		const unsigned port1 = stoul(sport1);
 
 		if (nfs.find(node1) == nfs.end() && devices.find(node1) == devices.end()) { 
 			throw runtime_error("Could not find node " + node1 + " at line: ");
@@ -62,7 +62,7 @@ namespace Clone {
 			throw runtime_error("Could not find node " + node2 + " at line: ");
 		}
 
-		return unique_ptr<Link>(new Link(node1, port1, node2, port2));
+		return LinkPtr(new Link(node1, port1, node2, port2));
 	}
 
 	PortPtr parse_port(const vector<string> &words, DeviceMap &devices) {
@@ -80,9 +80,8 @@ namespace Clone {
 
 		auto device = devices.at(device_name);
 		device->add_port(local_port, global_port);
-		auto port = PortPtr(new Port(device, local_port, global_port));
 
-		return move(port);
+		return PortPtr(new Port(device, local_port, global_port));
 	}
 
 	unique_ptr<Network> parse(const string &network_file) {
