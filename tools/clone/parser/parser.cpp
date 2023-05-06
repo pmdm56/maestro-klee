@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include "../pch.hpp"
+#include "../util/logger.hpp"
 
 #include "../models/device.hpp"
 #include "../models/nf.hpp"
@@ -22,7 +23,8 @@ namespace Clone {
 
 	DevicePtr parse_device(const vector<string> &words) {
 		if(words.size() != LENGTH_DEVICE_INPUT) {
-			throw runtime_error("Invalid device at line ");
+			danger("Invalid device at line ");
+			exit(1);
 		}
 
 		const string id = words[1];
@@ -32,7 +34,8 @@ namespace Clone {
 
 	NFPtr parse_nf(const vector<string> &words) {
 		if(words.size() != LENGTH_NF_INPUT) {
-			throw runtime_error("Invalid network function at line ");
+			danger("Invalid network function at line ");
+			exit(1);
 		}
 
 		const string id = words[1];
@@ -43,7 +46,8 @@ namespace Clone {
 
 	LinkPtr parse_link(const vector<string> &words, const DeviceMap &devices, const NFMap &nfs) {
 		if(words.size() != LENGTH_LINK_INPUT) {
-			throw runtime_error("Invalid link at line: ");
+			danger("Invalid link at line: ");
+			exit(1);
 		}
 
 		const string node1 = words[1];
@@ -51,7 +55,8 @@ namespace Clone {
 		const unsigned port1 = stoul(sport1);
 
 		if (nfs.find(node1) == nfs.end() && devices.find(node1) == devices.end()) { 
-			throw runtime_error("Could not find node " + node1 + " at line: ");
+			danger("Could not find node " + node1 + " at line: ");
+			exit(1);
 		}
 
 		const string node2 = words[3];
@@ -59,7 +64,8 @@ namespace Clone {
 		const unsigned port2 = stoul(sport2);
 
 		if (nfs.find(node2) == nfs.end() && devices.find(node2) == devices.end()) { 
-			throw runtime_error("Could not find node " + node2 + " at line: ");
+			danger("Could not find node " + node2 + " at line: ");
+			exit(1);
 		}
 
 		return LinkPtr(new Link(node1, port1, node2, port2));
@@ -67,7 +73,8 @@ namespace Clone {
 
 	PortPtr parse_port(const vector<string> &words, DeviceMap &devices) {
 		if(words.size() != LENGTH_PORT_INPUT) {
-			throw runtime_error("Invalid port at line: ");
+			danger("Invalid port at line: ");
+			exit(1);
 		}
 
 		const unsigned global_port = stoul(words[1]);
@@ -75,7 +82,8 @@ namespace Clone {
 		const unsigned local_port = stoul(words[3]);
 
 		if (devices.find(device_name) == devices.end()) { 
-			throw runtime_error("Could not find device " + device_name + " at line: ");
+			danger("Could not find device " + device_name + " at line: ");
+			exit(1);
 		}
 
 		auto device = devices.at(device_name);
@@ -110,41 +118,24 @@ namespace Clone {
 
 			const string type = words[0];
 
-			try {
-				if(type == STRING_DEVICE) {
-					auto device = parse_device(words);
-					devices[device->get_id()] = move(device);
-				} 
-				else if(type == STRING_NF) {
-					auto nf = parse_nf(words);	
-					nfs[nf->get_id()] = move(nf);
-				} 
-				else if(type == STRING_LINK) {
-					auto link = parse_link(words, devices, nfs);
-					links.push_back(move(link));
-				}
-				else if(type == STRING_PORT) {
-					auto port = parse_port(words, devices);
-					ports[port->get_global_port()] = move(port);
-				}
-				else {
-					danger("Invalid line: ", line);
-				}
+			if(type == STRING_DEVICE) {
+				auto device = parse_device(words);
+				devices[device->get_id()] = move(device);
+			} 
+			else if(type == STRING_NF) {
+				auto nf = parse_nf(words);	
+				nfs[nf->get_id()] = move(nf);
+			} 
+			else if(type == STRING_LINK) {
+				auto link = parse_link(words, devices, nfs);
+				links.push_back(move(link));
 			}
-			catch(const invalid_argument &e) {
-				danger("Provide a valid port at line ->", line);
+			else if(type == STRING_PORT) {
+				auto port = parse_port(words, devices);
+				ports[port->get_global_port()] = move(port);
 			}
-			catch(const out_of_range &e) {
-				danger("Provide a valid port at line ->", line);
-			}
-			catch(const runtime_error &e) {
-				danger(e.what(), line);
-			}
-			catch(const exception &e) {
-				danger(e.what(), line);
-			}
-			catch(...) {
-				danger("Unknown error while parsing line:", line);
+			else {
+				danger("Invalid line: ", line);
 			}
 		}
 
