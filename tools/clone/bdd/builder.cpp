@@ -1,6 +1,8 @@
 #include "builder.hpp"
 #include "../pch.hpp"
 
+#include "bdd/nodes/branch.h"
+#include "bdd/nodes/node.h"
 #include "concretize_symbols.h"
 #include "klee/Constraints.h"
 #include "load-call-paths.h"
@@ -39,25 +41,25 @@ namespace Clone {
 
 			switch(curr->get_type()) {
 				case Node::NodeType::BRANCH: {
-					auto branch { static_cast<Branch*>(curr.get()) };
+					Branch* branch { static_cast<Branch*>(curr.get()) };
 					assert(branch->get_on_true());
 					assert(branch->get_on_false());
 
-					auto prev = branch->get_prev();
-					auto next_true = branch->get_on_true()->clone();
-					auto next_false = branch->get_on_false()->clone();
+					BDDNode_ptr prev = branch->get_prev();
+					BDDNode_ptr next_true = branch->get_on_true()->clone();
+					BDDNode_ptr next_false = branch->get_on_false()->clone();
 					branch->disconnect();
 					branch->add_prev(prev);
 
-					const auto &condition_symbols { get_symbols(branch->get_condition()) };
+					const auto &condition_symbols = get_symbols(branch->get_condition());
 
 					bool maybe_true = false;
 					bool maybe_false = false;
 
 					if (condition_symbols.size() == 1 && *condition_symbols.begin() == "VIGOR_DEVICE") {
-						auto vigor_device { solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32) };
-						auto port { solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) };
-						auto eq { solver_toolbox.exprBuilder->Eq(vigor_device, port) };
+						auto vigor_device = solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
+						auto port = solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth());
+						auto eq = solver_toolbox.exprBuilder->Eq(vigor_device, port);
 						auto cm = branch->get_node_constraints();
 
 						cm.addConstraint(eq);
@@ -91,7 +93,7 @@ namespace Clone {
 					break;
 				}
 				case Node::NodeType::CALL: {
-					auto call { static_cast<Call*>(curr.get()) };
+					Call* call { static_cast<Call*>(curr.get()) };
 					assert(call->get_next());
 
 					klee::ConstraintManager cm;
@@ -107,16 +109,15 @@ namespace Clone {
 
 					call->set_constraints(cm);
 
-					auto next = call->get_next()->clone();
+					BDDNode_ptr next = call->get_next()->clone();
 					call->replace_next(next);
 					next->replace_prev(curr);
 					s.push(next);
 
-
 					break;
 				}
 				case Node::NodeType::RETURN_INIT: {
-					auto ret { static_cast<ReturnInit*>(curr.get()) };
+					ReturnInit* ret { static_cast<ReturnInit*>(curr.get()) };
 
 					if(ret->get_return_value() == ReturnInit::ReturnType::SUCCESS) {
 						init_tail = curr;
@@ -124,7 +125,7 @@ namespace Clone {
 					break;
 				}
 				case Node::NodeType::RETURN_PROCESS: {
-					auto ret = static_cast<ReturnProcess*>(curr.get()) ;
+					ReturnProcess* ret = static_cast<ReturnProcess*>(curr.get()) ;
 
 					if(ret->get_return_operation() == ReturnProcess::Operation::FWD) {
 						tails.push_back(curr);
@@ -133,7 +134,7 @@ namespace Clone {
 					break;
 				}
 				case Node::NodeType::RETURN_RAW: {
-					auto ret { static_cast<ReturnRaw*>(curr.get()) };
+					ReturnRaw* ret { static_cast<ReturnRaw*>(curr.get()) };
 					
 					break;
 				}
@@ -174,7 +175,7 @@ namespace Clone {
 	/* Static methods */
 
 	shared_ptr<Builder> Builder::create() {
-		auto builder { new Builder(unique_ptr<BDD::BDD>(new BDD::BDD())) };
+		auto builder = new Builder(unique_ptr<BDD::BDD>(new BDD::BDD()));
 		return shared_ptr<Builder>(move(builder));
 	}
 
@@ -188,11 +189,16 @@ namespace Clone {
 	}
 
 	void Builder::replace_with_drop(BDDNode_ptr node) {
-		auto return_drop = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
+		BDDNode_ptr return_drop = BDDNode_ptr(new ReturnProcess(
+			counter++, 
+			node, 
+			{}, 
+			0, 
+			ReturnProcess::Operation::DROP));
 		trim_node(node, return_drop);
 	}
 
-	void Builder::add_process_branch(unsigned input_port) {
+	void Builder::add_root_branch(BDDNode_ptr &root, unsigned input_port) {
 		ConstraintManager cm {};
 		auto vigor_device = solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
 		auto port = solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) ;
@@ -200,49 +206,55 @@ namespace Clone {
 		BDDNode_ptr node = BDDNode_ptr(new Branch(counter++, cm, eq));
 		BDDNode_ptr return_drop = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
 		BDDNode_ptr return_fwd = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::FWD));
-		Branch* branch { static_cast<Branch*>(node.get()) };
+		Branch* branch = static_cast<Branch*>(node.get());
 
 		branch->add_on_false(return_drop);
 		branch->add_on_true(return_fwd);
 
-		if(process_root != nullptr) {
-			assert(process_root->get_type() == Node::NodeType::BRANCH);
-			auto root_branch { static_cast<Branch*>(process_root.get()) };
+		if(root != nullptr) {
+			assert(root->get_type() == Node::NodeType::BRANCH);
+			auto root_branch = static_cast<Branch*>(root.get());
 			root_branch->replace_on_false(node);
-			node->add_prev(process_root);
+			node->add_prev(root);
 		}
 
-		process_root = node;
-		assert(process_root != nullptr);
+		root = node;
+		assert(root != nullptr);
+	}
 
+	void Builder::add_init_branch(unsigned port) {
+		add_root_branch(init_root, port);
+		if(merged_inits.size() == 0) {
+			bdd->set_init(init_root);
+		}
+		merged_inits.clear();
+		Branch* branch = static_cast<Branch*>(init_root.get());
+		init_tail = branch->get_on_true();
+	}
+	
+	void Builder::add_process_branch(unsigned port) {
+		add_root_branch(process_root, port);
 		if(is_process_empty()) {
-			bdd->set_process(node);
-			assert(bdd->get_process() != nullptr);
+			bdd->set_process(process_root);
 		}
 	}
 
-	void Builder::join_init(const shared_ptr<NF> &nf) {
+	void Builder::join_init(const NFPtr &nf) {
 		if(merged_inits.find(nf->get_id()) != merged_inits.end()) {
 			return;
 		}
 
-		auto init_new = nf->get_bdd()->get_init()->clone(true);
+		BDDNode_ptr init_new = nf->get_bdd()->get_init()->clone(true);
 		init_new->recursive_update_ids(counter);
 
-		if(is_init_empty()) {
-			bdd->set_init(init_new);
-		}
-		else {
-			assert(init_tail != nullptr);
-
-			trim_node(init_tail, init_new);
-		}
+		assert(init_tail != nullptr);
+		trim_node(init_tail, init_new);
 
  		clone_node(init_new, 0);
 		merged_inits.insert(nf->get_id());
 	}
 
-	Tails Builder::join_process(const shared_ptr<NF> &nf, unsigned port, const BDDNode_ptr &tail) {
+	Tails Builder::join_process(const NFPtr &nf, unsigned port, const BDDNode_ptr &tail) {
 		assert(process_root != nullptr);
 
 		auto root = nf->get_bdd()->get_process()->clone(true);

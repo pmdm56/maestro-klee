@@ -27,6 +27,7 @@ namespace Clone {
 		unordered_set<string> merged_inits;
 
 		BDDNode_ptr init_tail = nullptr;
+		BDDNode_ptr init_root = nullptr;
 		BDDNode_ptr process_root = nullptr;
 
 		uint64_t counter = 1;
@@ -44,13 +45,15 @@ namespace Clone {
 
 		void replace_with_drop(BDDNode_ptr node);
 
-		void add_process_branch(unsigned input_port);
+		void add_root_branch(BDDNode_ptr &root, unsigned port);
+		void add_init_branch(unsigned port);
+		void add_process_branch(unsigned port);
 
 		void initialise_init(const shared_ptr<const BDD::BDD> &bdd);
 		void initialise_process(const shared_ptr<const BDD::BDD> &bdd);
 
-		void join_init(const NFptr &nf);
-		Tails join_process(const NFptr &nf, unsigned input_port, const BDDNode_ptr &tail);
+		void join_init(const NFPtr &nf);
+		Tails join_process(const NFPtr &nf, unsigned input_port, const BDDNode_ptr &tail);
 
 		BDDNode_ptr get_process_root() const;
 		

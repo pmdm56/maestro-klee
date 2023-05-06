@@ -41,6 +41,6 @@ namespace Clone {
 		void print() const;
 	};
 
-	typedef shared_ptr<NF> NFptr;
-	typedef unordered_map<string, NFptr> NFMap;
+	typedef shared_ptr<NF> NFPtr;
+	typedef unordered_map<string, NFPtr> NFMap;
 }

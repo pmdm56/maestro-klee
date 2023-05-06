@@ -19,26 +19,26 @@ namespace Clone {
 			const string &node1_str = link->get_node1();
 			const string &node2_str = link->get_node2();
 
-			const NodeType &node1_type = devices.find(node1_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
-			const NodeType &node2_type = devices.find(node2_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
+			const NodeType node1_type = devices.find(node1_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
+			const NodeType node2_type = devices.find(node2_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
 
 			if(node1_type == NodeType::DEVICE && node2_type == NodeType::DEVICE) {
 				continue;
 			}
 
-			unsigned port1 = link->get_port1();
-			unsigned port2 = link->get_port2();
+			const unsigned port1 = link->get_port1();
+			const unsigned port2 = link->get_port2();
 
 			if(nodes.find(node1_str) == nodes.end()) {
-				nodes.emplace(node1_str, shared_ptr<Node>(new Node(node1_str, node1_type)));
+				nodes.emplace(node1_str, NodePtr(new Node(node1_str, node1_type)));
 			}
 
 			if(nodes.find(node2_str) == nodes.end()) {
-				nodes.emplace(node2_str, shared_ptr<Node>(new Node(node2_str, node2_type)));
+				nodes.emplace(node2_str, NodePtr(new Node(node2_str, node2_type)));
 			}
 
-			const shared_ptr<Node> &node1 = nodes.at(node1_str);
-			const shared_ptr<Node> &node2 = nodes.at(node2_str);
+			const NodePtr node1 = nodes.at(node1_str);
+			const NodePtr node2 = nodes.at(node2_str);
 
 			node1->add_child(port1, port2, node2);
 			
@@ -55,7 +55,7 @@ namespace Clone {
 	void Network::explore_source(const NodePtr &origin) {
 		assert(origin->get_node_type() == NodeType::DEVICE);
 
-		for(auto &child: origin->get_children()) {
+		for(const auto &child: origin->get_children()) {
 			const unsigned local_port = child.first;
 			info("Traversing from ", origin->get_name(), " port ", local_port, " to ", child.second.second->get_name(), " port ", child.second.first);
 			assert(devices.find(origin->get_name()) != devices.end() && "Missing device port mapping");
@@ -69,22 +69,23 @@ namespace Clone {
 	void Network::traverse(unsigned global_port, NodePtr source, unsigned nf_port) {
 		/* Input port | Node */
 		assert(nfs.find(source->get_name()) != nfs.end());
-		const NFptr nf = nfs.at(source->get_name());
+		const NFPtr nf = nfs.at(source->get_name());
 		
+		builder->add_init_branch(global_port);
 		builder->add_process_branch(global_port);
 
-		deque<shared_ptr<NodeTransition>> q_transitions;
-		const auto root = builder->get_process_root();
-		const auto branch = static_cast<BDD::Branch*>(root.get());
-		const auto transition = make_shared<NodeTransition>(nf_port, source, branch->get_on_true());
+		deque<NodeTransitionPtr> q_transitions;
+		const BDDNode_ptr root = builder->get_process_root();
+		const Branch* branch = static_cast<Branch*>(root.get());
+		const NodeTransitionPtr transition = make_shared<NodeTransition>(nf_port, source, branch->get_on_true());
 		q_transitions.push_front(transition);
 
 		while(!q_transitions.empty()) {
 			const unsigned port = q_transitions.front()->input_port;
-			const auto node = q_transitions.front()->node;
-			const auto tail = q_transitions.front()->tail;
+			const NodePtr node = q_transitions.front()->node;
+			const BDDNode_ptr tail = q_transitions.front()->tail;
 			assert(nfs.find(node->get_name()) != nfs.end());
-			const auto nf = nfs.at(node->get_name());
+			const NFPtr nf = nfs.at(node->get_name());
 			assert(nf != nullptr);
 
 			q_transitions.pop_front();
@@ -95,13 +96,13 @@ namespace Clone {
 			while(!tails.empty()) {
 				const BDDNode_ptr tail = tails.front();
 				tails.pop_front();
-				auto return_process = static_cast<BDD::ReturnProcess*>(tail.get());
+				ReturnProcess* return_process = static_cast<ReturnProcess*>(tail.get());
 				unsigned port_next = return_process->get_return_value();
-				const auto &child = node->get_child(port_next);
+				const pair<unsigned, NodePtr> &child = node->get_child(port_next);
 
 				if(child.second != nullptr) {
 					const unsigned local_port = child.first;
-					const auto &node = child.second;
+					const NodePtr node = child.second;
 
 					if(node->get_node_type() == NodeType::NF) {
 						q_transitions.push_front(make_shared<NodeTransition>(local_port, node, tail));

@@ -11,7 +11,9 @@
 #include "../models/link.hpp"
 #include "../models/port.hpp"
 #include "../bdd/builder.hpp"
+#include "bdd/nodes/branch.h"
 #include "bdd/nodes/node.h"
+#include "bdd/nodes/return_process.h"
 #include "node.hpp"
 
 namespace BDD {
@@ -29,6 +31,9 @@ namespace Clone {
 	using std::unordered_map;
 	using std::shared_ptr;
 	using BDD::BDDNode_ptr;
+	using BDD::Branch;
+	using BDD::ReturnProcess;
+
 
 	typedef unordered_map<string, shared_ptr<const BDD::BDD>> BDDs;
 
@@ -40,6 +45,8 @@ namespace Clone {
 		NodeTransition(unsigned input_port, const NodePtr &node, BDDNode_ptr tail)
 			: input_port(input_port), node(node), tail(tail) {}
 	};
+
+	typedef shared_ptr<NodeTransition> NodeTransitionPtr;
 
 	class Network {
 	private:
