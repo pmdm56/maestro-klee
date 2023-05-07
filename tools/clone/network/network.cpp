@@ -167,7 +167,7 @@ namespace Clone {
 			info("Traversing source: ", source->get_name());
 			explore_source(source);
 		}
-		builder->dump("output.bdd");
+		builder->dump("network.bdd");
 	}
 
 	void Network::print() const {

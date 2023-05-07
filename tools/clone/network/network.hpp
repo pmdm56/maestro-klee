@@ -34,7 +34,6 @@ namespace Clone {
 	using BDD::Branch;
 	using BDD::ReturnProcess;
 
-
 	typedef unordered_map<string, shared_ptr<const BDD::BDD>> BDDs;
 
 	struct NodeTransition {
@@ -50,9 +49,9 @@ namespace Clone {
 
 	class Network {
 	private:
+		const DeviceMap devices;
 		const NFMap nfs;
 		const LinkList links;
-		const DeviceMap devices;
 		const PortMap ports;
 
 		NodeMap nodes;

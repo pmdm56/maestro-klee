@@ -13,6 +13,7 @@ namespace Clone {
 	using std::string;
 	using std::shared_ptr;
 	using std::unordered_map;
+
 	class NF {
 	private:
 		const string id;
@@ -25,7 +26,7 @@ namespace Clone {
 		inline const string &get_id() const {
 			return id;
 		}
-		
+
 		inline const string &get_path() const {
 			return path;
 		}
@@ -37,7 +38,7 @@ namespace Clone {
 		inline void set_bdd(shared_ptr<const BDD::BDD> bdd) {
 			this->bdd = bdd;
 		}
-		
+
 		void print() const;
 	};
 

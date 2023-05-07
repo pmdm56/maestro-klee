@@ -134,8 +134,6 @@ namespace Clone {
 					break;
 				}
 				case Node::NodeType::RETURN_RAW: {
-					ReturnRaw* ret { static_cast<ReturnRaw*>(curr.get()) };
-					
 					break;
 				}
 			}

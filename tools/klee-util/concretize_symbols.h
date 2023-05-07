@@ -40,7 +40,6 @@ public:
       assert(symbol->getKid(0)->getKind() == klee::Expr::Constant);
       auto constant = symbol->getKid(0);
       uint32_t val = static_cast<klee::ConstantExpr*>(constant.get())->getZExtValue();
-      uint32_t size = symbol->getWidth();
 
       auto new_symbol = solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
       auto extract = solver_toolbox.exprBuilder->Extract(new_symbol, val, symbol->getWidth());
@@ -48,7 +47,6 @@ public:
       auto eq = solver_toolbox.exprBuilder->Eq(new_symbol, solver_toolbox.exprBuilder->Constant(replacement, new_symbol->getWidth()));
       klee::ConstraintManager cm;
       cm.addConstraint(eq);
-      uint64_t v = solver_toolbox.value_from_expr(extract, cm);
 
       auto replace = solver_toolbox.exprBuilder->Constant(replacement, symbol->getWidth());
       return Action::changeTo(replace);

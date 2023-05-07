@@ -4,7 +4,7 @@
 #include "call-paths-to-bdd.h"
 
 namespace Clone {
-	NF::NF(const std::string &id, const std::string &path) : id(id), path(path) {}
+	NF::NF(const string &id, const string &path) : id(id), path(path) {}
 
 	NF::~NF() = default;
 
