@@ -17,11 +17,11 @@ namespace Clone {
 	class Port {
 	private:
 		const DevicePtr device;
-		const unsigned local_port;
+		const unsigned device_port;
 		const unsigned global_port;
 
 	public:
-		Port(const DevicePtr device, unsigned local_port, unsigned global_port);
+		Port(const DevicePtr device, unsigned device_port, unsigned global_port);
 		~Port();
 		
 		inline DevicePtr get_device() const {
@@ -29,7 +29,7 @@ namespace Clone {
 		}
 
 		inline unsigned get_local_port() const {
-			return local_port;
+			return device_port;
 		}
 
 		inline unsigned get_global_port() const {

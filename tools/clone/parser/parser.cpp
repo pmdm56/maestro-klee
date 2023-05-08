@@ -54,7 +54,7 @@ namespace Clone {
 		const string sport1 = words[2];
 		const unsigned port1 = stoul(sport1);
 
-		if (nfs.find(node1) == nfs.end() && devices.find(node1) == devices.end()) { 
+		if (nfs.find(node1) == nfs.end() && node1 != "port") { 
 			danger("Could not find node " + node1 + " at line: ");
 			exit(1);
 		}
@@ -63,7 +63,7 @@ namespace Clone {
 		const string sport2 = words[4];
 		const unsigned port2 = stoul(sport2);
 
-		if (nfs.find(node2) == nfs.end() && devices.find(node2) == devices.end()) { 
+		if (nfs.find(node2) == nfs.end() && node2 != "port") { 
 			danger("Could not find node " + node2 + " at line: ");
 			exit(1);
 		}
@@ -79,7 +79,7 @@ namespace Clone {
 
 		const unsigned global_port = stoul(words[1]);
 		const string device_name = words[2];
-		const unsigned local_port = stoul(words[3]);
+		const unsigned device_port = stoul(words[3]);
 
 		if (devices.find(device_name) == devices.end()) { 
 			danger("Could not find device " + device_name + " at line: ");
@@ -87,9 +87,9 @@ namespace Clone {
 		}
 
 		auto device = devices.at(device_name);
-		device->add_port(local_port, global_port);
+		device->add_port(device_port, global_port);
 
-		return PortPtr(new Port(device, local_port, global_port));
+		return PortPtr(new Port(device, device_port, global_port));
 	}
 
 	unique_ptr<Network> parse(const string &network_file) {

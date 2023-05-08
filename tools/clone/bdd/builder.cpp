@@ -222,9 +222,6 @@ namespace Clone {
 
 	void Builder::add_init_branch(unsigned port) {
 		add_root_branch(init_root, port);
-		if(merged_inits.size() == 0) {
-			bdd->set_init(init_root);
-		}
 		merged_inits.clear();
 		Branch* branch = static_cast<Branch*>(init_root.get());
 		init_tail = branch->get_on_true();
@@ -245,8 +242,16 @@ namespace Clone {
 		BDDNode_ptr init_new = nf->get_bdd()->get_init()->clone(true);
 		init_new->recursive_update_ids(counter);
 
-		assert(init_tail != nullptr);
-		trim_node(init_tail, init_new);
+		if(bdd->get_init() == nullptr) {
+			if(init_root == nullptr) {
+				init_root = init_new;
+			}
+			bdd->set_init(init_root);
+		}
+
+		if(init_tail != nullptr) {
+			trim_node(init_tail, init_new);
+		}
 
  		clone_node(init_new, 0);
 		merged_inits.insert(nf->get_id());
@@ -271,7 +276,7 @@ namespace Clone {
 	}
 
 	void Builder::dump(string path) {
-		info("Dumping BDD to file");
+		info("Dumping BDD to file \"", path, "\"");
 		this->bdd->serialize(path);
 	}
 }

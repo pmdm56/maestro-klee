@@ -14,6 +14,7 @@
 #include "bdd/nodes/branch.h"
 #include "bdd/nodes/node.h"
 #include "bdd/nodes/return_process.h"
+#include "bdd/visitors/graphviz-generator.h"
 #include "node.hpp"
 
 namespace BDD {
@@ -33,6 +34,7 @@ namespace Clone {
 	using BDD::BDDNode_ptr;
 	using BDD::Branch;
 	using BDD::ReturnProcess;
+	using BDD::GraphvizGenerator;
 
 	typedef unordered_map<string, shared_ptr<const BDD::BDD>> BDDs;
 
@@ -55,20 +57,25 @@ namespace Clone {
 		const PortMap ports;
 
 		NodeMap nodes;
-		NodeSet sources;
+		NodePtr source;
 
 		shared_ptr<Builder> builder;
+
+		string name;
 
 		Network(DeviceMap &&devices, NFMap &&nfs, LinkList &&links, PortMap &&ports);
 
 		void build_graph();
-		void explore_source(const NodePtr &origin);
-		void traverse(unsigned device_port, NodePtr origin, unsigned nf_port);
+		void traverse(unsigned global_port, NodePtr origin, unsigned nf_port);
 		void print_graph() const;
 	public:
 		~Network();
 
 		static unique_ptr<Network> create(DeviceMap &&devices, NFMap &&nfs, LinkList &&links, PortMap &&ports);
+
+		inline void set_name(const string &name) {
+			this->name = name;
+		}
 
 		void consolidate();
 		void print() const;

@@ -19,12 +19,8 @@ namespace Clone {
 			const string &node1_str = link->get_node1();
 			const string &node2_str = link->get_node2();
 
-			const NodeType node1_type = devices.find(node1_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
-			const NodeType node2_type = devices.find(node2_str) != devices.end() ? NodeType::DEVICE : NodeType::NF;
-
-			if(node1_type == NodeType::DEVICE && node2_type == NodeType::DEVICE) {
-				continue;
-			}
+			const NodeType node1_type = nfs.find(node1_str) != nfs.end() ? NodeType::NF : NodeType::GLOBAL_PORT;
+			const NodeType node2_type = nfs.find(node2_str) != nfs.end() ? NodeType::NF : NodeType::GLOBAL_PORT;
 
 			const unsigned port1 = link->get_port1();
 			const unsigned port2 = link->get_port2();
@@ -42,27 +38,13 @@ namespace Clone {
 
 			node1->add_child(port1, port2, node2);
 			
-			if(node1_type == NodeType::DEVICE) {
-				sources.insert(node1);
+			if(node1_type == NodeType::GLOBAL_PORT && source == nullptr) {
+				source =  node1;
 			}
 		}
 
-		if(sources.size() == 0) {
-			danger("No sources found");
-		}
-	}
-
-	void Network::explore_source(const NodePtr &origin) {
-		assert(origin->get_node_type() == NodeType::DEVICE);
-
-		for(const auto &child: origin->get_children()) {
-			const unsigned local_port = child.first;
-			info("Traversing from ", origin->get_name(), " port ", local_port, " to ", child.second.second->get_name(), " port ", child.second.first);
-			assert(devices.find(origin->get_name()) != devices.end() && "Missing device port mapping");
-			DevicePtr device = devices.at(origin->get_name());
-			const int global_port = device->get_port(local_port);
-			assert(global_port != -1 && "Missing local port mapping");
-			traverse(global_port, child.second.second, child.second.first);
+		if(source == nullptr) {
+			danger("Null source");
 		}
 	}
 
@@ -71,7 +53,7 @@ namespace Clone {
 		assert(nfs.find(source->get_name()) != nfs.end());
 		const NFPtr nf = nfs.at(source->get_name());
 		
-		builder->add_init_branch(global_port);
+		//builder->add_init_branch(global_port);
 		builder->add_process_branch(global_port);
 
 		deque<NodeTransitionPtr> q_transitions;
@@ -108,10 +90,7 @@ namespace Clone {
 						q_transitions.push_front(make_shared<NodeTransition>(local_port, node, tail));
 					} 
 					else {
-						assert(devices.find(node->get_name()) != devices.end());
-						const DevicePtr device = devices.at(node->get_name());
-						const unsigned global_port = device->get_port(local_port);
-						return_process->set_return_value(global_port);
+						return_process->set_return_value(local_port);
 					}
 				} 
 				else {
@@ -119,17 +98,11 @@ namespace Clone {
 				}
 			}
 		}
-		BDD::GraphvizGenerator::visualize(*builder->get_bdd(), false, false);
 	}
 
 	void Network::print_graph() const {
 		for(auto &node: nodes) {
 			node.second->print();
-		}
-
-		debug("Sources: ");
-		for(auto &source: sources) {
-			debug(source->get_name());
 		}
 	}
 
@@ -162,12 +135,16 @@ namespace Clone {
 
 		builder = Builder::create();
 
-		for(const shared_ptr<Node> &source: sources) {			
-			assert(source->get_node_type() == NodeType::DEVICE);
-			info("Traversing source: ", source->get_name());
-			explore_source(source);
+		assert(source != nullptr);
+		for(const auto &child: source->get_children()) {
+			const unsigned global_port = child.first;
+			info("Traversing from global port ", global_port, " to ", child.second.second->get_name(), " port ", child.second.first);
+			traverse(global_port, child.second.second, child.second.first);
 		}
-		builder->dump("network.bdd");
+
+		GraphvizGenerator::visualize(*builder->get_bdd(), false, false);
+		string bdd_name = name + ".bdd";
+		builder->dump(name + ".bdd");
 	}
 
 	void Network::print() const {
@@ -181,7 +158,7 @@ namespace Clone {
 			it->second->print();
 		}
 
-		for (auto& link : links) {
+		for (const auto& link : links) {
 			link->print();
 		}
 	}

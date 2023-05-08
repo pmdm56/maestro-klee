@@ -16,7 +16,7 @@ namespace Clone {
 	using std::make_pair;
 
 	enum class NodeType {
-		DEVICE,
+		GLOBAL_PORT,
 		NF
 	};
 
