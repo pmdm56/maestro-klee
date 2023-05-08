@@ -58,10 +58,9 @@ llvm::cl::opt<TargetOption> Target(
     llvm::cl::Required);
 } // namespace
 
-Node_ptr
-preppend_call_path_hitter(AST &ast,
-                          const std::vector<uint64_t> &terminating_ids,
-                          Node_ptr node) {
+Node_ptr preppend_call_path_hitter(AST &ast,
+                                   const std::vector<uint64_t> &terminating_ids,
+                                   Node_ptr node) {
   if (terminating_ids.size() != 1) {
     return node;
   }
@@ -215,6 +214,14 @@ Node_ptr build_ast(AST &ast, const BDD::Node *root, TargetOption target) {
 }
 
 void build_ast(AST &ast, const BDD::BDD &bdd, TargetOption target) {
+  auto init = bdd.get_init().get();
+  auto process = bdd.get_process().get();
+
+  assert(init);
+  assert(process);
+
+  auto code_paths = init->count_code_paths() + process->count_code_paths() - 1;
+
   auto init_root = build_ast(ast, bdd.get_init().get(), target);
   std::vector<Node_ptr> intro_nodes;
 
@@ -222,7 +229,7 @@ void build_ast(AST &ast, const BDD::BDD &bdd, TargetOption target) {
   case CALL_PATH_HITTER: {
     auto u64 = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT64_T);
     auto call_path_hit_counter_type =
-        Array::build(u64, bdd.get_total_call_paths());
+        Array::build(u64, code_paths);
     auto call_path_hit_counter =
         Variable::build("call_path_hit_counter", call_path_hit_counter_type);
     ast.push_to_state(call_path_hit_counter);
@@ -298,10 +305,10 @@ void build_ast(AST &ast, const BDD::BDD &bdd, TargetOption target) {
 
     auto u64 = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT64_T);
     auto call_path_hit_counter_type =
-        Array::build(u64, bdd.get_total_call_paths());
+        Array::build(u64, code_paths);
     auto u32 = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT32_T);
 
-    for (unsigned i = 0; i < bdd.get_total_call_paths(); i++) {
+    for (unsigned i = 0; i < code_paths; i++) {
       auto call_path_hit_counter = ast.get_from_state("call_path_hit_counter");
       auto byte = PrimitiveType::build(PrimitiveType::PrimitiveKind::UINT8_T);
       auto idx = Constant::build(PrimitiveType::PrimitiveKind::INT, i);
@@ -322,7 +329,7 @@ void build_ast(AST &ast, const BDD::BDD &bdd, TargetOption target) {
     auto call_path_hit_counter_sz =
         Variable::build("call_path_hit_counter_sz", u32);
     auto call_paths_sz = Constant::build(PrimitiveType::PrimitiveKind::UINT32_T,
-                                         bdd.get_total_call_paths());
+                                         code_paths);
 
     auto call_path_hit_counter_ptr_val =
         Assignment::build(call_path_hit_counter_ptr, call_path_hit_counter);

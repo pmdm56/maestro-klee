@@ -78,6 +78,70 @@ void Node::update_id(node_id_t new_id) {
   factory.translate(this, this, renamer);
 }
 
+unsigned Node::count_children(bool recursive) const {
+  std::vector<const Node *> children;
+  const Node *node = this;
+
+  if (node->get_type() == Node::NodeType::BRANCH) {
+    auto branch_node = static_cast<const Branch *>(node);
+
+    children.push_back(branch_node->get_on_true().get());
+    children.push_back(branch_node->get_on_false().get());
+  } else if (node->get_next()) {
+    children.push_back(node->get_next().get());
+  }
+
+  unsigned n = children.size();
+
+  while (recursive && children.size()) {
+    node = children[0];
+    children.erase(children.begin());
+
+    if (node->get_type() == Node::NodeType::BRANCH) {
+      auto branch_node = static_cast<const Branch *>(node);
+
+      children.push_back(branch_node->get_on_true().get());
+      children.push_back(branch_node->get_on_false().get());
+
+      n += 2;
+    } else if (node->get_next()) {
+      children.push_back(node->get_next().get());
+      n++;
+    }
+  }
+
+  return n;
+}
+
+unsigned Node::count_code_paths() const {
+  std::vector<const Node *> nodes{this};
+  const Node *node;
+  unsigned paths = 0;
+
+  while (nodes.size()) {
+    node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    switch (node->get_type()) {
+    case Node::NodeType::BRANCH: {
+      auto branch_node = static_cast<const Branch *>(node);
+
+      nodes.push_back(branch_node->get_on_true().get());
+      nodes.push_back(branch_node->get_on_false().get());
+    } break;
+    case Node::NodeType::CALL: {
+      nodes.push_back(node->get_next().get());
+    } break;
+    case Node::NodeType::RETURN_INIT:
+    case Node::NodeType::RETURN_PROCESS:
+    case Node::NodeType::RETURN_RAW:
+      paths++;
+    } break;
+  }
+
+  return paths;
+}
+
 std::string Node::process_call_path_filename(std::string call_path_filename) {
   std::string dir_delim = "/";
   std::string ext_delim = ".";

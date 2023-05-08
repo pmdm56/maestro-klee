@@ -74,6 +74,9 @@ public:
   NodeType get_type() const { return type; }
   node_id_t get_id() const { return id; }
 
+  unsigned count_children(bool recursive = true) const;
+  unsigned count_code_paths() const;
+
   const klee::ConstraintManager &get_node_constraints() const {
     return constraints;
   }

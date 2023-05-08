@@ -124,7 +124,7 @@ public:
     //   Graphviz::visualize(ep);
     // }
 
-    // Graphviz::visualize(search_space);
+    Graphviz::visualize(search_space);
 
     return h.get();
   }

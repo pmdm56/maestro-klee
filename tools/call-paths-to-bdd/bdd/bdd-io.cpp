@@ -1,4 +1,6 @@
+#include "bdd-io.h"
 #include "bdd.h"
+
 #include "nodes/return_init.h"
 #include "nodes/return_process.h"
 
@@ -8,6 +10,9 @@
 #include <iostream>
 
 namespace BDD {
+
+std::vector<std::string> skip_conditions_with_symbol{"received_a_packet",
+                                                     "loop_termination"};
 
 struct kQuery_t {
   std::vector<const klee::Array *> arrays;
@@ -398,9 +403,6 @@ void BDD::serialize(std::string out_file) const {
   edges_stream << "\n";
 
   out << MAGIC_SIGNATURE << "\n";
-
-  out << ";;-- Metadata --\n";
-  out << "cps:" << total_call_paths << "\n";
 
   out << ";;-- kQuery --\n";
   out << kQuery.serialize();
@@ -900,7 +902,6 @@ void BDD::deserialize(const std::string &file_path) {
 
   enum {
     STATE_INIT,
-    STATE_METADATA,
     STATE_KQUERY,
     STATE_NODES,
     STATE_EDGES,
@@ -908,9 +909,6 @@ void BDD::deserialize(const std::string &file_path) {
   } state = STATE_INIT;
 
   auto get_next_state = [&](std::string line) {
-    if (line == ";;-- Metadata --") {
-      return STATE_METADATA;
-    }
     if (line == ";;-- kQuery --") {
       return STATE_KQUERY;
     }
@@ -948,27 +946,6 @@ void BDD::deserialize(const std::string &file_path) {
     case STATE_INIT: {
       if (line == MAGIC_SIGNATURE) {
         magic_check = true;
-      }
-
-      break;
-    }
-
-    case STATE_METADATA: {
-      if (get_next_state(line) != state) {
-        break;
-      }
-
-      auto delim = line.find(":");
-      assert(delim != std::string::npos);
-
-      auto field = line.substr(0, delim);
-
-      if (field == "cps") {
-        auto total_call_paths_str = line.substr(delim + 1);
-        auto total_call_paths = std::stoll(total_call_paths_str);
-        total_call_paths = total_call_paths;
-      } else {
-        assert(false && "Unknown metadata field");
       }
 
       break;
