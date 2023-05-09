@@ -13,8 +13,8 @@ class BDD {
 private:
   node_id_t id;
 
-  BDDNode_ptr nf_init;
-  BDDNode_ptr nf_process;
+  Node_ptr nf_init;
+  Node_ptr nf_process;
 
 public:
   BDD(std::vector<call_path_t *> call_paths) : id(0) {
@@ -46,16 +46,16 @@ public:
     id = _id;
   }
 
-  BDDNode_ptr get_init() const { return nf_init; }
-  BDDNode_ptr get_process() const { return nf_process; }
-  BDDNode_ptr get_node_by_id(node_id_t _id) const;
+  Node_ptr get_init() const { return nf_init; }
+  Node_ptr get_process() const { return nf_process; }
+  Node_ptr get_node_by_id(node_id_t _id) const;
 
   BDD clone() const;
 
   void visit(BDDVisitor &visitor) const;
 
   void rename_symbols();
-  void rename_symbols(BDDNode_ptr node, SymbolFactory &factory);
+  void rename_symbols(Node_ptr node, SymbolFactory &factory);
 
   void serialize(std::string file_path) const;
   void deserialize(const std::string &file_path);
@@ -68,12 +68,12 @@ private:
   // For deserialization
   BDD() : id(0) { kutil::solver_toolbox.build(); }
 
-  BDDNode_ptr
+  Node_ptr
   populate(call_paths_t call_paths,
            klee::ConstraintManager accumulated = klee::ConstraintManager());
 
-  BDDNode_ptr populate_init(const BDDNode_ptr &root);
-  BDDNode_ptr populate_process(const BDDNode_ptr &root, bool store = false);
+  Node_ptr populate_init(const Node_ptr &root);
+  Node_ptr populate_process(const Node_ptr &root, bool store = false);
 };
 
 } // namespace BDD

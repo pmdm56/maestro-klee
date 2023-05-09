@@ -23,7 +23,7 @@ private:
   struct report_t {
     int available_execution_plans;
     const ExecutionPlan &chosen;
-    BDD::BDDNode_ptr current;
+    BDD::Node_ptr current;
 
     std::vector<std::string> target_name;
     std::vector<std::string> name;
@@ -31,7 +31,7 @@ private:
     std::vector<std::vector<unsigned>> generated_exec_plans_ids;
 
     report_t(int _available_execution_plans, const ExecutionPlan &_chosen,
-             BDD::BDDNode_ptr _current)
+             BDD::Node_ptr _current)
         : available_execution_plans(_available_execution_plans),
           chosen(_chosen), current(_current) {}
   };

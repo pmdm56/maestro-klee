@@ -15,7 +15,7 @@ public:
       : Module(ModuleType::x86_Tofino_PacketParseIPv4, TargetType::x86_Tofino,
                "PacketParseIPv4") {}
 
-  PacketParseIPv4(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
+  PacketParseIPv4(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
       : Module(ModuleType::x86_Tofino_PacketParseIPv4, TargetType::x86_Tofino,
                "PacketParseIPv4", node),
         chunk(_chunk) {}
@@ -57,7 +57,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

@@ -18,7 +18,7 @@ public:
       : Module(ModuleType::x86_BMv2_PacketGetUnreadLength, TargetType::x86_BMv2,
                "PacketGetUnreadLength") {}
 
-  PacketGetUnreadLength(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _p_addr,
+  PacketGetUnreadLength(BDD::Node_ptr node, klee::ref<klee::Expr> _p_addr,
                         klee::ref<klee::Expr> _unread_length,
                         BDD::symbols_t _generated_symbols)
       : Module(ModuleType::x86_BMv2_PacketGetUnreadLength, TargetType::x86_BMv2,
@@ -28,7 +28,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

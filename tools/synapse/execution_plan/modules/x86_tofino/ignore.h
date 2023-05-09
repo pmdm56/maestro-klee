@@ -22,12 +22,12 @@ public:
     };
   }
 
-  Ignore(BDD::BDDNode_ptr node)
+  Ignore(BDD::Node_ptr node)
       : Module(ModuleType::x86_Tofino_Ignore, TargetType::x86_Tofino, "Ignore",
                node) {}
 
 private:
-  void process_current_time(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  void process_current_time(const ExecutionPlan &ep, BDD::Node_ptr node,
                             const BDD::Call *casted) {
     auto call = casted->get_call();
     assert(!call.ret.isNull());
@@ -43,7 +43,7 @@ private:
   }
 
   void process_expire_items_single_map(const ExecutionPlan &ep,
-                                       BDD::BDDNode_ptr node,
+                                       BDD::Node_ptr node,
                                        const BDD::Call *casted) {
     auto call = casted->get_call();
 
@@ -69,7 +69,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

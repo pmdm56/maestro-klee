@@ -15,14 +15,14 @@ public:
       : Module(ModuleType::Tofino_EthernetConsume, TargetType::Tofino,
                "EthernetConsume") {}
 
-  EthernetConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
+  EthernetConsume(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
       : Module(ModuleType::Tofino_EthernetConsume, TargetType::Tofino,
                "EthernetConsume", node),
         chunk(_chunk) {}
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

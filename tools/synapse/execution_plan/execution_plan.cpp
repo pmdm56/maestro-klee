@@ -11,11 +11,11 @@ namespace synapse {
 int ExecutionPlanNode::counter = 0;
 int ExecutionPlan::counter = 0;
 
-ExecutionPlan::leaf_t::leaf_t(BDD::BDDNode_ptr _next) : next(_next) {
+ExecutionPlan::leaf_t::leaf_t(BDD::Node_ptr _next) : next(_next) {
   current_platform.first = false;
 }
 
-ExecutionPlan::leaf_t::leaf_t(Module_ptr _module, BDD::BDDNode_ptr _next)
+ExecutionPlan::leaf_t::leaf_t(Module_ptr _module, BDD::Node_ptr _next)
     : leaf(ExecutionPlanNode::build(_module)), next(_next) {
   assert(_module);
 
@@ -92,14 +92,14 @@ ExecutionPlan::get_current_target_bdd_starting_points() const {
   return found_it->second;
 }
 
-BDD::BDDNode_ptr ExecutionPlan::get_bdd_root(BDD::BDDNode_ptr node) const {
+BDD::Node_ptr ExecutionPlan::get_bdd_root(BDD::Node_ptr node) const {
   assert(node);
 
   auto targets_starting_points = get_targets_bdd_starting_points();
   auto current_platform = get_current_platform();
   auto starting_points = targets_starting_points[current_platform];
 
-  auto is_root = [&](BDD::BDDNode_ptr n) {
+  auto is_root = [&](BDD::Node_ptr n) {
     auto found_it = starting_points.find(n->get_id());
     return found_it != starting_points.end();
   };
@@ -157,9 +157,9 @@ ExecutionPlan::get_prev_nodes_of_current_target() const {
   return prev_nodes;
 }
 
-std::vector<BDD::BDDNode_ptr> ExecutionPlan::get_incoming_bdd_nodes() const {
-  std::vector<BDD::BDDNode_ptr> incoming_nodes;
-  std::vector<BDD::BDDNode_ptr> nodes;
+std::vector<BDD::Node_ptr> ExecutionPlan::get_incoming_bdd_nodes() const {
+  std::vector<BDD::Node_ptr> incoming_nodes;
+  std::vector<BDD::Node_ptr> nodes;
 
   auto node = get_next_node();
 
@@ -331,8 +331,8 @@ void ExecutionPlan::update_processed_nodes() {
   processed_bdd_nodes.insert(processed_node_id);
 }
 
-BDD::BDDNode_ptr ExecutionPlan::get_next_node() const {
-  BDD::BDDNode_ptr next;
+BDD::Node_ptr ExecutionPlan::get_next_node() const {
+  BDD::Node_ptr next;
 
   if (leaves.size()) {
     next = leaves[0].next;
@@ -360,7 +360,7 @@ TargetType ExecutionPlan::get_current_platform() const {
 }
 
 ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
-                                          const BDD::BDDNode_ptr &next,
+                                          const BDD::Node_ptr &next,
                                           bool process_bdd_node) const {
   auto new_ep = clone();
 
@@ -400,7 +400,7 @@ ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
   return new_ep;
 }
 
-ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::BDDNode_ptr &next,
+ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::Node_ptr &next,
                                          TargetType next_target,
                                          bool process_bdd_node) const {
   auto new_ep = clone();
@@ -421,7 +421,7 @@ ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::BDDNode_ptr &next,
 }
 
 ExecutionPlan ExecutionPlan::add_leaves(Module_ptr new_module,
-                                        const BDD::BDDNode_ptr &next,
+                                        const BDD::Node_ptr &next,
                                         bool is_terminal,
                                         bool process_bdd_node) const {
   std::vector<ExecutionPlan::leaf_t> _leaves;
@@ -473,7 +473,7 @@ ExecutionPlan ExecutionPlan::add_leaves(std::vector<leaf_t> _leaves,
   return new_ep;
 }
 
-void ExecutionPlan::replace_active_leaf_node(BDD::BDDNode_ptr next,
+void ExecutionPlan::replace_active_leaf_node(BDD::Node_ptr next,
                                              bool process_bdd_node) {
   if (process_bdd_node) {
     update_processed_nodes();
@@ -663,8 +663,8 @@ bool operator==(const ExecutionPlan &lhs, const ExecutionPlan &rhs) {
   auto lhs_bdd = lhs.get_bdd();
   auto rhs_bdd = rhs.get_bdd();
 
-  auto lhs_bdd_nodes = std::vector<BDD::BDDNode_ptr>{lhs_bdd.get_process()};
-  auto rhs_bdd_nodes = std::vector<BDD::BDDNode_ptr>{rhs_bdd.get_process()};
+  auto lhs_bdd_nodes = std::vector<BDD::Node_ptr>{lhs_bdd.get_process()};
+  auto rhs_bdd_nodes = std::vector<BDD::Node_ptr>{rhs_bdd.get_process()};
 
   while (lhs_bdd_nodes.size()) {
     auto lhs_bdd_node = lhs_bdd_nodes[0];

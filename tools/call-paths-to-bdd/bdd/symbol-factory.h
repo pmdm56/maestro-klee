@@ -149,14 +149,14 @@ public:
     return new_label.str();
   }
 
-  std::string translate_label(std::string base, BDDNode_ptr node) {
+  std::string translate_label(std::string base, Node_ptr node) {
     return translate_label(base, node.get());
   }
 
   void translate(Node *current, Node *translation_source,
                  kutil::RenameSymbols renamer);
 
-  void translate(call_t call, BDDNode_ptr node);
+  void translate(call_t call, Node_ptr node);
 
   void push() { stack.emplace_back(); }
   void pop() { stack.pop_back(); }

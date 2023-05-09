@@ -9,7 +9,7 @@ namespace tofino {
 class Else : public Module {
 public:
   Else() : Module(ModuleType::Tofino_Else, TargetType::Tofino, "Else") {}
-  Else(BDD::BDDNode_ptr node)
+  Else(BDD::Node_ptr node)
       : Module(ModuleType::Tofino_Else, TargetType::Tofino, "Else", node) {}
 
 public:

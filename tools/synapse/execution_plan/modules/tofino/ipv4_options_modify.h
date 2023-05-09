@@ -16,7 +16,7 @@ public:
       : Module(ModuleType::Tofino_IPv4OptionsModify, TargetType::Tofino,
                "IPv4OptionsModify") {}
 
-  IPv4OptionsModify(BDD::BDDNode_ptr node,
+  IPv4OptionsModify(BDD::Node_ptr node,
                     const std::vector<modification_t> &_modifications)
       : Module(ModuleType::Tofino_IPv4OptionsModify, TargetType::Tofino,
                "IPv4OptionsModify", node),
@@ -46,7 +46,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

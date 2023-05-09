@@ -9,7 +9,7 @@ namespace x86_bmv2 {
 class Else : public Module {
 public:
   Else() : Module(ModuleType::x86_BMv2_Else, TargetType::x86_BMv2, "Else") {}
-  Else(BDD::BDDNode_ptr node)
+  Else(BDD::Node_ptr node)
       : Module(ModuleType::x86_BMv2_Else, TargetType::x86_BMv2, "Else", node) {}
 
 public:

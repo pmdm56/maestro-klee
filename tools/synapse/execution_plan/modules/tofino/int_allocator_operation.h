@@ -18,7 +18,7 @@ public:
       : Module(_type, TargetType::Tofino, _name) {}
 
   IntegerAllocatorOperation(ModuleType _type, const char *_name,
-                            BDD::BDDNode_ptr node,
+                            BDD::Node_ptr node,
                             IntegerAllocatorRef _int_allocator)
       : Module(_type, TargetType::Tofino, _name, node),
         int_allocator(_int_allocator) {}

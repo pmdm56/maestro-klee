@@ -20,7 +20,7 @@ public:
     next_target = TargetType::x86_Tofino;
   }
 
-  SendToController(BDD::BDDNode_ptr node, cpu_code_path_t _cpu_code_path)
+  SendToController(BDD::Node_ptr node, cpu_code_path_t _cpu_code_path)
       : Module(ModuleType::Tofino_SendToController, TargetType::Tofino,
                "SendToController", node),
         cpu_code_path(_cpu_code_path) {
@@ -28,7 +28,7 @@ public:
   }
 
 private:
-  bool get_dchain_rejuvenate_obj(BDD::BDDNode_ptr node, obj_addr_t &obj) const {
+  bool get_dchain_rejuvenate_obj(BDD::Node_ptr node, obj_addr_t &obj) const {
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       return false;
     }
@@ -80,8 +80,8 @@ private:
     return false;
   }
 
-  void replace_next(BDD::BDDNode_ptr prev, BDD::BDDNode_ptr old_next,
-                    BDD::BDDNode_ptr new_next) const {
+  void replace_next(BDD::Node_ptr prev, BDD::Node_ptr old_next,
+                    BDD::Node_ptr new_next) const {
     assert(prev);
     assert(old_next);
     assert(new_next);
@@ -103,8 +103,8 @@ private:
     new_next->replace_prev(prev);
   }
 
-  BDD::BDDNode_ptr clone_calls(ExecutionPlan &ep,
-                               BDD::BDDNode_ptr current) const {
+  BDD::Node_ptr clone_calls(ExecutionPlan &ep,
+                               BDD::Node_ptr current) const {
     assert(current);
 
     if (!current->get_prev()) {
@@ -143,7 +143,7 @@ private:
   }
 
   // Preemptive pruning
-  bool should_prune(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
+  bool should_prune(const ExecutionPlan &ep, BDD::Node_ptr node) {
     auto cases = {
         &SendToController::control_plane_rejuvenation_with_integer_allocator,
     };
@@ -159,7 +159,7 @@ private:
     return false;
   }
 
-  processing_result_t process(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
+  processing_result_t process(const ExecutionPlan &ep, BDD::Node_ptr node) {
     processing_result_t result;
 
     if (!ep.has_target(TargetType::x86_Tofino)) {
@@ -191,13 +191,13 @@ private:
   }
 
   processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::BDDNode_ptr node,
+                                     BDD::Node_ptr node,
                                      const BDD::Branch *casted) override {
     return process(ep, node);
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     return process(ep, node);
   }

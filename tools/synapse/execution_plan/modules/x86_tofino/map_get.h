@@ -21,7 +21,7 @@ public:
       : Module(ModuleType::x86_Tofino_MapGet, TargetType::x86_Tofino,
                "MapGet") {}
 
-  MapGet(BDD::BDDNode_ptr node, obj_addr_t _map_addr,
+  MapGet(BDD::Node_ptr node, obj_addr_t _map_addr,
          klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _map_has_this_key,
          klee::ref<klee::Expr> _value_out, BDD::symbols_t _generated_symbols)
       : Module(ModuleType::x86_Tofino_MapGet, TargetType::x86_Tofino, "MapGet",
@@ -46,7 +46,7 @@ private:
   }
 
   processing_result_t process_map_get(const ExecutionPlan &ep,
-                                      BDD::BDDNode_ptr node,
+                                      BDD::Node_ptr node,
                                       const BDD::Call *casted) {
     processing_result_t result;
 
@@ -92,7 +92,7 @@ private:
   }
 
   processing_result_t process_vector_borrow(const ExecutionPlan &ep,
-                                            BDD::BDDNode_ptr node,
+                                            BDD::Node_ptr node,
                                             const BDD::Call *casted) {
     processing_result_t result;
 
@@ -142,7 +142,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
 

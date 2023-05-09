@@ -16,7 +16,7 @@ public:
       : Module(ModuleType::x86_Tofino_PacketParseCPU, TargetType::x86_Tofino,
                "PacketParseCPU") {}
 
-  PacketParseCPU(BDD::BDDNode_ptr node)
+  PacketParseCPU(BDD::Node_ptr node)
       : Module(ModuleType::x86_Tofino_PacketParseCPU, TargetType::x86_Tofino,
                "PacketParseCPU", node) {
     auto label = symbex::CPU_CODE_PATH;

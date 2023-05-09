@@ -21,7 +21,7 @@ public:
       : Module(ModuleType::x86_Tofino_DchainAllocateNewIndex,
                TargetType::x86_Tofino, "DchainAllocate") {}
 
-  DchainAllocateNewIndex(BDD::BDDNode_ptr node, obj_addr_t _dchain_addr,
+  DchainAllocateNewIndex(BDD::Node_ptr node, obj_addr_t _dchain_addr,
                          klee::ref<klee::Expr> _time,
                          klee::ref<klee::Expr> _index_out,
                          klee::ref<klee::Expr> _success,
@@ -33,7 +33,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

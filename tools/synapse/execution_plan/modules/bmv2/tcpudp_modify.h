@@ -15,7 +15,7 @@ public:
   TcpUdpModify()
       : Module(ModuleType::BMv2_TcpUdpModify, TargetType::BMv2, "TcpUdpModify") {}
 
-  TcpUdpModify(BDD::BDDNode_ptr node,
+  TcpUdpModify(BDD::Node_ptr node,
                const std::vector<modification_t> &_modifications)
       : Module(ModuleType::BMv2_TcpUdpModify, TargetType::BMv2, "TcpUdpModify",
                node),
@@ -45,7 +45,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

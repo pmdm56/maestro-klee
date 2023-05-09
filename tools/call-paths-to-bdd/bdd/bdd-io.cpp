@@ -686,7 +686,7 @@ call_t parse_call(std::string serialized_call,
   return call;
 }
 
-BDDNode_ptr parse_node_call(node_id_t id,
+Node_ptr parse_node_call(node_id_t id,
                             const klee::ConstraintManager &constraints,
                             std::string serialized,
                             std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -696,7 +696,7 @@ BDDNode_ptr parse_node_call(node_id_t id,
   return call_node;
 }
 
-BDDNode_ptr parse_node_branch(node_id_t id,
+Node_ptr parse_node_branch(node_id_t id,
                               const klee::ConstraintManager &constraints,
                               std::string serialized,
                               std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -706,7 +706,7 @@ BDDNode_ptr parse_node_branch(node_id_t id,
   return branch_node;
 }
 
-BDDNode_ptr parse_node_return_init(node_id_t id,
+Node_ptr parse_node_return_init(node_id_t id,
                                    const klee::ConstraintManager &constraints,
                                    std::string serialized,
                                    std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -726,7 +726,7 @@ BDDNode_ptr parse_node_return_init(node_id_t id,
   return return_init_node;
 }
 
-BDDNode_ptr parse_node_return_process(
+Node_ptr parse_node_return_process(
     node_id_t id, const klee::ConstraintManager &constraints,
     std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs) {
   auto delim = serialized.find(" ");
@@ -758,9 +758,9 @@ BDDNode_ptr parse_node_return_process(
   return return_process_node;
 }
 
-BDDNode_ptr parse_node(std::string serialized_node,
+Node_ptr parse_node(std::string serialized_node,
                        std::vector<klee::ref<klee::Expr>> &exprs) {
-  BDDNode_ptr node;
+  Node_ptr node;
 
   auto delim = serialized_node.find(":");
   assert(delim != std::string::npos);
@@ -830,7 +830,7 @@ void parse_kQuery(std::string kQuery,
 }
 
 void process_edge(std::string serialized_edge,
-                  std::map<node_id_t, BDDNode_ptr> &nodes) {
+                  std::map<node_id_t, Node_ptr> &nodes) {
   auto delim = serialized_edge.find("(");
   assert(delim != std::string::npos);
 
@@ -928,7 +928,7 @@ void BDD::deserialize(const std::string &file_path) {
   std::string kQuery;
 
   std::vector<klee::ref<klee::Expr>> exprs;
-  std::map<node_id_t, BDDNode_ptr> nodes;
+  std::map<node_id_t, Node_ptr> nodes;
 
   int parenthesis_level = 0;
   std::string current_node;

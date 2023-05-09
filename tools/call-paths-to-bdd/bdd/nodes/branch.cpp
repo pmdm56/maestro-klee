@@ -3,8 +3,8 @@
 
 namespace BDD {
 
-BDDNode_ptr Branch::clone(bool recursive) const {
-  BDDNode_ptr clone_on_true, clone_on_false;
+Node_ptr Branch::clone(bool recursive) const {
+  Node_ptr clone_on_true, clone_on_false;
 
   assert(next);
   assert(on_false);

@@ -15,13 +15,13 @@ private:
 public:
   If() : Module(ModuleType::BMv2_If, TargetType::BMv2, "If") {}
 
-  If(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _condition)
+  If(BDD::Node_ptr node, klee::ref<klee::Expr> _condition)
       : Module(ModuleType::BMv2_If, TargetType::BMv2, "If", node),
         condition(_condition) {}
 
 private:
   processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::BDDNode_ptr node,
+                                     BDD::Node_ptr node,
                                      const BDD::Branch *casted) override {
     processing_result_t result;
 

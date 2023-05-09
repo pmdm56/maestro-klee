@@ -10,7 +10,7 @@ class Else : public Module {
 public:
   Else()
       : Module(ModuleType::x86_Tofino_Else, TargetType::x86_Tofino, "Else") {}
-  Else(BDD::BDDNode_ptr node)
+  Else(BDD::Node_ptr node)
       : Module(ModuleType::x86_Tofino_Else, TargetType::x86_Tofino, "Else",
                node) {}
 

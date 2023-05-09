@@ -25,7 +25,7 @@ public:
     fill_return_value(calls_list[0]);
   }
 
-  ReturnProcess(node_id_t _id, const BDDNode_ptr &_prev,
+  ReturnProcess(node_id_t _id, const Node_ptr &_prev,
                 const klee::ConstraintManager &_constraints, int _value,
                 Operation _operation)
       : Node(_id, Node::NodeType::RETURN_PROCESS, nullptr, _prev, _constraints),
@@ -34,7 +34,7 @@ public:
   int get_return_value() const { return value; }
   Operation get_return_operation() const { return operation; }
 
-  virtual BDDNode_ptr clone(bool recursive = false) const override;
+  virtual Node_ptr clone(bool recursive = false) const override;
   virtual void recursive_update_ids(node_id_t &new_id) override;
 
   void visit(BDDVisitor &visitor) const override;

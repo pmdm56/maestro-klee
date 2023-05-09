@@ -21,7 +21,7 @@ public:
       : Module(ModuleType::x86_Tofino_MapPut, TargetType::x86_Tofino,
                "MapPut") {}
 
-  MapPut(BDD::BDDNode_ptr node, obj_addr_t _map_addr,
+  MapPut(BDD::Node_ptr node, obj_addr_t _map_addr,
          klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
       : Module(ModuleType::x86_Tofino_MapPut, TargetType::x86_Tofino, "MapPut",
                node),
@@ -44,7 +44,7 @@ private:
   }
 
   processing_result_t process_map_put(const ExecutionPlan &ep,
-                                      BDD::BDDNode_ptr node,
+                                      BDD::Node_ptr node,
                                       const BDD::Call *casted) {
     processing_result_t result;
     auto call = casted->get_call();
@@ -72,7 +72,7 @@ private:
   }
 
   processing_result_t process_vector_return(const ExecutionPlan &ep,
-                                            BDD::BDDNode_ptr node,
+                                            BDD::Node_ptr node,
                                             const BDD::Call *casted) {
     processing_result_t result;
     auto call = casted->get_call();
@@ -117,7 +117,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

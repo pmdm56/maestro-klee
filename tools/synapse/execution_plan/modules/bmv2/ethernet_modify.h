@@ -17,7 +17,7 @@ public:
       : Module(ModuleType::BMv2_EthernetModify, TargetType::BMv2,
                "EthernetModify") {}
 
-  EthernetModify(BDD::BDDNode_ptr node,
+  EthernetModify(BDD::Node_ptr node,
                  const klee::ref<klee::Expr> &_ethernet_chunk,
                  const std::vector<modification_t> &_modifications)
       : Module(ModuleType::BMv2_EthernetModify, TargetType::BMv2, "EthernetModify",
@@ -38,7 +38,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

@@ -17,9 +17,9 @@ namespace BDD {
 
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(*this); }
 
-BDDNode_ptr BDD::get_node_by_id(node_id_t _id) const {
-  std::vector<BDDNode_ptr> nodes{nf_init, nf_process};
-  BDDNode_ptr node;
+Node_ptr BDD::get_node_by_id(node_id_t _id) const {
+  std::vector<Node_ptr> nodes{nf_init, nf_process};
+  Node_ptr node;
 
   while (nodes.size()) {
     node = nodes[0];
@@ -148,10 +148,10 @@ get_common_constraints(std::vector<call_path_t *> call_paths,
   return common;
 }
 
-BDDNode_ptr BDD::populate(call_paths_t call_paths,
+Node_ptr BDD::populate(call_paths_t call_paths,
                           klee::ConstraintManager accumulated) {
-  BDDNode_ptr local_root = nullptr;
-  BDDNode_ptr local_leaf = nullptr;
+  Node_ptr local_root = nullptr;
+  Node_ptr local_leaf = nullptr;
   klee::ConstraintManager empty_contraints;
 
   auto return_raw =
@@ -257,13 +257,13 @@ BDDNode_ptr BDD::populate(call_paths_t call_paths,
   return local_root;
 }
 
-BDDNode_ptr BDD::populate_init(const BDDNode_ptr &root) {
+Node_ptr BDD::populate_init(const Node_ptr &root) {
   Node *node = root.get();
   assert(node);
 
-  BDDNode_ptr local_root;
-  BDDNode_ptr local_leaf;
-  BDDNode_ptr new_node;
+  Node_ptr local_root;
+  Node_ptr local_leaf;
+  Node_ptr new_node;
 
   bool build_return = true;
 
@@ -368,12 +368,12 @@ BDDNode_ptr BDD::populate_init(const BDDNode_ptr &root) {
   return local_root;
 }
 
-BDDNode_ptr BDD::populate_process(const BDDNode_ptr &root, bool store) {
+Node_ptr BDD::populate_process(const Node_ptr &root, bool store) {
   Node *node = root.get();
 
-  BDDNode_ptr local_root;
-  BDDNode_ptr local_leaf;
-  BDDNode_ptr new_node;
+  Node_ptr local_root;
+  Node_ptr local_leaf;
+  Node_ptr new_node;
 
   while (node != nullptr) {
     new_node = nullptr;
@@ -506,7 +506,7 @@ void BDD::rename_symbols() {
   rename_symbols(nf_process, factory);
 }
 
-void BDD::rename_symbols(BDDNode_ptr node, SymbolFactory &factory) {
+void BDD::rename_symbols(Node_ptr node, SymbolFactory &factory) {
   assert(node);
 
   while (node) {

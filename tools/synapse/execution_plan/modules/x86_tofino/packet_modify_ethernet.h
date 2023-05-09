@@ -17,7 +17,7 @@ public:
       : Module(ModuleType::x86_Tofino_PacketModifyEthernet,
                TargetType::x86_Tofino, "PacketModifyEthernet") {}
 
-  PacketModifyEthernet(BDD::BDDNode_ptr node,
+  PacketModifyEthernet(BDD::Node_ptr node,
                        const klee::ref<klee::Expr> &_ethernet_chunk,
                        const std::vector<modification_t> &_modifications)
       : Module(ModuleType::x86_Tofino_PacketModifyEthernet,
@@ -38,7 +38,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

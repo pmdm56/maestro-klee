@@ -49,7 +49,7 @@ public:
   Graphviz() : Graphviz(get_rand_fname()) {}
 
 private:
-  void function_call(BDD::BDDNode_ptr node, TargetType target,
+  void function_call(BDD::Node_ptr node, TargetType target,
                      std::string label);
 
   struct rgb_t {

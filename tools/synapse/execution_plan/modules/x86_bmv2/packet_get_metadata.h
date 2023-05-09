@@ -15,7 +15,7 @@ public:
       : Module(ModuleType::x86_BMv2_PacketGetMetadata, TargetType::x86_BMv2,
                "PacketGetMetadata") {}
 
-  PacketGetMetadata(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _metadata)
+  PacketGetMetadata(BDD::Node_ptr node, klee::ref<klee::Expr> _metadata)
       : Module(ModuleType::x86_BMv2_PacketGetMetadata, TargetType::x86_BMv2,
                "PacketGetMetadata", node),
         metadata(_metadata) {}

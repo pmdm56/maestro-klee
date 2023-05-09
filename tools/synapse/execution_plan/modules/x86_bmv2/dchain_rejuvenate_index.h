@@ -17,7 +17,7 @@ public:
       : Module(ModuleType::x86_BMv2_DchainRejuvenateIndex, TargetType::x86_BMv2,
                "DchainRejuvenate") {}
 
-  DchainRejuvenateIndex(BDD::BDDNode_ptr node,
+  DchainRejuvenateIndex(BDD::Node_ptr node,
                         klee::ref<klee::Expr> _dchain_addr,
                         klee::ref<klee::Expr> _index,
                         klee::ref<klee::Expr> _time)
@@ -27,7 +27,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

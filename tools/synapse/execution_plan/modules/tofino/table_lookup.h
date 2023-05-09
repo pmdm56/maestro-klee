@@ -17,7 +17,7 @@ public:
       : Module(ModuleType::Tofino_TableLookup, TargetType::Tofino,
                "TableLookup") {}
 
-  TableLookup(BDD::BDDNode_ptr node, TableRef _table)
+  TableLookup(BDD::Node_ptr node, TableRef _table)
       : Module(ModuleType::Tofino_TableLookup, TargetType::Tofino,
                "TableLookup", node),
         table(_table) {
@@ -34,7 +34,7 @@ public:
       : Module(table_module_type, TargetType::Tofino, table_module_name) {}
 
   TableLookup(Module::ModuleType table_module_type,
-              const char *table_module_name, BDD::BDDNode_ptr node,
+              const char *table_module_name, BDD::Node_ptr node,
               TableRef _table)
       : Module(table_module_type, TargetType::Tofino, table_module_name, node),
         table(_table) {}
@@ -187,7 +187,7 @@ protected:
     }
   }
 
-  bool was_coalesced(const ExecutionPlan &ep, BDD::BDDNode_ptr node) const {
+  bool was_coalesced(const ExecutionPlan &ep, BDD::Node_ptr node) const {
     auto mb = ep.get_memory_bank();
     return mb->check_if_can_be_ignored(node);
   }
@@ -306,7 +306,7 @@ protected:
     return true;
   }
 
-  virtual bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  virtual bool process(const ExecutionPlan &ep, BDD::Node_ptr node,
                        const BDD::Call *casted, TableRef table,
                        processing_result_t &result) {
     auto new_module = std::make_shared<TableLookup>(node, table);
@@ -321,7 +321,7 @@ protected:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
 

@@ -16,7 +16,7 @@ private:
 public:
   MapPut() : Module(ModuleType::x86_BMv2_MapPut, TargetType::x86_BMv2, "MapPut") {}
 
-  MapPut(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _map_addr,
+  MapPut(BDD::Node_ptr node, klee::ref<klee::Expr> _map_addr,
          klee::ref<klee::Expr> _key_addr, klee::ref<klee::Expr> _key,
          klee::ref<klee::Expr> _value)
       : Module(ModuleType::x86_BMv2_MapPut, TargetType::x86_BMv2, "MapPut", node),
@@ -24,7 +24,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

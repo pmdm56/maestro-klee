@@ -12,7 +12,7 @@ public:
       : IntegerAllocatorOperation(ModuleType::Tofino_IntegerAllocatorAllocate,
                                   "IntegerAllocatorAllocate") {}
 
-  IntegerAllocatorAllocate(BDD::BDDNode_ptr node,
+  IntegerAllocatorAllocate(BDD::Node_ptr node,
                            IntegerAllocatorRef _int_allocator)
       : IntegerAllocatorOperation(ModuleType::Tofino_IntegerAllocatorAllocate,
                                   "IntegerAllocatorAllocate", node,
@@ -20,7 +20,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

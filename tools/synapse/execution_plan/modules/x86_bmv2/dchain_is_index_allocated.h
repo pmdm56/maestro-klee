@@ -19,7 +19,7 @@ public:
       : Module(ModuleType::x86_BMv2_DchainIsIndexAllocated, TargetType::x86_BMv2,
                "DchainIsIndexAllocated") {}
 
-  DchainIsIndexAllocated(BDD::BDDNode_ptr node,
+  DchainIsIndexAllocated(BDD::Node_ptr node,
                          klee::ref<klee::Expr> _dchain_addr,
                          klee::ref<klee::Expr> _index,
                          klee::ref<klee::Expr> _is_allocated,
@@ -31,7 +31,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

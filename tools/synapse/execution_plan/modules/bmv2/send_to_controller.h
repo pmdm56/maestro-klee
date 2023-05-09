@@ -17,7 +17,7 @@ public:
     next_target = TargetType::x86_BMv2;
   }
 
-  SendToController(BDD::BDDNode_ptr node, BDD::node_id_t _metadata_code_path)
+  SendToController(BDD::Node_ptr node, BDD::node_id_t _metadata_code_path)
       : Module(ModuleType::BMv2_SendToController, TargetType::BMv2,
                "SendToController", node),
         metadata_code_path(_metadata_code_path) {
@@ -25,8 +25,8 @@ public:
   }
 
 private:
-  void replace_next(BDD::BDDNode_ptr prev, BDD::BDDNode_ptr old_next,
-                    BDD::BDDNode_ptr new_next) const {
+  void replace_next(BDD::Node_ptr prev, BDD::Node_ptr old_next,
+                    BDD::Node_ptr new_next) const {
     assert(prev);
     assert(old_next);
     assert(new_next);
@@ -48,8 +48,8 @@ private:
     new_next->replace_prev(prev);
   }
 
-  BDD::BDDNode_ptr clone_calls(ExecutionPlan &ep,
-                               BDD::BDDNode_ptr current) const {
+  BDD::Node_ptr clone_calls(ExecutionPlan &ep,
+                               BDD::Node_ptr current) const {
     assert(current);
 
     if (!current->get_prev()) {
@@ -87,7 +87,7 @@ private:
     return root;
   }
 
-  processing_result_t process(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
+  processing_result_t process(const ExecutionPlan &ep, BDD::Node_ptr node) {
     processing_result_t result;
 
     auto ep_cloned = ep.clone(true);
@@ -109,13 +109,13 @@ private:
   }
 
   processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::BDDNode_ptr node,
+                                     BDD::Node_ptr node,
                                      const BDD::Branch *casted) override {
     return process(ep, node);
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     return process(ep, node);
   }

@@ -5,8 +5,8 @@
 
 namespace BDD {
 
-BDDNode_ptr Call::clone(bool recursive) const {
-  BDDNode_ptr clone_next;
+Node_ptr Call::clone(bool recursive) const {
+  Node_ptr clone_next;
 
   if (recursive && next) {
     clone_next = next->clone(true);

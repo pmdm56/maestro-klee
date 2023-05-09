@@ -19,7 +19,7 @@ public:
       : Module(ModuleType::x86_Tofino_DchainRejuvenateIndex,
                TargetType::x86_Tofino, "DchainRejuvenate") {}
 
-  DchainRejuvenateIndex(BDD::BDDNode_ptr node, obj_addr_t _dchain_addr,
+  DchainRejuvenateIndex(BDD::Node_ptr node, obj_addr_t _dchain_addr,
                         klee::ref<klee::Expr> _index,
                         klee::ref<klee::Expr> _time)
       : Module(ModuleType::x86_Tofino_DchainRejuvenateIndex,
@@ -48,7 +48,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

@@ -61,25 +61,25 @@ std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
 }
 
 processing_result_t Module::process_branch(const ExecutionPlan &ep,
-                                           BDD::BDDNode_ptr node,
+                                           BDD::Node_ptr node,
                                            const BDD::Branch *casted) {
   return processing_result_t();
 }
 
 processing_result_t Module::process_call(const ExecutionPlan &ep,
-                                         BDD::BDDNode_ptr node,
+                                         BDD::Node_ptr node,
                                          const BDD::Call *casted) {
   return processing_result_t();
 }
 
 processing_result_t Module::process_return_init(const ExecutionPlan &ep,
-                                                BDD::BDDNode_ptr node,
+                                                BDD::Node_ptr node,
                                                 const BDD::ReturnInit *casted) {
   return processing_result_t();
 }
 
 processing_result_t
-Module::process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+Module::process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
                                const BDD::ReturnProcess *casted) {
   return processing_result_t();
 }
@@ -90,7 +90,7 @@ bool can_process_platform(const ExecutionPlan &ep, TargetType target) {
 }
 
 processing_result_t Module::process_node(const ExecutionPlan &ep,
-                                         BDD::BDDNode_ptr node,
+                                         BDD::Node_ptr node,
                                          int max_reordered) {
   assert(node);
   processing_result_t result;
@@ -160,17 +160,17 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
   return true;
 }
 
-std::vector<BDD::BDDNode_ptr> Module::get_all_prev_functions(
-    const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+std::vector<BDD::Node_ptr> Module::get_all_prev_functions(
+    const ExecutionPlan &ep, BDD::Node_ptr node,
     const std::vector<std::string> &functions_names) const {
-  std::vector<BDD::BDDNode_ptr> prev_functions;
+  std::vector<BDD::Node_ptr> prev_functions;
 
   auto target = ep.get_current_platform();
 
   auto targets_bdd_starting_points = ep.get_targets_bdd_starting_points();
   auto starting_points_it = targets_bdd_starting_points.find(target);
 
-  auto is_starting_point = [&](const BDD::BDDNode_ptr &node) -> bool {
+  auto is_starting_point = [&](const BDD::Node_ptr &node) -> bool {
     if (starting_points_it == targets_bdd_starting_points.end()) {
       return false;
     }
@@ -200,8 +200,8 @@ std::vector<BDD::BDDNode_ptr> Module::get_all_prev_functions(
   return prev_functions;
 }
 
-std::vector<BDD::BDDNode_ptr>
-Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+std::vector<BDD::Node_ptr>
+Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
                                const std::string &function_name) const {
   auto functions_names = std::vector<std::string>{function_name};
   return get_all_prev_functions(ep, node, functions_names);
@@ -332,10 +332,10 @@ Module::dchain_config_t Module::get_dchain_config(const BDD::BDD &bdd,
 */
 
 struct next_t {
-  std::vector<BDD::BDDNode_ptr> maps;
+  std::vector<BDD::Node_ptr> maps;
   std::vector<obj_addr_t> maps_addrs;
 
-  std::vector<BDD::BDDNode_ptr> vectors;
+  std::vector<BDD::Node_ptr> vectors;
   std::vector<obj_addr_t> vectors_addrs;
 
   int size() const { return maps_addrs.size() + vectors_addrs.size(); }
@@ -373,11 +373,11 @@ struct next_t {
   }
 };
 
-next_t get_next_maps_and_vectors_ops(BDD::BDDNode_ptr root, obj_addr_t map_addr,
+next_t get_next_maps_and_vectors_ops(BDD::Node_ptr root, obj_addr_t map_addr,
                                      klee::ref<klee::Expr> index) {
   assert(root);
 
-  std::vector<BDD::BDDNode_ptr> nodes{root};
+  std::vector<BDD::Node_ptr> nodes{root};
   next_t candidates;
 
   while (nodes.size()) {
@@ -432,13 +432,13 @@ next_t get_next_maps_and_vectors_ops(BDD::BDDNode_ptr root, obj_addr_t map_addr,
   return candidates;
 }
 
-std::vector<BDD::BDDNode_ptr>
-find_all_functions_after_node(BDD::BDDNode_ptr root,
+std::vector<BDD::Node_ptr>
+find_all_functions_after_node(BDD::Node_ptr root,
                               const std::string &function_name) {
   assert(root);
 
-  std::vector<BDD::BDDNode_ptr> functions;
-  std::vector<BDD::BDDNode_ptr> nodes{root};
+  std::vector<BDD::Node_ptr> functions;
+  std::vector<BDD::Node_ptr> nodes{root};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -466,7 +466,7 @@ find_all_functions_after_node(BDD::BDDNode_ptr root,
 }
 
 next_t
-get_allowed_coalescing_objs(std::vector<BDD::BDDNode_ptr> index_allocators,
+get_allowed_coalescing_objs(std::vector<BDD::Node_ptr> index_allocators,
                             obj_addr_t map_addr) {
   next_t candidates;
 
@@ -504,7 +504,7 @@ get_allowed_coalescing_objs(std::vector<BDD::BDDNode_ptr> index_allocators,
 
 Module::coalesced_data_t
 Module::get_coalescing_data(const ExecutionPlan &ep,
-                            BDD::BDDNode_ptr node) const {
+                            BDD::Node_ptr node) const {
   Module::coalesced_data_t coalesced_data;
 
   if (node->get_type() != BDD::Node::CALL) {

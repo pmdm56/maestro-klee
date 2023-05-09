@@ -5,7 +5,7 @@
 namespace BDD {
 class Branch : public Node {
 private:
-  BDDNode_ptr on_false;
+  Node_ptr on_false;
   klee::ref<klee::Expr> condition;
 
 public:
@@ -14,9 +14,9 @@ public:
       : Node(_id, Node::NodeType::BRANCH, _constraints), on_false(nullptr),
         condition(_condition) {}
 
-  Branch(node_id_t _id, const BDDNode_ptr &_on_true, const BDDNode_ptr &_prev,
+  Branch(node_id_t _id, const Node_ptr &_on_true, const Node_ptr &_prev,
          const klee::ConstraintManager &_constraints,
-         const BDDNode_ptr &_on_false, klee::ref<klee::Expr> _condition)
+         const Node_ptr &_on_false, klee::ref<klee::Expr> _condition)
       : Node(_id, Node::NodeType::BRANCH, _on_true, _prev, _constraints),
         on_false(_on_false), condition(_condition) {}
 
@@ -25,21 +25,21 @@ public:
     condition = _condition;
   }
 
-  const BDDNode_ptr &get_on_true() const { return next; }
-  BDDNode_ptr get_on_true() { return next; }
+  const Node_ptr &get_on_true() const { return next; }
+  Node_ptr get_on_true() { return next; }
 
-  const BDDNode_ptr &get_on_false() const { return on_false; }
-  BDDNode_ptr get_on_false() { return on_false; }
+  const Node_ptr &get_on_false() const { return on_false; }
+  Node_ptr get_on_false() { return on_false; }
 
   virtual std::vector<node_id_t> get_terminating_node_ids() const override;
 
-  void replace_on_true(const BDDNode_ptr &_on_true) { replace_next(_on_true); }
-  void replace_on_false(const BDDNode_ptr &_on_false) { on_false = _on_false; }
+  void replace_on_true(const Node_ptr &_on_true) { replace_next(_on_true); }
+  void replace_on_false(const Node_ptr &_on_false) { on_false = _on_false; }
 
-  void add_on_true(const BDDNode_ptr &_on_true) { add_next(_on_true); }
-  void add_on_false(const BDDNode_ptr &_on_false) { on_false = _on_false; }
+  void add_on_true(const Node_ptr &_on_true) { add_next(_on_true); }
+  void add_on_false(const Node_ptr &_on_false) { on_false = _on_false; }
 
-  virtual BDDNode_ptr clone(bool recursive = false) const override;
+  virtual Node_ptr clone(bool recursive = false) const override;
   virtual void recursive_update_ids(node_id_t &new_id) override;
 
   void visit(BDDVisitor &visitor) const override;

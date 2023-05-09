@@ -13,7 +13,7 @@ public:
       : TableLookup(ModuleType::Tofino_TableLookupSimple, "TableLookupSimple") {
   }
 
-  TableLookupSimple(BDD::BDDNode_ptr node, TableRef _table)
+  TableLookupSimple(BDD::Node_ptr node, TableRef _table)
       : TableLookup(ModuleType::Tofino_TableLookupSimple, "TableLookupSimple",
                     node, _table) {}
 
@@ -73,7 +73,7 @@ private:
     return true;
   }
 
-  virtual bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  virtual bool process(const ExecutionPlan &ep, BDD::Node_ptr node,
                        const BDD::Call *casted, TableRef table,
                        processing_result_t &result) override {
     auto new_module = std::make_shared<TableLookupSimple>(node, table);
@@ -88,7 +88,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
 

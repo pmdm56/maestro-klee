@@ -14,13 +14,13 @@ public:
   Forward()
       : Module(ModuleType::x86_BMv2_Forward, TargetType::x86_BMv2, "Forward") {}
 
-  Forward(BDD::BDDNode_ptr node, int _port)
+  Forward(BDD::Node_ptr node, int _port)
       : Module(ModuleType::x86_BMv2_Forward, TargetType::x86_BMv2, "Forward", node),
         port(_port) {}
 
 private:
   processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
                          const BDD::ReturnProcess *casted) override {
     processing_result_t result;
     if (casted->get_return_operation() == BDD::ReturnProcess::Operation::FWD) {

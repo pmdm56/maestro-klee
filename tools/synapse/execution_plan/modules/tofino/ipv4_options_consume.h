@@ -17,7 +17,7 @@ public:
       : Module(ModuleType::Tofino_IPv4OptionsConsume, TargetType::Tofino,
                "IPv4OptionsConsume") {}
 
-  IPv4OptionsConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk,
+  IPv4OptionsConsume(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk,
                      klee::ref<klee::Expr> _length)
       : Module(ModuleType::Tofino_IPv4OptionsConsume, TargetType::Tofino,
                "IPv4OptionsConsume", node),
@@ -73,7 +73,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

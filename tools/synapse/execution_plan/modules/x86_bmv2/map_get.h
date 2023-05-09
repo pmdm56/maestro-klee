@@ -18,7 +18,7 @@ private:
 public:
   MapGet() : Module(ModuleType::x86_BMv2_MapGet, TargetType::x86_BMv2, "MapGet") {}
 
-  MapGet(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _map_addr,
+  MapGet(BDD::Node_ptr node, klee::ref<klee::Expr> _map_addr,
          klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _map_has_this_key,
          klee::ref<klee::Expr> _value_out, BDD::symbols_t _generated_symbols)
       : Module(ModuleType::x86_BMv2_MapGet, TargetType::x86_BMv2, "MapGet", node),
@@ -27,7 +27,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
 

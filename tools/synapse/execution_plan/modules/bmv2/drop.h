@@ -11,13 +11,13 @@ public:
   Drop()
       : Module(ModuleType::BMv2_Drop,
                TargetType::BMv2, "Drop") {}
-  Drop(BDD::BDDNode_ptr node)
+  Drop(BDD::Node_ptr node)
       : Module(ModuleType::BMv2_Drop,
                TargetType::BMv2, "Drop", node) {}
 
 private:
   processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
                          const BDD::ReturnProcess *casted) override {
     processing_result_t result;
 

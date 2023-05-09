@@ -16,7 +16,7 @@ public:
       : Module(ModuleType::x86_BMv2_PacketReturnChunk, TargetType::x86_BMv2,
                "PacketReturnChunk") {}
 
-  PacketReturnChunk(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk_addr,
+  PacketReturnChunk(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk_addr,
                     klee::ref<klee::Expr> _chunk)
       : Module(ModuleType::x86_BMv2_PacketReturnChunk, TargetType::x86_BMv2,
                "PacketReturnChunk", node),
@@ -24,7 +24,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

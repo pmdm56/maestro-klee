@@ -11,7 +11,7 @@ class Then : public Module {
 public:
   Then() : Module(ModuleType::BMv2_Then, TargetType::BMv2, "Then") {}
 
-  Then(BDD::BDDNode_ptr node)
+  Then(BDD::Node_ptr node)
       : Module(ModuleType::BMv2_Then, TargetType::BMv2, "Then", node) {}
 
 public:

@@ -13,7 +13,7 @@ public:
       : Module(ModuleType::Tofino_SetupExpirationNotifications,
                TargetType::Tofino, "SetupExpirationNotifications") {}
 
-  SetupExpirationNotifications(BDD::BDDNode_ptr node)
+  SetupExpirationNotifications(BDD::Node_ptr node)
       : Module(ModuleType::Tofino_SetupExpirationNotifications,
                TargetType::Tofino, "SetupExpirationNotifications", node) {}
 
@@ -29,7 +29,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

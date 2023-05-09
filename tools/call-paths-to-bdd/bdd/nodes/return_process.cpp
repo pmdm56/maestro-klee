@@ -2,7 +2,7 @@
 #include "../visitor.h"
 
 namespace BDD {
-BDDNode_ptr ReturnProcess::clone(bool recursive) const {
+Node_ptr ReturnProcess::clone(bool recursive) const {
   auto clone =
       std::make_shared<ReturnProcess>(id, prev, constraints, value, operation);
   return clone;

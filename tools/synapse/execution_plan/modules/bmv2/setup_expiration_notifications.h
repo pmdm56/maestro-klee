@@ -19,7 +19,7 @@ public:
       : Module(ModuleType::BMv2_SetupExpirationNotifications, TargetType::BMv2,
                "SetupExpirationNotifications") {}
 
-  SetupExpirationNotifications(BDD::BDDNode_ptr node,
+  SetupExpirationNotifications(BDD::Node_ptr node,
                                klee::ref<klee::Expr> _dchain_addr,
                                klee::ref<klee::Expr> _vector_addr,
                                klee::ref<klee::Expr> _map_addr,
@@ -33,7 +33,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

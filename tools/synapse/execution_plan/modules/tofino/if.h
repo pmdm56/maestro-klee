@@ -19,7 +19,7 @@ private:
 public:
   If() : Module(ModuleType::Tofino_If, TargetType::Tofino, "If") {}
 
-  If(BDD::BDDNode_ptr node, conditions_t _conditions)
+  If(BDD::Node_ptr node, conditions_t _conditions)
       : Module(ModuleType::Tofino_If, TargetType::Tofino, "If", node),
         conditions(_conditions) {}
 
@@ -81,7 +81,7 @@ private:
   }
 
   processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::BDDNode_ptr node,
+                                     BDD::Node_ptr node,
                                      const BDD::Branch *casted) override {
     processing_result_t result;
 

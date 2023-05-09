@@ -12,7 +12,7 @@ namespace BDD {
 class Node;
 class BDDVisitor;
 
-typedef std::shared_ptr<Node> BDDNode_ptr;
+typedef std::shared_ptr<Node> Node_ptr;
 typedef uint64_t node_id_t;
 
 class Node {
@@ -23,8 +23,8 @@ protected:
   node_id_t id;
   NodeType type;
 
-  BDDNode_ptr next;
-  BDDNode_ptr prev;
+  Node_ptr next;
+  Node_ptr prev;
 
   klee::ConstraintManager constraints;
 
@@ -32,28 +32,28 @@ public:
   Node(node_id_t _id, NodeType _type, klee::ConstraintManager _constraints)
       : id(_id), type(_type), constraints(_constraints) {}
 
-  Node(node_id_t _id, NodeType _type, const BDDNode_ptr &_next,
-       const BDDNode_ptr &_prev, klee::ConstraintManager _constraints)
+  Node(node_id_t _id, NodeType _type, const Node_ptr &_next,
+       const Node_ptr &_prev, klee::ConstraintManager _constraints)
       : id(_id), type(_type), next(_next), prev(_prev),
         constraints(_constraints) {}
 
-  void replace_next(const BDDNode_ptr &_next) {
+  void replace_next(const Node_ptr &_next) {
     assert(_next);
     next = _next;
   }
 
-  void add_next(const BDDNode_ptr &_next) {
+  void add_next(const Node_ptr &_next) {
     assert(next == nullptr);
     assert(_next);
     next = _next;
   }
 
-  void replace_prev(const BDDNode_ptr &_prev) {
+  void replace_prev(const Node_ptr &_prev) {
     assert(_prev);
     prev = _prev;
   }
 
-  void add_prev(const BDDNode_ptr &_prev) {
+  void add_prev(const Node_ptr &_prev) {
     assert(prev == nullptr);
     assert(_prev);
     prev = _prev;
@@ -64,11 +64,11 @@ public:
     next = nullptr;
   }
 
-  const BDDNode_ptr &get_next() const { return next; }
-  const BDDNode_ptr &get_next() { return next; }
+  const Node_ptr &get_next() const { return next; }
+  const Node_ptr &get_next() { return next; }
 
-  const BDDNode_ptr &get_prev() const { return prev; }
-  const BDDNode_ptr &get_prev() { return prev; }
+  const Node_ptr &get_prev() const { return prev; }
+  const Node_ptr &get_prev() { return prev; }
 
   NodeType get_type() const { return type; }
   node_id_t get_id() const { return id; }
@@ -107,7 +107,7 @@ public:
     return next->get_terminating_node_ids();
   }
 
-  virtual BDDNode_ptr clone(bool recursive = false) const = 0;
+  virtual Node_ptr clone(bool recursive = false) const = 0;
   virtual void recursive_update_ids(node_id_t &new_id) = 0;
   virtual void visit(BDDVisitor &visitor) const = 0;
   virtual std::string dump(bool one_liner = false) const = 0;

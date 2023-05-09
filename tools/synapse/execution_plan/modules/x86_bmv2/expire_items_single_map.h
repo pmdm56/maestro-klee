@@ -21,7 +21,7 @@ public:
       : Module(ModuleType::x86_BMv2_ExpireItemsSingleMap, TargetType::x86_BMv2,
                "Expire") {}
 
-  ExpireItemsSingleMap(BDD::BDDNode_ptr node,
+  ExpireItemsSingleMap(BDD::Node_ptr node,
                        klee::ref<klee::Expr> _dchain_addr,
                        klee::ref<klee::Expr> _vector_addr,
                        klee::ref<klee::Expr> _map_addr,
@@ -37,7 +37,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

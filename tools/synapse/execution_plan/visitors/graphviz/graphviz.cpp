@@ -85,7 +85,7 @@ void Graphviz::open() {
   system(cmd.c_str());
 }
 
-void Graphviz::function_call(BDD::BDDNode_ptr node, TargetType target,
+void Graphviz::function_call(BDD::Node_ptr node, TargetType target,
                              std::string label) {
   assert(node_colors.find(target) != node_colors.end());
   ofs << "[label=\"";
@@ -268,7 +268,7 @@ std::string stringify_score(const Score &score) {
   return score_str;
 }
 
-std::string stringify_bdd_node(BDD::BDDNode_ptr node) {
+std::string stringify_bdd_node(BDD::Node_ptr node) {
   assert(node);
 
   constexpr int MAX_STR_SIZE = 250;

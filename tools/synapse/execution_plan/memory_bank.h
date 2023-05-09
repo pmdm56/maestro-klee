@@ -112,12 +112,12 @@ public:
            found_it->second == decision;
   }
 
-  bool check_if_can_be_ignored(BDD::BDDNode_ptr node) const {
+  bool check_if_can_be_ignored(BDD::Node_ptr node) const {
     auto id = node->get_id();
     return can_be_ignored_bdd_nodes.find(id) != can_be_ignored_bdd_nodes.end();
   }
 
-  void can_be_ignored(BDD::BDDNode_ptr node) {
+  void can_be_ignored(BDD::Node_ptr node) {
     auto id = node->get_id();
     can_be_ignored_bdd_nodes.insert(id);
   }

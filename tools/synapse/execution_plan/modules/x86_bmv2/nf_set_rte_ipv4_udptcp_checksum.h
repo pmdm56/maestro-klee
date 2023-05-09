@@ -19,7 +19,7 @@ public:
       : Module(ModuleType::x86_BMv2_SetIpv4UdpTcpChecksum, TargetType::x86_BMv2,
                "SetIpChecksum") {}
 
-  SetIpv4UdpTcpChecksum(BDD::BDDNode_ptr node,
+  SetIpv4UdpTcpChecksum(BDD::Node_ptr node,
                         klee::ref<klee::Expr> _ip_header_addr,
                         klee::ref<klee::Expr> _l4_header_addr,
                         klee::ref<klee::Expr> _p_addr,
@@ -31,7 +31,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

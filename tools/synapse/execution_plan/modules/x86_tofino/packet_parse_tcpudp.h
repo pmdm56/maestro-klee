@@ -16,7 +16,7 @@ public:
       : Module(ModuleType::x86_Tofino_PacketParseTCPUDP, TargetType::x86_Tofino,
                "PacketParseTCPUDP") {}
 
-  PacketParseTCPUDP(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
+  PacketParseTCPUDP(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
       : Module(ModuleType::x86_Tofino_PacketParseTCPUDP, TargetType::x86_Tofino,
                "PacketParseTCPUDP", node),
         chunk(_chunk) {}
@@ -101,7 +101,7 @@ private:
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

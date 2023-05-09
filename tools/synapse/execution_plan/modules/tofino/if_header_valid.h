@@ -27,7 +27,7 @@ public:
       : Module(ModuleType::Tofino_IfHeaderValid, TargetType::Tofino,
                "IfHeaderValid") {}
 
-  IfHeaderValid(BDD::BDDNode_ptr node, PacketHeader _header)
+  IfHeaderValid(BDD::Node_ptr node, PacketHeader _header)
       : Module(ModuleType::Tofino_IfHeaderValid, TargetType::Tofino,
                "IfHeaderValid", node),
         header(_header) {}
@@ -81,7 +81,7 @@ private:
   }
 
   processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::BDDNode_ptr node,
+                                     BDD::Node_ptr node,
                                      const BDD::Branch *casted) override {
     processing_result_t result;
 

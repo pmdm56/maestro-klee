@@ -11,7 +11,7 @@ public:
   Else()
       : Module(ModuleType::BMv2_Else,
                TargetType::BMv2, "Else") {}
-  Else(BDD::BDDNode_ptr node)
+  Else(BDD::Node_ptr node)
       : Module(ModuleType::BMv2_Else,
                TargetType::BMv2, "Else", node) {}
 

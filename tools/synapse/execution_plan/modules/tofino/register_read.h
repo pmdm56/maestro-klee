@@ -13,19 +13,19 @@ public:
       : Module(ModuleType::Tofino_RegisterRead, TargetType::Tofino,
                "RegisterRead") {}
 
-  RegisterRead(BDD::BDDNode_ptr node)
+  RegisterRead(BDD::Node_ptr node)
       : Module(ModuleType::Tofino_RegisterRead, TargetType::Tofino,
                "RegisterRead", node) {}
 
 private:
-  bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  bool process(const ExecutionPlan &ep, BDD::Node_ptr node,
                const BDD::Call *casted, processing_result_t &result) {
     return false;
     // TODO: implement
   }
 
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     process(ep, node, casted, result);

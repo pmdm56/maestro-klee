@@ -18,7 +18,7 @@ public:
       : Module(ModuleType::x86_BMv2_PacketBorrowNextChunk, TargetType::x86_BMv2,
                "PacketBorrowNextChunk") {}
 
-  PacketBorrowNextChunk(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _p_addr,
+  PacketBorrowNextChunk(BDD::Node_ptr node, klee::ref<klee::Expr> _p_addr,
                         klee::ref<klee::Expr> _chunk_addr,
                         klee::ref<klee::Expr> _chunk,
                         klee::ref<klee::Expr> _length)
@@ -29,7 +29,7 @@ public:
 
 private:
   processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
+                                   BDD::Node_ptr node,
                                    const BDD::Call *casted) override {
     processing_result_t result;
     auto call = casted->get_call();

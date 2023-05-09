@@ -10,13 +10,13 @@ class Drop : public Module {
 public:
   Drop()
       : Module(ModuleType::x86_Tofino_Drop, TargetType::x86_Tofino, "Drop") {}
-  Drop(BDD::BDDNode_ptr node)
+  Drop(BDD::Node_ptr node)
       : Module(ModuleType::x86_Tofino_Drop, TargetType::x86_Tofino, "Drop",
                node) {}
 
 private:
   processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
                          const BDD::ReturnProcess *casted) override {
     processing_result_t result;
     if (casted->get_return_operation() == BDD::ReturnProcess::Operation::DROP) {

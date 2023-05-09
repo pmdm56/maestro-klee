@@ -11,13 +11,13 @@ public:
   Broadcast()
       : Module(ModuleType::x86_BMv2_Broadcast, TargetType::x86_BMv2, "Broadcast") {}
 
-  Broadcast(BDD::BDDNode_ptr node)
+  Broadcast(BDD::Node_ptr node)
       : Module(ModuleType::x86_BMv2_Broadcast, TargetType::x86_BMv2, "Broadcast",
                node) {}
 
 private:
   processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
                          const BDD::ReturnProcess *casted) override {
     processing_result_t result;
 

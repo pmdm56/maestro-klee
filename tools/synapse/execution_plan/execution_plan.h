@@ -25,11 +25,11 @@ class ExecutionPlan {
 public:
   struct leaf_t {
     ExecutionPlanNode_ptr leaf;
-    BDD::BDDNode_ptr next;
+    BDD::Node_ptr next;
     std::pair<bool, TargetType> current_platform;
 
-    leaf_t(BDD::BDDNode_ptr _next);
-    leaf_t(Module_ptr _module, BDD::BDDNode_ptr _next);
+    leaf_t(BDD::Node_ptr _next);
+    leaf_t(Module_ptr _module, BDD::Node_ptr _next);
     leaf_t(const leaf_t &_leaf);
 
     leaf_t &operator=(const leaf_t &) = default;
@@ -70,7 +70,7 @@ public:
   std::unordered_set<BDD::node_id_t>
   get_current_target_bdd_starting_points() const;
 
-  BDD::BDDNode_ptr get_bdd_root(BDD::BDDNode_ptr node) const;
+  BDD::Node_ptr get_bdd_root(BDD::Node_ptr node) const;
 
   const std::map<TargetType, unsigned> &get_nodes_per_target() const;
 
@@ -83,7 +83,7 @@ public:
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes() const;
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes_of_current_target() const;
 
-  std::vector<BDD::BDDNode_ptr> get_incoming_bdd_nodes() const;
+  std::vector<BDD::Node_ptr> get_incoming_bdd_nodes() const;
 
   void inc_reordered_nodes();
   const ExecutionPlanNode_ptr &get_root() const;
@@ -102,19 +102,19 @@ public:
 
   const std::unordered_set<BDD::node_id_t> &get_processed_bdd_nodes() const;
 
-  BDD::BDDNode_ptr get_next_node() const;
+  BDD::Node_ptr get_next_node() const;
   ExecutionPlanNode_ptr get_active_leaf() const;
   TargetType get_current_platform() const;
 
   ExecutionPlan replace_leaf(Module_ptr new_module,
-                             const BDD::BDDNode_ptr &next,
+                             const BDD::Node_ptr &next,
                              bool process_bdd_node = true) const;
 
-  ExecutionPlan ignore_leaf(const BDD::BDDNode_ptr &next,
+  ExecutionPlan ignore_leaf(const BDD::Node_ptr &next,
                             TargetType next_target,
                             bool process_bdd_node = true) const;
 
-  ExecutionPlan add_leaves(Module_ptr new_module, const BDD::BDDNode_ptr &next,
+  ExecutionPlan add_leaves(Module_ptr new_module, const BDD::Node_ptr &next,
                            bool is_terminal = false,
                            bool process_bdd_node = true) const;
 
@@ -124,7 +124,7 @@ public:
                            bool is_terminal = false,
                            bool process_bdd_node = true) const;
 
-  void replace_active_leaf_node(BDD::BDDNode_ptr next,
+  void replace_active_leaf_node(BDD::Node_ptr next,
                                 bool process_bdd_node = true);
 
   float get_percentage_of_processed_bdd_nodes() const;

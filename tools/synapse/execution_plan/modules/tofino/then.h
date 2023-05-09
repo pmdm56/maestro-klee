@@ -10,7 +10,7 @@ class Then : public Module {
 public:
   Then() : Module(ModuleType::Tofino_Then, TargetType::Tofino, "Then") {}
 
-  Then(BDD::BDDNode_ptr node)
+  Then(BDD::Node_ptr node)
       : Module(ModuleType::Tofino_Then, TargetType::Tofino, "Then", node) {}
 
 public:
