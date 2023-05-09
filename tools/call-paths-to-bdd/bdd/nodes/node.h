@@ -30,8 +30,7 @@ protected:
 
 public:
   Node(node_id_t _id, NodeType _type, klee::ConstraintManager _constraints)
-      : id(_id), type(_type), next(nullptr), prev(nullptr),
-        constraints(_constraints) {}
+      : id(_id), type(_type), constraints(_constraints) {}
 
   Node(node_id_t _id, NodeType _type, const BDDNode_ptr &_next,
        const BDDNode_ptr &_prev, klee::ConstraintManager _constraints)

@@ -94,7 +94,6 @@ std::map<std::string, bool> fn_has_side_effects_lookup{
     {"packet_borrow_next_chunk", true},
     {"packet_get_unread_length", true},
     {"packet_return_chunk", true},
-    {"packet_borrow_next_chunk", true},
     {"vector_borrow", false},
     {"vector_return", true},
     {"map_get", false},
@@ -115,9 +114,9 @@ std::map<std::string, bool> fn_has_side_effects_lookup{
 
 std::vector<std::string> fn_cannot_reorder_lookup{
     "current_time",
-    "packet_return_chunk",
     "nf_set_rte_ipv4_udptcp_checksum",
     "packet_borrow_next_chunk",
+    "packet_return_chunk",
 };
 
 bool fn_has_side_effects(std::string fn) {
@@ -357,8 +356,10 @@ bool map_can_reorder(const Node *current,
   return are_io_dependencies_met(before, condition, furthest_back_nodes);
 }
 
-bool dchain_can_reorder(const Node *current, const Node *before,
-                        const Node *after, klee::ref<klee::Expr> &condition) {
+bool dchain_can_reorder(
+    const Node *current,
+    const std::unordered_set<node_id_t> &furthest_back_nodes,
+    const Node *before, const Node *after, klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
       before->get_type() != Node::NodeType::CALL) {
     return true;
@@ -400,10 +401,10 @@ bool dchain_can_reorder(const Node *current, const Node *before,
   return false;
 }
 
-bool vector_can_reorder(const Node *current,
-                        const std::unordered_set<node_id_t> &furthest_back_nodes,
-                        const Node *before, const Node *after,
-                        klee::ref<klee::Expr> &condition) {
+bool vector_can_reorder(
+    const Node *current,
+    const std::unordered_set<node_id_t> &furthest_back_nodes,
+    const Node *before, const Node *after, klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
       before->get_type() != Node::NodeType::CALL) {
     return true;
@@ -489,7 +490,8 @@ bool are_rw_dependencies_met(
       return false;
     }
 
-    if (!dchain_can_reorder(root, node.get(), next_node, local_condition)) {
+    if (!dchain_can_reorder(root, furthest_back_nodes, node.get(), next_node,
+                            local_condition)) {
       return false;
     }
 
@@ -497,6 +499,8 @@ bool are_rw_dependencies_met(
                             local_condition)) {
       return false;
     }
+
+    // TODO: missing cht and sketch
 
     if (!local_condition.isNull()) {
       all_conditions.push_back(local_condition);

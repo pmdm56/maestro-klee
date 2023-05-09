@@ -48,7 +48,7 @@ public:
     return filtered;
   }
 
-  std::vector<DataStructureRef> get_ones_that_implement(obj_addr_t obj) const {
+  std::vector<DataStructureRef> get(obj_addr_t obj) const {
     std::vector<DataStructureRef> implementations;
 
     for (auto ds : data_structures) {

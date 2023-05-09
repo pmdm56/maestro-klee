@@ -65,12 +65,28 @@ BDD::BDD build_bdd() {
   return BDD::BDD(call_paths);
 }
 
+void test(const BDD::BDD& bdd) {
+  auto root = bdd.get_node_by_id(88);
+  assert(root);
+
+  auto reordered = BDD::reorder(bdd, root);
+  std::cerr << "reordered " << reordered.size() << "\n";
+
+  for (auto r : reordered) {
+    BDD::GraphvizGenerator::visualize(r.bdd);
+  }
+}
+
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   auto start = std::chrono::steady_clock::now();
 
   auto original_bdd = build_bdd();
+
+  // test(original_bdd);
+  // return 0;
+
   auto reordered_bdds =
       BDD::get_all_reordered_bdds(original_bdd, MaxReorderingOperations);
 

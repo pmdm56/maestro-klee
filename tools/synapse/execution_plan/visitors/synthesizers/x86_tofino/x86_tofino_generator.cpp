@@ -82,21 +82,26 @@ bool get_dataplane_table_names(const ExecutionPlan &ep, obj_addr_t obj,
                                std::unordered_set<std::string> &table_names) {
   auto mb = ep.get_memory_bank();
 
-  if (mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
-    auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
-
-    auto obj_tables = tmb->get_obj_tables(obj);
-    for (auto table : obj_tables) {
-      auto t = static_cast<const targets::tofino::TableLookup *>(table.get());
-      auto _table = t->get_table();
-      auto table_name = _table->get_name();
-      table_names.insert(table_name);
-    }
-
-    return true;
+  if (!mb->check_placement_decision(obj, PlacementDecision::TofinoTable)) {
+    return false;
   }
 
-  return false;
+  auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
+  auto implementations = tmb->get_implementations(obj);
+
+  for (auto implementation : implementations) {
+    auto type = implementation->get_type();
+
+    assert(type == targets::tofino::DataStructure::TABLE ||
+           type == targets::tofino::DataStructure::TABLE_NON_MERGEABLE);
+
+    auto table =
+        static_cast<const targets::tofino::Table *>(implementation.get());
+    auto table_name = table->get_name();
+    table_names.insert(table_name);
+  }
+
+  return true;
 }
 
 void x86TofinoGenerator::init_state(ExecutionPlan ep) {
