@@ -1,6 +1,7 @@
 #include "klee-util.h"
 #include <iostream>
 
+#include "bdd-io.h"
 #include "bdd.h"
 
 #include "call-paths-groups.h"
@@ -14,18 +15,11 @@
 
 namespace BDD {
 
-constexpr char BDD::INIT_CONTEXT_MARKER[];
-constexpr char BDD::MAGIC_SIGNATURE[];
-
-
-std::vector<std::string> BDD::skip_conditions_with_symbol{"received_a_packet",
-                                                          "loop_termination"};
-
 void BDD::visit(BDDVisitor &visitor) const { visitor.visit(*this); }
 
-BDDNode_ptr BDD::get_node_by_id(node_id_t _id) const {
-  std::vector<BDDNode_ptr> nodes{nf_init, nf_process};
-  BDDNode_ptr node;
+Node_ptr BDD::get_node_by_id(node_id_t _id) const {
+  std::vector<Node_ptr> nodes{nf_init, nf_process};
+  Node_ptr node;
 
   while (nodes.size()) {
     node = nodes[0];
@@ -48,30 +42,6 @@ BDDNode_ptr BDD::get_node_by_id(node_id_t _id) const {
   return node;
 }
 
-unsigned BDD::get_number_of_nodes(BDDNode_ptr root) const {
-  unsigned num_nodes = 0;
-
-  std::vector<BDDNode_ptr> nodes{root};
-  BDDNode_ptr node;
-
-  while (nodes.size()) {
-    node = nodes[0];
-    num_nodes++;
-    nodes.erase(nodes.begin());
-
-    if (node->get_type() == Node::NodeType::BRANCH) {
-      auto branch_node = static_cast<Branch *>(node.get());
-
-      nodes.push_back(branch_node->get_on_true());
-      nodes.push_back(branch_node->get_on_false());
-    } else if (node->get_next()) {
-      nodes.push_back(node->get_next());
-    }
-  }
-
-  return num_nodes;
-}
-
 BDD BDD::clone() const {
   BDD bdd = *this;
 
@@ -84,18 +54,18 @@ BDD BDD::clone() const {
   return bdd;
 }
 
-std::string BDD::get_fname(const Node *node) {
+std::string get_fname(const Node *node) {
   assert(node->get_type() == Node::NodeType::CALL);
   const Call *call = static_cast<const Call *>(node);
   return call->get_call().function_name;
 }
 
-bool BDD::is_skip_function(const Node *node) {
-  auto fname = BDD::get_fname(node);
+bool is_skip_function(const Node *node) {
+  auto fname = get_fname(node);
   return call_paths_t::is_skip_function(fname);
 }
 
-bool BDD::is_skip_condition(const Node *node) {
+bool is_skip_condition(const Node *node) {
   assert(node->get_type() == Node::NodeType::BRANCH);
   const Branch *branch = static_cast<const Branch *>(node);
   auto cond = branch->get_condition();
@@ -105,9 +75,9 @@ bool BDD::is_skip_condition(const Node *node) {
 
   auto symbols = retriever.get_retrieved_strings();
   for (const auto &symbol : symbols) {
-    auto found_it = std::find(BDD::skip_conditions_with_symbol.begin(),
-                              BDD::skip_conditions_with_symbol.end(), symbol);
-    if (found_it != BDD::skip_conditions_with_symbol.end()) {
+    auto found_it = std::find(skip_conditions_with_symbol.begin(),
+                              skip_conditions_with_symbol.end(), symbol);
+    if (found_it != skip_conditions_with_symbol.end()) {
       return true;
     }
   }
@@ -115,7 +85,7 @@ bool BDD::is_skip_condition(const Node *node) {
   return false;
 }
 
-call_t BDD::get_successful_call(std::vector<call_path_t *> call_paths) const {
+call_t get_successful_call(std::vector<call_path_t *> call_paths) {
   assert(call_paths.size());
 
   for (const auto &cp : call_paths) {
@@ -178,10 +148,10 @@ get_common_constraints(std::vector<call_path_t *> call_paths,
   return common;
 }
 
-BDDNode_ptr BDD::populate(call_paths_t call_paths,
+Node_ptr BDD::populate(call_paths_t call_paths,
                           klee::ConstraintManager accumulated) {
-  BDDNode_ptr local_root = nullptr;
-  BDDNode_ptr local_leaf = nullptr;
+  Node_ptr local_root = nullptr;
+  Node_ptr local_leaf = nullptr;
   klee::ConstraintManager empty_contraints;
 
   auto return_raw =
@@ -287,13 +257,13 @@ BDDNode_ptr BDD::populate(call_paths_t call_paths,
   return local_root;
 }
 
-BDDNode_ptr BDD::populate_init(const BDDNode_ptr &root) {
+Node_ptr BDD::populate_init(const Node_ptr &root) {
   Node *node = root.get();
   assert(node);
 
-  BDDNode_ptr local_root;
-  BDDNode_ptr local_leaf;
-  BDDNode_ptr new_node;
+  Node_ptr local_root;
+  Node_ptr local_leaf;
+  Node_ptr new_node;
 
   bool build_return = true;
 
@@ -302,7 +272,7 @@ BDDNode_ptr BDD::populate_init(const BDDNode_ptr &root) {
 
     switch (node->get_type()) {
     case Node::NodeType::CALL: {
-      if (get_fname(node) == BDD::INIT_CONTEXT_MARKER) {
+      if (get_fname(node) == INIT_CONTEXT_MARKER) {
         node = nullptr;
         break;
       }
@@ -398,19 +368,19 @@ BDDNode_ptr BDD::populate_init(const BDDNode_ptr &root) {
   return local_root;
 }
 
-BDDNode_ptr BDD::populate_process(const BDDNode_ptr &root, bool store) {
+Node_ptr BDD::populate_process(const Node_ptr &root, bool store) {
   Node *node = root.get();
 
-  BDDNode_ptr local_root;
-  BDDNode_ptr local_leaf;
-  BDDNode_ptr new_node;
+  Node_ptr local_root;
+  Node_ptr local_leaf;
+  Node_ptr new_node;
 
   while (node != nullptr) {
     new_node = nullptr;
 
     switch (node->get_type()) {
     case Node::NodeType::CALL: {
-      if (get_fname(node) == BDD::INIT_CONTEXT_MARKER) {
+      if (get_fname(node) == INIT_CONTEXT_MARKER) {
         store = true;
         node = node->get_next().get();
         break;
@@ -529,7 +499,14 @@ BDDNode_ptr BDD::populate_process(const BDDNode_ptr &root, bool store) {
   return local_root;
 }
 
-void BDD::rename_symbols(BDDNode_ptr node, SymbolFactory &factory) {
+void BDD::rename_symbols() {
+  SymbolFactory factory;
+
+  rename_symbols(nf_init, factory);
+  rename_symbols(nf_process, factory);
+}
+
+void BDD::rename_symbols(Node_ptr node, SymbolFactory &factory) {
   assert(node);
 
   while (node) {

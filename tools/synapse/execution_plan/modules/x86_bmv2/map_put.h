@@ -14,19 +14,27 @@ private:
   klee::ref<klee::Expr> value;
 
 public:
-  MapPut() : Module(ModuleType::x86_BMv2_MapPut, TargetType::x86_BMv2, "MapPut") {}
+  MapPut()
+      : Module(ModuleType::x86_BMv2_MapPut, TargetType::x86_BMv2, "MapPut") {}
 
-  MapPut(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _map_addr,
+  MapPut(BDD::Node_ptr node, klee::ref<klee::Expr> _map_addr,
          klee::ref<klee::Expr> _key_addr, klee::ref<klee::Expr> _key,
          klee::ref<klee::Expr> _value)
-      : Module(ModuleType::x86_BMv2_MapPut, TargetType::x86_BMv2, "MapPut", node),
+      : Module(ModuleType::x86_BMv2_MapPut, TargetType::x86_BMv2, "MapPut",
+               node),
         map_addr(_map_addr), key_addr(_key_addr), key(_key), value(_value) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_MAP_PUT) {

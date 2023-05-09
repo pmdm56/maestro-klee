@@ -27,10 +27,10 @@ namespace Clone {
 
 	/* Private methods */
 
-	Tails Builder::clone_node(BDDNode_ptr root, uint32_t input_port) {
+	Tails Builder::clone_node(Node_ptr root, uint32_t input_port) {
 		assert(root);
 
-		stack<BDDNode_ptr> s;
+		stack<Node_ptr> s;
 
 		Tails tails;
 		s.push(root);
@@ -45,9 +45,9 @@ namespace Clone {
 					assert(branch->get_on_true());
 					assert(branch->get_on_false());
 
-					BDDNode_ptr prev = branch->get_prev();
-					BDDNode_ptr next_true = branch->get_on_true()->clone();
-					BDDNode_ptr next_false = branch->get_on_false()->clone();
+					Node_ptr prev = branch->get_prev();
+					Node_ptr next_true = branch->get_on_true()->clone();
+					Node_ptr next_false = branch->get_on_false()->clone();
 					branch->disconnect();
 					branch->add_prev(prev);
 
@@ -109,7 +109,7 @@ namespace Clone {
 
 					call->set_constraints(cm);
 
-					BDDNode_ptr next = call->get_next()->clone();
+					Node_ptr next = call->get_next()->clone();
 					call->replace_next(next);
 					next->replace_prev(curr);
 					s.push(next);
@@ -142,7 +142,7 @@ namespace Clone {
 		return tails;
 	}
 
-	void Builder::trim_node(BDDNode_ptr curr, BDDNode_ptr next) {
+	void Builder::trim_node(Node_ptr curr, Node_ptr next) {
 		auto prev = curr->get_prev();
 
 		if(prev->get_type() == Node::NodeType::BRANCH) {
@@ -186,8 +186,8 @@ namespace Clone {
 		return bdd->get_process() == nullptr;
 	}
 
-	void Builder::replace_with_drop(BDDNode_ptr node) {
-		BDDNode_ptr return_drop = BDDNode_ptr(new ReturnProcess(
+	void Builder::replace_with_drop(Node_ptr node) {
+		Node_ptr return_drop = Node_ptr(new ReturnProcess(
 			counter++, 
 			node, 
 			{}, 
@@ -196,14 +196,14 @@ namespace Clone {
 		trim_node(node, return_drop);
 	}
 
-	void Builder::add_root_branch(BDDNode_ptr &root, unsigned input_port) {
+	void Builder::add_root_branch(Node_ptr &root, unsigned input_port) {
 		ConstraintManager cm {};
 		auto vigor_device = solver_toolbox.create_new_symbol("VIGOR_DEVICE", 32);
 		auto port = solver_toolbox.exprBuilder->Constant(input_port, vigor_device->getWidth()) ;
 		auto eq = solver_toolbox.exprBuilder->Eq(vigor_device, port) ;
-		BDDNode_ptr node = BDDNode_ptr(new Branch(counter++, cm, eq));
-		BDDNode_ptr return_drop = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
-		BDDNode_ptr return_fwd = BDDNode_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::FWD));
+		Node_ptr node = Node_ptr(new Branch(counter++, cm, eq));
+		Node_ptr return_drop = Node_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::DROP));
+		Node_ptr return_fwd = Node_ptr(new ReturnProcess(counter++, node, {}, 0, ReturnProcess::Operation::FWD));
 		Branch* branch = static_cast<Branch*>(node.get());
 
 		branch->add_on_false(return_drop);
@@ -239,7 +239,7 @@ namespace Clone {
 			return;
 		}
 
-		BDDNode_ptr init_new = nf->get_bdd()->get_init()->clone(true);
+		Node_ptr init_new = nf->get_bdd()->get_init()->clone(true);
 		init_new->recursive_update_ids(counter);
 
 		if(bdd->get_init() == nullptr) {
@@ -257,7 +257,7 @@ namespace Clone {
 		merged_inits.insert(nf->get_id());
 	}
 
-	Tails Builder::join_process(const NFPtr &nf, unsigned port, const BDDNode_ptr &tail) {
+	Tails Builder::join_process(const NFPtr &nf, unsigned port, const Node_ptr &tail) {
 		assert(process_root != nullptr);
 
 		auto root = nf->get_bdd()->get_process()->clone(true);
@@ -271,7 +271,7 @@ namespace Clone {
 		return this->bdd;
 	}
 
-	BDDNode_ptr Builder::get_process_root() const {
+	Node_ptr Builder::get_process_root() const {
 		return this->process_root;
 	}
 

@@ -923,14 +923,14 @@ void AST::dec_pkt_offset() {
   pkt_buffer_offset.top().pop();
 }
 
-std::vector<BDD::BDDNode_ptr> 
-get_prev_functions(BDD::BDDNode_ptr start, std::string function_name, std::unordered_set<std::string> stop_nodes) {
-  std::vector<BDD::BDDNode_ptr> return_nodes;
+std::vector<BDD::Node_ptr> 
+get_prev_functions(BDD::Node_ptr start, std::string function_name, std::unordered_set<std::string> stop_nodes) {
+  std::vector<BDD::Node_ptr> return_nodes;
 
   bool loop = true;
-  BDD::BDDNode_ptr node = start;
+  BDD::Node_ptr node = start;
 
-  auto is_stop_node = [&stop_nodes](BDD::BDDNode_ptr node) {
+  auto is_stop_node = [&stop_nodes](BDD::Node_ptr node) {
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       return false;
     }
@@ -940,7 +940,7 @@ get_prev_functions(BDD::BDDNode_ptr start, std::string function_name, std::unord
     return stop_nodes.find(call.function_name) != stop_nodes.end();
   };
 
-  auto is_target_node = [&function_name](BDD::BDDNode_ptr node) {
+  auto is_target_node = [&function_name](BDD::Node_ptr node) {
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       return false;
     }

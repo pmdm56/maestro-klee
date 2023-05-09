@@ -1,4 +1,6 @@
+#include "bdd-io.h"
 #include "bdd.h"
+
 #include "nodes/return_init.h"
 #include "nodes/return_process.h"
 
@@ -8,6 +10,9 @@
 #include <iostream>
 
 namespace BDD {
+
+std::vector<std::string> skip_conditions_with_symbol{"received_a_packet",
+                                                     "loop_termination"};
 
 struct kQuery_t {
   std::vector<const klee::Array *> arrays;
@@ -399,9 +404,6 @@ void BDD::serialize(std::string out_file) const {
 
   out << MAGIC_SIGNATURE << "\n";
 
-  out << ";;-- Metadata --\n";
-  out << "cps:" << total_call_paths << "\n";
-
   out << ";;-- kQuery --\n";
   out << kQuery.serialize();
 
@@ -684,7 +686,7 @@ call_t parse_call(std::string serialized_call,
   return call;
 }
 
-BDDNode_ptr parse_node_call(node_id_t id,
+Node_ptr parse_node_call(node_id_t id,
                             const klee::ConstraintManager &constraints,
                             std::string serialized,
                             std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -694,7 +696,7 @@ BDDNode_ptr parse_node_call(node_id_t id,
   return call_node;
 }
 
-BDDNode_ptr parse_node_branch(node_id_t id,
+Node_ptr parse_node_branch(node_id_t id,
                               const klee::ConstraintManager &constraints,
                               std::string serialized,
                               std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -704,7 +706,7 @@ BDDNode_ptr parse_node_branch(node_id_t id,
   return branch_node;
 }
 
-BDDNode_ptr parse_node_return_init(node_id_t id,
+Node_ptr parse_node_return_init(node_id_t id,
                                    const klee::ConstraintManager &constraints,
                                    std::string serialized,
                                    std::vector<klee::ref<klee::Expr>> &exprs) {
@@ -724,7 +726,7 @@ BDDNode_ptr parse_node_return_init(node_id_t id,
   return return_init_node;
 }
 
-BDDNode_ptr parse_node_return_process(
+Node_ptr parse_node_return_process(
     node_id_t id, const klee::ConstraintManager &constraints,
     std::string serialized, std::vector<klee::ref<klee::Expr>> &exprs) {
   auto delim = serialized.find(" ");
@@ -756,9 +758,9 @@ BDDNode_ptr parse_node_return_process(
   return return_process_node;
 }
 
-BDDNode_ptr parse_node(std::string serialized_node,
+Node_ptr parse_node(std::string serialized_node,
                        std::vector<klee::ref<klee::Expr>> &exprs) {
-  BDDNode_ptr node;
+  Node_ptr node;
 
   auto delim = serialized_node.find(":");
   assert(delim != std::string::npos);
@@ -828,7 +830,7 @@ void parse_kQuery(std::string kQuery,
 }
 
 void process_edge(std::string serialized_edge,
-                  std::map<node_id_t, BDDNode_ptr> &nodes) {
+                  std::map<node_id_t, Node_ptr> &nodes) {
   auto delim = serialized_edge.find("(");
   assert(delim != std::string::npos);
 
@@ -900,7 +902,6 @@ void BDD::deserialize(const std::string &file_path) {
 
   enum {
     STATE_INIT,
-    STATE_METADATA,
     STATE_KQUERY,
     STATE_NODES,
     STATE_EDGES,
@@ -908,9 +909,6 @@ void BDD::deserialize(const std::string &file_path) {
   } state = STATE_INIT;
 
   auto get_next_state = [&](std::string line) {
-    if (line == ";;-- Metadata --") {
-      return STATE_METADATA;
-    }
     if (line == ";;-- kQuery --") {
       return STATE_KQUERY;
     }
@@ -930,7 +928,7 @@ void BDD::deserialize(const std::string &file_path) {
   std::string kQuery;
 
   std::vector<klee::ref<klee::Expr>> exprs;
-  std::map<node_id_t, BDDNode_ptr> nodes;
+  std::map<node_id_t, Node_ptr> nodes;
 
   int parenthesis_level = 0;
   std::string current_node;
@@ -948,27 +946,6 @@ void BDD::deserialize(const std::string &file_path) {
     case STATE_INIT: {
       if (line == MAGIC_SIGNATURE) {
         magic_check = true;
-      }
-
-      break;
-    }
-
-    case STATE_METADATA: {
-      if (get_next_state(line) != state) {
-        break;
-      }
-
-      auto delim = line.find(":");
-      assert(delim != std::string::npos);
-
-      auto field = line.substr(0, delim);
-
-      if (field == "cps") {
-        auto total_call_paths_str = line.substr(delim + 1);
-        auto total_call_paths = std::stoll(total_call_paths_str);
-        total_call_paths = total_call_paths;
-      } else {
-        assert(false && "Unknown metadata field");
       }
 
       break;

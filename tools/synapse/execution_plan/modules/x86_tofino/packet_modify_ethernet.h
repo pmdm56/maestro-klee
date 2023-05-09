@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../visitors/graphviz/graphviz.h"
 #include "../module.h"
 #include "ignore.h"
-#include "../../visitors/graphviz/graphviz.h"
 namespace synapse {
 namespace targets {
 namespace x86_tofino {
@@ -17,7 +17,7 @@ public:
       : Module(ModuleType::x86_Tofino_PacketModifyEthernet,
                TargetType::x86_Tofino, "PacketModifyEthernet") {}
 
-  PacketModifyEthernet(BDD::BDDNode_ptr node,
+  PacketModifyEthernet(BDD::Node_ptr node,
                        const klee::ref<klee::Expr> &_ethernet_chunk,
                        const std::vector<modification_t> &_modifications)
       : Module(ModuleType::x86_Tofino_PacketModifyEthernet,
@@ -37,10 +37,16 @@ private:
     return call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                                   BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_RETURN_CHUNK) {

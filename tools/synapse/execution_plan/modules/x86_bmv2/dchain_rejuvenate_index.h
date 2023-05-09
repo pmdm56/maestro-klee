@@ -17,8 +17,7 @@ public:
       : Module(ModuleType::x86_BMv2_DchainRejuvenateIndex, TargetType::x86_BMv2,
                "DchainRejuvenate") {}
 
-  DchainRejuvenateIndex(BDD::BDDNode_ptr node,
-                        klee::ref<klee::Expr> _dchain_addr,
+  DchainRejuvenateIndex(BDD::Node_ptr node, klee::ref<klee::Expr> _dchain_addr,
                         klee::ref<klee::Expr> _index,
                         klee::ref<klee::Expr> _time)
       : Module(ModuleType::x86_BMv2_DchainRejuvenateIndex, TargetType::x86_BMv2,
@@ -26,10 +25,16 @@ public:
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_DCHAIN_REJUVENATE) {

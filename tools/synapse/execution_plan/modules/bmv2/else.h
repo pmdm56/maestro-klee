@@ -8,12 +8,16 @@ namespace bmv2 {
 
 class Else : public Module {
 public:
-  Else()
-      : Module(ModuleType::BMv2_Else,
-               TargetType::BMv2, "Else") {}
-  Else(BDD::BDDNode_ptr node)
-      : Module(ModuleType::BMv2_Else,
-               TargetType::BMv2, "Else", node) {}
+  Else() : Module(ModuleType::BMv2_Else, TargetType::BMv2, "Else") {}
+  Else(BDD::Node_ptr node)
+      : Module(ModuleType::BMv2_Else, TargetType::BMv2, "Else", node) {}
+
+private:
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
+    processing_result_t result;
+    return result;
+  }
 
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const override {

@@ -1,17 +1,23 @@
 #pragma once
 
-#include "../module.h"
+#include "./tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class Then : public Module {
+class Then : public TofinoModule {
 public:
-  Then() : Module(ModuleType::Tofino_Then, TargetType::Tofino, "Then") {}
+  Then() : TofinoModule(ModuleType::Tofino_Then, "Then") {}
 
-  Then(BDD::BDDNode_ptr node)
-      : Module(ModuleType::Tofino_Then, TargetType::Tofino, "Then", node) {}
+  Then(BDD::Node_ptr node)
+      : TofinoModule(ModuleType::Tofino_Then, "Then", node) {}
+
+private:
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
+    return processing_result_t();
+  }
 
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const override {

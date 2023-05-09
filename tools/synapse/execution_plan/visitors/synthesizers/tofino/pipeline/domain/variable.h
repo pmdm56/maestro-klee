@@ -13,6 +13,7 @@ namespace tofino {
 
 class Variable {
 protected:
+  bool active;
   std::string label;
   bits_t size_bits;
 
@@ -22,22 +23,28 @@ protected:
   std::vector<klee::ref<klee::Expr>> exprs;
 
 public:
+  // Empty contructor for optional variables
+  Variable() : active(false) {}
+
   Variable(const Variable &variable)
-      : label(variable.label), size_bits(variable.size_bits),
-        prefix(variable.prefix), vigor_symbols(variable.vigor_symbols),
-        exprs(variable.exprs) {}
+      : active(variable.active), label(variable.label),
+        size_bits(variable.size_bits), prefix(variable.prefix),
+        vigor_symbols(variable.vigor_symbols), exprs(variable.exprs) {}
 
   Variable(std::string _label, bits_t _size_bits,
            std::vector<std::string> _vigor_symbols)
-      : label(_label), size_bits(_size_bits), vigor_symbols(_vigor_symbols) {}
+      : active(true), label(_label), size_bits(_size_bits),
+        vigor_symbols(_vigor_symbols) {}
 
   Variable(std::string _label, bits_t _size_bits, klee::ref<klee::Expr> expr)
-      : label(_label), size_bits(_size_bits) {
+      : active(true), label(_label), size_bits(_size_bits) {
     exprs.push_back(expr);
   }
 
   Variable(std::string _label, bits_t _size_bits)
-      : label(_label), size_bits(_size_bits) {}
+      : active(true), label(_label), size_bits(_size_bits) {}
+
+  bool is_active() const { return active; }
 
   void set_prefix(const std::string &_prefix) { prefix = _prefix; }
 

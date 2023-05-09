@@ -110,7 +110,6 @@ synapse::ExecutionPlan search(const BDD::BDD &bdd) {
   synapse::MostCompact most_compact;
   synapse::LeastReordered least_reordered;
   synapse::MaximizeSwitchNodes maximize_switch_nodes;
-  synapse::ExactMatch exact_match;
 
   // auto winner = search_engine.search(biggest);
   // auto winner = search_engine.search(least_reordered);

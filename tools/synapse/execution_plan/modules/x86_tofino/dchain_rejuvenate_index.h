@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../module.h"
+#include "ignore.h"
 #include "memory_bank.h"
 
 namespace synapse {
@@ -18,7 +19,7 @@ public:
       : Module(ModuleType::x86_Tofino_DchainRejuvenateIndex,
                TargetType::x86_Tofino, "DchainRejuvenate") {}
 
-  DchainRejuvenateIndex(BDD::BDDNode_ptr node, obj_addr_t _dchain_addr,
+  DchainRejuvenateIndex(BDD::Node_ptr node, obj_addr_t _dchain_addr,
                         klee::ref<klee::Expr> _index,
                         klee::ref<klee::Expr> _time)
       : Module(ModuleType::x86_Tofino_DchainRejuvenateIndex,
@@ -26,10 +27,36 @@ public:
         dchain_addr(_dchain_addr), index(_index), time(_time) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  bool already_rejuvenated_by_data_plane(const ExecutionPlan &ep,
+                                         obj_addr_t obj) const {
+    auto mb = ep.get_memory_bank();
+    auto uses_int_allocator =
+        mb->check_placement_decision(obj, PlacementDecision::IntegerAllocator);
+
+    if (!uses_int_allocator) {
+      return false;
+    }
+
+    auto prev =
+        get_prev_modules(ep, {ModuleType::Tofino_IntegerAllocatorRejuvenate});
+
+    assert(
+        prev.size() > 0 &&
+        "Preemptive pruning on SendToController shouldn't allow this to fail");
+
+    return true;
+  }
+
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_DCHAIN_REJUVENATE) {
@@ -41,6 +68,19 @@ private:
       auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
       auto _time = call.args[symbex::FN_DCHAIN_ARG_TIME].expr;
       auto _dchain_addr = kutil::expr_addr_to_obj_addr(_dchain);
+
+      auto already_rejuvenated =
+          already_rejuvenated_by_data_plane(ep, _dchain_addr);
+
+      if (already_rejuvenated) {
+        auto new_module = std::make_shared<Ignore>(node);
+        auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
+
+        result.module = new_module;
+        result.next_eps.push_back(new_ep);
+
+        return result;
+      }
 
       auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
       auto saved = mb->has_data_structure(_dchain_addr);

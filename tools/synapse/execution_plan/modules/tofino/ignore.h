@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../module.h"
+#include "tofino_module.h"
 
 #include <unordered_map>
 
@@ -8,35 +8,33 @@ namespace synapse {
 namespace targets {
 namespace tofino {
 
-class Ignore : public Module {
+class Ignore : public TofinoModule {
 private:
   typedef bool (Ignore::*should_ignore_jury_ptr)(const ExecutionPlan &ep,
-                                                 BDD::BDDNode_ptr node,
+                                                 BDD::Node_ptr node,
                                                  const BDD::Call *casted) const;
 
   std::unordered_map<std::string, should_ignore_jury_ptr> functions_to_ignore;
 
 public:
-  Ignore() : Module(ModuleType::Tofino_Ignore, TargetType::Tofino, "Ignore") {
+  Ignore() : TofinoModule(ModuleType::Tofino_Ignore, "Ignore") {
     functions_to_ignore = {
         {symbex::FN_CURRENT_TIME, &Ignore::always_ignore},
         {symbex::FN_ETHER_HASH, &Ignore::always_ignore},
-        {symbex::FN_DCHAIN_REJUVENATE, &Ignore::always_ignore},
         {symbex::FN_VECTOR_RETURN, &Ignore::read_only_vector_op},
     };
   }
 
-  Ignore(BDD::BDDNode_ptr node)
-      : Module(ModuleType::Tofino_Ignore, TargetType::Tofino, "Ignore", node) {}
+  Ignore(BDD::Node_ptr node)
+      : TofinoModule(ModuleType::Tofino_Ignore, "Ignore", node) {}
 
 private:
-  bool always_ignore(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  bool always_ignore(const ExecutionPlan &ep, BDD::Node_ptr node,
                      const BDD::Call *casted) const {
     return true;
   }
 
-  call_t get_previous_vector_borrow(const ExecutionPlan &ep,
-                                    BDD::BDDNode_ptr node,
+  call_t get_previous_vector_borrow(const ExecutionPlan &ep, BDD::Node_ptr node,
                                     klee::ref<klee::Expr> wanted_vector) const {
     auto prev_vector_borrows =
         get_all_prev_functions(ep, node, symbex::FN_VECTOR_BORROW);
@@ -64,7 +62,7 @@ private:
     exit(1);
   }
 
-  bool read_only_vector_op(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  bool read_only_vector_op(const ExecutionPlan &ep, BDD::Node_ptr node,
                            const BDD::Call *casted) const {
     assert(casted);
     auto call = casted->get_call();
@@ -87,15 +85,21 @@ private:
     return !modifies_cell;
   }
 
-  bool recall_to_ignore(const ExecutionPlan &ep, BDD::BDDNode_ptr node) {
+  bool recall_to_ignore(const ExecutionPlan &ep, BDD::Node_ptr node) {
     auto mb = ep.get_memory_bank();
     return mb->check_if_can_be_ignored(node);
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (recall_to_ignore(ep, node)) {

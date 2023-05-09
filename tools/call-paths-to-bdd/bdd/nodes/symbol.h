@@ -63,4 +63,9 @@ struct symbol_t_hash {
 };
 
 typedef std::unordered_set<symbol_t, symbol_t_hash> symbols_t;
+
+bool has_label(const symbols_t &symbols, const std::string &base);
+std::string get_label(const symbols_t &symbols, const std::string &base);
+symbol_t get_symbol(const symbols_t &symbols, const std::string &base);
+
 } // namespace BDD

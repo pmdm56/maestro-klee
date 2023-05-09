@@ -11,11 +11,6 @@
 
 namespace synapse {
 
-struct DummyModule {
-  Module::ModuleType type;
-  std::vector<DummyModule> next;
-};
-
 class Score {
 public:
   enum Category {
@@ -25,99 +20,72 @@ public:
     NumberOfNodes,
     NumberOfControllerNodes,
     NumberOfMergedTables,
+    NumberOfSimpleTables,
+    NumberOfIntAllocatorOps,
     Depth,
-    ExactMatchNodes,
     ConsecutiveObjectOperationsInSwitch,
     HasNextStatefulOperationInSwitch,
   };
 
   enum Objective { MIN, MAX };
+  typedef int score_value_t;
 
 private:
-  typedef int (Score::*ComputerPtr)() const;
+  typedef score_value_t (Score::*ComputerPtr)(const ExecutionPlan &ep) const;
 
-  const ExecutionPlan &execution_plan;
+  // Responsible for calculating the score value for a given category.
   std::map<Category, ComputerPtr> computers;
 
   // The order of the elements in this vector matters.
   // It defines a lexicographic order.
   std::vector<std::pair<Category, Objective>> categories;
 
-  int get_nr_nodes() const;
-  int get_nr_merged_tables() const;
-  int get_depth() const;
-  int get_nr_switch_nodes() const;
-  int get_nr_controller_nodes() const;
-  int get_nr_reordered_nodes() const;
-  int get_nr_exact_match_nodes() const;
-  int get_nr_switch_leaves() const;
-  int next_op_same_obj_in_switch() const;
-  int next_op_is_stateful_in_switch() const;
-
-  DummyModule target_ep;
+  // The actual score values.
+  std::vector<score_value_t> values;
 
 public:
-  Score(const ExecutionPlan &_execution_plan)
-      : execution_plan(_execution_plan) {
+  Score(const Score &score)
+      : computers(score.computers), categories(score.categories),
+        values(score.values) {}
+
+  Score(const ExecutionPlan &ep,
+        const std::vector<std::pair<Category, Objective>>
+            &categories_objectives) {
     computers = {
         {NumberOfReorderedNodes, &Score::get_nr_reordered_nodes},
         {NumberOfNodes, &Score::get_nr_nodes},
         {NumberOfMergedTables, &Score::get_nr_merged_tables},
+        {NumberOfSimpleTables, &Score::get_nr_simple_tables},
         {NumberOfSwitchNodes, &Score::get_nr_switch_nodes},
         {NumberOfSwitchLeaves, &Score::get_nr_switch_leaves},
         {NumberOfControllerNodes, &Score::get_nr_controller_nodes},
         {Depth, &Score::get_depth},
-        {ExactMatchNodes, &Score::get_nr_exact_match_nodes},
-        {ConsecutiveObjectOperationsInSwitch, &Score::next_op_same_obj_in_switch},
-        {HasNextStatefulOperationInSwitch, &Score::next_op_is_stateful_in_switch},
+        {ConsecutiveObjectOperationsInSwitch,
+         &Score::next_op_same_obj_in_switch},
+        {HasNextStatefulOperationInSwitch,
+         &Score::next_op_is_stateful_in_switch},
+        {NumberOfIntAllocatorOps, &Score::get_nr_int_allocator_ops},
     };
-  }
 
-  Score(const Score &score)
-      : execution_plan(score.execution_plan), computers(score.computers),
-        categories(score.categories) {}
-
-  void add_target_execution_plan(const DummyModule &_target_ep) {
-    target_ep = _target_ep;
-  }
-
-  void add(Category category, Objective objective) {
-    auto found_it =
-        std::find_if(categories.begin(), categories.end(),
-                     [&](const std::pair<Category, Objective> &saved) {
-                       return saved.first == category;
-                     });
-
-    assert(found_it == categories.end() && "Category already inserted");
-
-    categories.emplace_back(category, objective);
-  }
-
-  int get(Category category) const {
-    auto found_it = computers.find(category);
-
-    if (found_it == computers.end()) {
-      Log::err() << "\nScore error: " << category
-                 << " not found in lookup table.\n";
-      exit(1);
-    }
-
-    auto computer = found_it->second;
-    return (this->*computer)();
-  }
-
-  inline bool operator<(const Score &other) {
-    for (auto category_objective : categories) {
+    for (const auto &category_objective : categories_objectives) {
       auto category = category_objective.first;
       auto objective = category_objective.second;
 
-      auto this_score = get(category);
-      auto other_score = other.get(category);
+      add(category, objective);
 
-      if (objective == Objective::MIN) {
-        this_score *= -1;
-        other_score *= -1;
-      }
+      auto value = compute(ep, category, objective);
+      values.push_back(value);
+    }
+  }
+
+  const std::vector<score_value_t> &get() const { return values; }
+
+  inline bool operator<(const Score &other) {
+    assert(values.size() == other.values.size());
+
+    for (auto i = 0u; i < values.size(); i++) {
+      auto this_score = values[i];
+      auto other_score = other.values[i];
 
       if (this_score > other_score) {
         return false;
@@ -132,17 +100,11 @@ public:
   }
 
   inline bool operator==(const Score &other) {
-    for (auto category_objective : categories) {
-      auto category = category_objective.first;
-      auto objective = category_objective.second;
+    assert(values.size() == other.values.size());
 
-      auto this_score = get(category);
-      auto other_score = other.get(category);
-
-      if (objective == Objective::MIN) {
-        this_score *= -1;
-        other_score *= -1;
-      }
+    for (auto i = 0u; i < values.size(); i++) {
+      auto this_score = values[i];
+      auto other_score = other.values[i];
 
       if (this_score != other_score) {
         return false;
@@ -161,21 +123,63 @@ public:
   inline bool operator!=(const Score &other) { return !((*this) == other); }
 
   friend std::ostream &operator<<(std::ostream &os, const Score &dt);
+
+private:
+  score_value_t compute(const ExecutionPlan &ep, Category category,
+                        Objective objective) const {
+    auto found_it = computers.find(category);
+
+    if (found_it == computers.end()) {
+      Log::err() << "\nScore error: " << category
+                 << " not found in lookup table.\n";
+      exit(1);
+    }
+
+    auto computer = found_it->second;
+    auto value = (this->*computer)(ep);
+
+    if (objective == Objective::MIN) {
+      value *= -1;
+    }
+
+    return value;
+  }
+
+  void add(Category category, Objective objective) {
+    auto found_it =
+        std::find_if(categories.begin(), categories.end(),
+                     [&](const std::pair<Category, Objective> &saved) {
+                       return saved.first == category;
+                     });
+
+    assert(found_it == categories.end() && "Category already inserted");
+
+    categories.emplace_back(category, objective);
+  }
+
+  std::vector<ExecutionPlanNode_ptr>
+  get_nodes_with_type(const ExecutionPlan &ep,
+                      const std::vector<Module::ModuleType> &types) const;
+
+  score_value_t get_nr_nodes(const ExecutionPlan &ep) const;
+  score_value_t get_nr_merged_tables(const ExecutionPlan &ep) const;
+  score_value_t get_nr_int_allocator_ops(const ExecutionPlan &ep) const;
+  score_value_t get_nr_simple_tables(const ExecutionPlan &ep) const;
+  score_value_t get_depth(const ExecutionPlan &ep) const;
+  score_value_t get_nr_switch_nodes(const ExecutionPlan &ep) const;
+  score_value_t get_nr_controller_nodes(const ExecutionPlan &ep) const;
+  score_value_t get_nr_reordered_nodes(const ExecutionPlan &ep) const;
+  score_value_t get_nr_switch_leaves(const ExecutionPlan &ep) const;
+  score_value_t next_op_same_obj_in_switch(const ExecutionPlan &ep) const;
+  score_value_t next_op_is_stateful_in_switch(const ExecutionPlan &ep) const;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Score &score) {
   os << "<";
 
   bool first = true;
-  for (auto category_objective : score.categories) {
-    auto category = category_objective.first;
-    auto objective = category_objective.second;
-
-    auto value = score.get(category);
-
-    if (objective == Score::Objective::MIN) {
-      value *= -1;
-    }
+  for (auto i = 0u; i < score.values.size(); i++) {
+    auto value = score.values[i];
 
     if (!first) {
       os << ",";

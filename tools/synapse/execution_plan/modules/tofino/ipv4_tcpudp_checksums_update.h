@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../module.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IPv4TCPUDPChecksumsUpdate : public Module {
+class IPv4TCPUDPChecksumsUpdate : public TofinoModule {
 private:
   klee::ref<klee::Expr> ip_header_addr;
   klee::ref<klee::Expr> l4_header_addr;
@@ -16,24 +16,30 @@ private:
 
 public:
   IPv4TCPUDPChecksumsUpdate()
-      : Module(ModuleType::Tofino_IPv4TCPUDPChecksumsUpdate, TargetType::Tofino,
-               "IPv4TCPUDPChecksumsUpdate") {}
+      : TofinoModule(ModuleType::Tofino_IPv4TCPUDPChecksumsUpdate,
+                     "IPv4TCPUDPChecksumsUpdate") {}
 
-  IPv4TCPUDPChecksumsUpdate(BDD::BDDNode_ptr node,
+  IPv4TCPUDPChecksumsUpdate(BDD::Node_ptr node,
                             klee::ref<klee::Expr> _ip_header_addr,
                             klee::ref<klee::Expr> _l4_header_addr,
                             klee::ref<klee::Expr> _p_addr,
                             BDD::symbols_t _generated_symbols)
-      : Module(ModuleType::Tofino_IPv4TCPUDPChecksumsUpdate, TargetType::Tofino,
-               "IPv4TCPUDPChecksumsUpdate", node),
+      : TofinoModule(ModuleType::Tofino_IPv4TCPUDPChecksumsUpdate,
+                     "IPv4TCPUDPChecksumsUpdate", node),
         ip_header_addr(_ip_header_addr), l4_header_addr(_l4_header_addr),
         p_addr(_p_addr), generated_symbols(_generated_symbols) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_SET_CHECKSUM) {

@@ -49,34 +49,15 @@ std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
     ep_cloned.replace_active_leaf_node(reordered_bdd.candidate, false);
     ep_cloned.inc_reordered_nodes();
 
+    // If the next node was a BDD starting point, then actually the starting
+    // point becomes the candidate node.
+    ep_cloned.replace_current_target_starting_points(
+        next_node->get_id(), reordered_bdd.candidate->get_id());
+
     reordered.push_back(ep_cloned);
   }
 
   return reordered;
-}
-
-processing_result_t Module::process_branch(const ExecutionPlan &ep,
-                                           BDD::BDDNode_ptr node,
-                                           const BDD::Branch *casted) {
-  return processing_result_t();
-}
-
-processing_result_t Module::process_call(const ExecutionPlan &ep,
-                                         BDD::BDDNode_ptr node,
-                                         const BDD::Call *casted) {
-  return processing_result_t();
-}
-
-processing_result_t Module::process_return_init(const ExecutionPlan &ep,
-                                                BDD::BDDNode_ptr node,
-                                                const BDD::ReturnInit *casted) {
-  return processing_result_t();
-}
-
-processing_result_t
-Module::process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
-                               const BDD::ReturnProcess *casted) {
-  return processing_result_t();
 }
 
 bool can_process_platform(const ExecutionPlan &ep, TargetType target) {
@@ -85,36 +66,13 @@ bool can_process_platform(const ExecutionPlan &ep, TargetType target) {
 }
 
 processing_result_t Module::process_node(const ExecutionPlan &ep,
-                                         BDD::BDDNode_ptr node,
+                                         BDD::Node_ptr node,
                                          int max_reordered) {
   assert(node);
   processing_result_t result;
 
   if (can_process_platform(ep, target)) {
-    switch (node->get_type()) {
-    case BDD::Node::NodeType::CALL: {
-      auto call_node = static_cast<BDD::Call *>(node.get());
-      result = process_call(ep, node, call_node);
-    } break;
-
-    case BDD::Node::NodeType::BRANCH: {
-      auto branch_node = static_cast<BDD::Branch *>(node.get());
-      result = process_branch(ep, node, branch_node);
-    } break;
-
-    case BDD::Node::NodeType::RETURN_INIT: {
-      auto return_init_node = static_cast<BDD::ReturnInit *>(node.get());
-      result = process_return_init(ep, node, return_init_node);
-    } break;
-
-    case BDD::Node::NodeType::RETURN_PROCESS: {
-      auto return_process_node = static_cast<BDD::ReturnProcess *>(node.get());
-      result = process_return_process(ep, node, return_process_node);
-    } break;
-
-    case BDD::Node::NodeType::RETURN_RAW:
-      assert(false);
-    }
+    result = process(ep, node);
   }
 
   std::vector<ExecutionPlan> reordered;
@@ -155,17 +113,17 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
   return true;
 }
 
-std::vector<BDD::BDDNode_ptr> Module::get_all_prev_functions(
-    const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+std::vector<BDD::Node_ptr> Module::get_all_prev_functions(
+    const ExecutionPlan &ep, BDD::Node_ptr node,
     const std::vector<std::string> &functions_names) const {
-  std::vector<BDD::BDDNode_ptr> prev_functions;
+  std::vector<BDD::Node_ptr> prev_functions;
 
   auto target = ep.get_current_platform();
 
   auto targets_bdd_starting_points = ep.get_targets_bdd_starting_points();
   auto starting_points_it = targets_bdd_starting_points.find(target);
 
-  auto is_starting_point = [&](const BDD::BDDNode_ptr &node) -> bool {
+  auto is_starting_point = [&](const BDD::Node_ptr &node) -> bool {
     if (starting_points_it == targets_bdd_starting_points.end()) {
       return false;
     }
@@ -175,12 +133,8 @@ std::vector<BDD::BDDNode_ptr> Module::get_all_prev_functions(
   };
 
   assert(node);
-  auto proceed = true;
 
-  while (proceed && node->get_prev()) {
-    node = node->get_prev();
-    proceed = !is_starting_point(node);
-
+  while (node && (node = node->get_prev()) && !is_starting_point(node)) {
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       continue;
     }
@@ -199,11 +153,36 @@ std::vector<BDD::BDDNode_ptr> Module::get_all_prev_functions(
   return prev_functions;
 }
 
-std::vector<BDD::BDDNode_ptr>
-Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+std::vector<BDD::Node_ptr>
+Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
                                const std::string &function_name) const {
   auto functions_names = std::vector<std::string>{function_name};
   return get_all_prev_functions(ep, node, functions_names);
+}
+
+std::vector<Module_ptr>
+Module::get_prev_modules(const ExecutionPlan &ep,
+                         const std::vector<ModuleType> &targets) const {
+  std::vector<Module_ptr> modules;
+  auto ep_node = ep.get_active_leaf();
+
+  while (ep_node) {
+    auto current = ep_node;
+    ep_node = current->get_prev();
+
+    auto module = current->get_module();
+    assert(module);
+
+    auto type = module->get_type();
+
+    auto found_it = std::find(targets.begin(), targets.end(), type);
+
+    if (found_it != targets.end()) {
+      modules.push_back(module);
+    }
+  }
+
+  return modules;
 }
 
 std::vector<Module::modification_t>
@@ -306,10 +285,10 @@ Module::dchain_config_t Module::get_dchain_config(const BDD::BDD &bdd,
 */
 
 struct next_t {
-  std::vector<BDD::BDDNode_ptr> maps;
+  std::vector<BDD::Node_ptr> maps;
   std::vector<obj_addr_t> maps_addrs;
 
-  std::vector<BDD::BDDNode_ptr> vectors;
+  std::vector<BDD::Node_ptr> vectors;
   std::vector<obj_addr_t> vectors_addrs;
 
   int size() const { return maps_addrs.size() + vectors_addrs.size(); }
@@ -347,11 +326,11 @@ struct next_t {
   }
 };
 
-next_t get_next_maps_and_vectors_ops(BDD::BDDNode_ptr root, obj_addr_t map_addr,
+next_t get_next_maps_and_vectors_ops(BDD::Node_ptr root, obj_addr_t map_addr,
                                      klee::ref<klee::Expr> index) {
   assert(root);
 
-  std::vector<BDD::BDDNode_ptr> nodes{root};
+  std::vector<BDD::Node_ptr> nodes{root};
   next_t candidates;
 
   while (nodes.size()) {
@@ -406,13 +385,13 @@ next_t get_next_maps_and_vectors_ops(BDD::BDDNode_ptr root, obj_addr_t map_addr,
   return candidates;
 }
 
-std::vector<BDD::BDDNode_ptr>
-find_all_functions_after_node(BDD::BDDNode_ptr root,
+std::vector<BDD::Node_ptr>
+find_all_functions_after_node(BDD::Node_ptr root,
                               const std::string &function_name) {
   assert(root);
 
-  std::vector<BDD::BDDNode_ptr> functions;
-  std::vector<BDD::BDDNode_ptr> nodes{root};
+  std::vector<BDD::Node_ptr> functions;
+  std::vector<BDD::Node_ptr> nodes{root};
 
   while (nodes.size()) {
     auto node = nodes[0];
@@ -439,9 +418,8 @@ find_all_functions_after_node(BDD::BDDNode_ptr root,
   return functions;
 }
 
-next_t
-get_allowed_coalescing_objs(std::vector<BDD::BDDNode_ptr> index_allocators,
-                            obj_addr_t map_addr) {
+next_t get_allowed_coalescing_objs(std::vector<BDD::Node_ptr> index_allocators,
+                                   obj_addr_t map_addr) {
   next_t candidates;
 
   for (auto allocator : index_allocators) {
@@ -476,9 +454,8 @@ get_allowed_coalescing_objs(std::vector<BDD::BDDNode_ptr> index_allocators,
   return candidates;
 }
 
-Module::coalesced_data_t
-Module::get_coalescing_data(const ExecutionPlan &ep,
-                            BDD::BDDNode_ptr node) const {
+Module::coalesced_data_t Module::get_coalescing_data(const ExecutionPlan &ep,
+                                                     BDD::Node_ptr node) const {
   Module::coalesced_data_t coalesced_data;
 
   if (node->get_type() != BDD::Node::CALL) {

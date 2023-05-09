@@ -1,24 +1,23 @@
 #pragma once
 
-#include "../module.h"
 #include <netinet/in.h>
+
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class TCPUDPConsume : public Module {
+class TCPUDPConsume : public TofinoModule {
 private:
   klee::ref<klee::Expr> chunk;
 
 public:
   TCPUDPConsume()
-      : Module(ModuleType::Tofino_TCPUDPConsume, TargetType::Tofino,
-               "TCPUDPConsume") {}
+      : TofinoModule(ModuleType::Tofino_TCPUDPConsume, "TCPUDPConsume") {}
 
-  TCPUDPConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::Tofino_TCPUDPConsume, TargetType::Tofino,
-               "TCPUDPConsume", node),
+  TCPUDPConsume(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
+      : TofinoModule(ModuleType::Tofino_TCPUDPConsume, "TCPUDPConsume", node),
         chunk(_chunk) {}
 
 private:
@@ -100,10 +99,16 @@ private:
     return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_BORROW_CHUNK) {

@@ -12,8 +12,14 @@ class Then : public Module {
 public:
   Then() : Module(ModuleType::x86_BMv2_Then, TargetType::x86_BMv2, "Then") {}
 
-  Then(BDD::BDDNode_ptr node)
+  Then(BDD::Node_ptr node)
       : Module(ModuleType::x86_BMv2_Then, TargetType::x86_BMv2, "Then", node) {}
+
+private:
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
+    return processing_result_t();
+  }
 
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const override {

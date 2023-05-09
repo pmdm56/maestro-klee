@@ -11,11 +11,11 @@ namespace synapse {
 int ExecutionPlanNode::counter = 0;
 int ExecutionPlan::counter = 0;
 
-ExecutionPlan::leaf_t::leaf_t(BDD::BDDNode_ptr _next) : next(_next) {
+ExecutionPlan::leaf_t::leaf_t(BDD::Node_ptr _next) : next(_next) {
   current_platform.first = false;
 }
 
-ExecutionPlan::leaf_t::leaf_t(Module_ptr _module, BDD::BDDNode_ptr _next)
+ExecutionPlan::leaf_t::leaf_t(Module_ptr _module, BDD::Node_ptr _next)
     : leaf(ExecutionPlanNode::build(_module)), next(_next) {
   assert(_module);
 
@@ -80,14 +80,26 @@ ExecutionPlan::get_targets_bdd_starting_points() const {
   return targets_bdd_starting_points;
 }
 
-BDD::BDDNode_ptr ExecutionPlan::get_bdd_root(BDD::BDDNode_ptr node) const {
+std::unordered_set<BDD::node_id_t>
+ExecutionPlan::get_current_target_bdd_starting_points() const {
+  auto current_target = get_current_platform();
+  auto found_it = targets_bdd_starting_points.find(current_target);
+
+  if (found_it == targets_bdd_starting_points.end()) {
+    return std::unordered_set<BDD::node_id_t>();
+  }
+
+  return found_it->second;
+}
+
+BDD::Node_ptr ExecutionPlan::get_bdd_root(BDD::Node_ptr node) const {
   assert(node);
 
   auto targets_starting_points = get_targets_bdd_starting_points();
   auto current_platform = get_current_platform();
   auto starting_points = targets_starting_points[current_platform];
 
-  auto is_root = [&](BDD::BDDNode_ptr n) {
+  auto is_root = [&](BDD::Node_ptr n) {
     auto found_it = starting_points.find(n->get_id());
     return found_it != starting_points.end();
   };
@@ -145,6 +157,39 @@ ExecutionPlan::get_prev_nodes_of_current_target() const {
   return prev_nodes;
 }
 
+std::vector<BDD::Node_ptr> ExecutionPlan::get_incoming_bdd_nodes() const {
+  std::vector<BDD::Node_ptr> incoming_nodes;
+  std::vector<BDD::Node_ptr> nodes;
+
+  auto node = get_next_node();
+
+  if (node) {
+    nodes.push_back(node);
+  }
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    assert(node);
+
+    incoming_nodes.push_back(node);
+
+    if (node->get_type() == BDD::Node::NodeType::CALL) {
+      auto call_node = BDD_CAST_CALL(node);
+      nodes.push_back(call_node->get_next());
+    }
+
+    else if (node->get_type() == BDD::Node::NodeType::BRANCH) {
+      auto branch_node = BDD_CAST_BRANCH(node);
+      nodes.push_back(branch_node->get_on_true());
+      nodes.push_back(branch_node->get_on_false());
+    }
+  }
+
+  return incoming_nodes;
+}
+
 void ExecutionPlan::add_target(TargetType type, MemoryBank_ptr mb) {
   assert(targets.find(type) == targets.end());
   assert(memory_banks.find(type) == memory_banks.end());
@@ -187,6 +232,27 @@ void ExecutionPlan::update_targets_starting_points(
       targets_bdd_starting_points[next_target].insert(starting_point);
     }
   }
+}
+
+void ExecutionPlan::replace_current_target_starting_points(
+    BDD::node_id_t _old, BDD::node_id_t _new) {
+  auto current_target = get_current_platform();
+  auto found_it = targets_bdd_starting_points.find(current_target);
+
+  if (found_it == targets_bdd_starting_points.end()) {
+    return;
+  }
+
+  // Remove only if the _old node is found.
+
+  auto found_node_it = found_it->second.find(_old);
+
+  if (found_node_it == found_it->second.end()) {
+    return;
+  }
+
+  found_it->second.erase(_old);
+  found_it->second.insert(_new);
 }
 
 void ExecutionPlan::update_leaves(std::vector<leaf_t> _leaves,
@@ -265,8 +331,8 @@ void ExecutionPlan::update_processed_nodes() {
   processed_bdd_nodes.insert(processed_node_id);
 }
 
-BDD::BDDNode_ptr ExecutionPlan::get_next_node() const {
-  BDD::BDDNode_ptr next;
+BDD::Node_ptr ExecutionPlan::get_next_node() const {
+  BDD::Node_ptr next;
 
   if (leaves.size()) {
     next = leaves[0].next;
@@ -294,7 +360,7 @@ TargetType ExecutionPlan::get_current_platform() const {
 }
 
 ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
-                                          const BDD::BDDNode_ptr &next,
+                                          const BDD::Node_ptr &next,
                                           bool process_bdd_node) const {
   auto new_ep = clone();
 
@@ -334,7 +400,7 @@ ExecutionPlan ExecutionPlan::replace_leaf(Module_ptr new_module,
   return new_ep;
 }
 
-ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::BDDNode_ptr &next,
+ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::Node_ptr &next,
                                          TargetType next_target,
                                          bool process_bdd_node) const {
   auto new_ep = clone();
@@ -355,7 +421,7 @@ ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::BDDNode_ptr &next,
 }
 
 ExecutionPlan ExecutionPlan::add_leaves(Module_ptr new_module,
-                                        const BDD::BDDNode_ptr &next,
+                                        const BDD::Node_ptr &next,
                                         bool is_terminal,
                                         bool process_bdd_node) const {
   std::vector<ExecutionPlan::leaf_t> _leaves;
@@ -407,7 +473,7 @@ ExecutionPlan ExecutionPlan::add_leaves(std::vector<leaf_t> _leaves,
   return new_ep;
 }
 
-void ExecutionPlan::replace_active_leaf_node(BDD::BDDNode_ptr next,
+void ExecutionPlan::replace_active_leaf_node(BDD::Node_ptr next,
                                              bool process_bdd_node) {
   if (process_bdd_node) {
     update_processed_nodes();
@@ -418,7 +484,9 @@ void ExecutionPlan::replace_active_leaf_node(BDD::BDDNode_ptr next,
 }
 
 float ExecutionPlan::get_percentage_of_processed_bdd_nodes() const {
-  auto total_nodes = bdd.get_number_of_nodes(bdd.get_process());
+  auto process = bdd.get_process();
+  assert(process);
+  auto total_nodes = process->count_children() + 1;
   return (float)processed_bdd_nodes.size() / (float)total_nodes;
 }
 
@@ -448,6 +516,8 @@ ExecutionPlan ExecutionPlan::clone(BDD::BDD new_bdd) const {
 
   copy.id = counter++;
   copy.bdd = new_bdd;
+
+  copy.shared_memory_bank = shared_memory_bank->clone();
 
   for (auto it = memory_banks.begin(); it != memory_banks.end(); it++) {
     copy.memory_banks[it->first] = it->second->clone();
@@ -480,11 +550,12 @@ ExecutionPlan ExecutionPlan::clone(bool deep) const {
 
   if (deep) {
     copy.bdd = copy.bdd.clone();
-    // FIXME: shouldn't we shallow copy if not deep?
   }
 
-  for (auto it = memory_banks.begin(); it != memory_banks.end(); it++) {
-    copy.memory_banks[it->first] = it->second->clone();
+  copy.shared_memory_bank = shared_memory_bank->clone();
+  for (auto ep_it = memory_banks.begin(); ep_it != memory_banks.end();
+       ep_it++) {
+    copy.memory_banks[ep_it->first] = ep_it->second->clone();
   }
 
   if (root) {
@@ -592,8 +663,8 @@ bool operator==(const ExecutionPlan &lhs, const ExecutionPlan &rhs) {
   auto lhs_bdd = lhs.get_bdd();
   auto rhs_bdd = rhs.get_bdd();
 
-  auto lhs_bdd_nodes = std::vector<BDD::BDDNode_ptr>{lhs_bdd.get_process()};
-  auto rhs_bdd_nodes = std::vector<BDD::BDDNode_ptr>{rhs_bdd.get_process()};
+  auto lhs_bdd_nodes = std::vector<BDD::Node_ptr>{lhs_bdd.get_process()};
+  auto rhs_bdd_nodes = std::vector<BDD::Node_ptr>{rhs_bdd.get_process()};
 
   while (lhs_bdd_nodes.size()) {
     auto lhs_bdd_node = lhs_bdd_nodes[0];

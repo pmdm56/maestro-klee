@@ -31,7 +31,7 @@ namespace Clone {
 	using std::unordered_set;
 	using std::unordered_map;
 	using std::shared_ptr;
-	using BDD::BDDNode_ptr;
+	using BDD::Node_ptr;
 	using BDD::Branch;
 	using BDD::ReturnProcess;
 	using BDD::GraphvizGenerator;
@@ -41,9 +41,9 @@ namespace Clone {
 	struct NodeTransition {
 		unsigned input_port;
 		NodePtr node;
-		BDDNode_ptr tail;
+		Node_ptr tail;
 
-		NodeTransition(unsigned input_port, const NodePtr &node, BDDNode_ptr tail)
+		NodeTransition(unsigned input_port, const NodePtr &node, Node_ptr tail)
 			: input_port(input_port), node(node), tail(tail) {}
 	};
 

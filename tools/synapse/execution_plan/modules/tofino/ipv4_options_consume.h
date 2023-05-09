@@ -1,26 +1,27 @@
 #pragma once
 
-#include "../module.h"
 #include <netinet/in.h>
+
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IPv4OptionsConsume : public Module {
+class IPv4OptionsConsume : public TofinoModule {
 private:
   klee::ref<klee::Expr> chunk;
   klee::ref<klee::Expr> length;
 
 public:
   IPv4OptionsConsume()
-      : Module(ModuleType::Tofino_IPv4OptionsConsume, TargetType::Tofino,
-               "IPv4OptionsConsume") {}
+      : TofinoModule(ModuleType::Tofino_IPv4OptionsConsume,
+                     "IPv4OptionsConsume") {}
 
-  IPv4OptionsConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk,
+  IPv4OptionsConsume(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk,
                      klee::ref<klee::Expr> _length)
-      : Module(ModuleType::Tofino_IPv4OptionsConsume, TargetType::Tofino,
-               "IPv4OptionsConsume", node),
+      : TofinoModule(ModuleType::Tofino_IPv4OptionsConsume,
+                     "IPv4OptionsConsume", node),
         chunk(_chunk), length(_length) {}
 
 private:
@@ -72,10 +73,16 @@ private:
     return len->getKind() != klee::Expr::Kind::Constant;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_BORROW_CHUNK) {

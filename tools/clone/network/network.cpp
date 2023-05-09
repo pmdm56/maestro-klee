@@ -57,7 +57,7 @@ namespace Clone {
 		builder->add_process_branch(global_port);
 
 		deque<NodeTransitionPtr> q_transitions;
-		const BDDNode_ptr root = builder->get_process_root();
+		const Node_ptr root = builder->get_process_root();
 		const Branch* branch = static_cast<Branch*>(root.get());
 		const NodeTransitionPtr transition = make_shared<NodeTransition>(nf_port, source, branch->get_on_true());
 		q_transitions.push_front(transition);
@@ -65,7 +65,7 @@ namespace Clone {
 		while(!q_transitions.empty()) {
 			const unsigned port = q_transitions.front()->input_port;
 			const NodePtr node = q_transitions.front()->node;
-			const BDDNode_ptr tail = q_transitions.front()->tail;
+			const Node_ptr tail = q_transitions.front()->tail;
 			assert(nfs.find(node->get_name()) != nfs.end());
 			const NFPtr nf = nfs.at(node->get_name());
 			assert(nf != nullptr);
@@ -76,7 +76,7 @@ namespace Clone {
 			Tails tails = builder->join_process(nf, port, tail);
 
 			while(!tails.empty()) {
-				const BDDNode_ptr tail = tails.front();
+				const Node_ptr tail = tails.front();
 				tails.pop_front();
 				ReturnProcess* return_process = static_cast<ReturnProcess*>(tail.get());
 				unsigned port_next = return_process->get_return_value();

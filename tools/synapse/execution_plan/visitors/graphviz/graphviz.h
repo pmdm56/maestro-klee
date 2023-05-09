@@ -1,8 +1,9 @@
 #pragma once
 
+#include "call-paths-to-bdd.h"
+
 #include "../../target.h"
 #include "../visitor.h"
-#include "call-paths-to-bdd.h"
 
 #include <vector>
 
@@ -17,8 +18,6 @@ private:
   std::ofstream ofs;
   std::string fpath;
 
-  const SearchSpace *search_space;
-  std::string search_space_fpath;
   std::vector<std::string> bdd_fpaths;
 
   std::map<TargetType, std::string> node_colors;
@@ -33,17 +32,25 @@ private:
   void open();
 
 public:
-  Graphviz(const std::string &path, const SearchSpace *_search_space);
-  Graphviz(const std::string &path);
+  Graphviz(const std::string &path) : fpath(path) {
+    node_colors = std::map<TargetType, std::string>{
+        {TargetType::BMv2, "darkolivegreen2"},
+        {TargetType::Tofino, "cornflowerblue"},
+        {TargetType::Netronome, "gold"},
+        {TargetType::FPGA, "coral1"},
+        {TargetType::x86_BMv2, "darkorange2"},
+        {TargetType::x86_Tofino, "firebrick2"},
+    };
 
-private:
-  Graphviz() : Graphviz(get_rand_fname()) {}
-  Graphviz(const SearchSpace *_search_space)
-      : Graphviz(get_rand_fname(), _search_space) {
-    search_space_fpath = get_rand_fname();
+    ofs.open(fpath);
+    assert(ofs);
   }
 
-  void function_call(TargetType target, std::string label);
+  Graphviz() : Graphviz(get_rand_fname()) {}
+
+private:
+  void function_call(BDD::Node_ptr node, TargetType target,
+                     std::string label);
 
   struct rgb_t {
     int r;
@@ -63,13 +70,13 @@ private:
 
 public:
   static void visualize(const ExecutionPlan &ep, bool interrupt = true);
-  static void visualize(const ExecutionPlan &ep, SearchSpace &_search_space,
-                        bool interrupt = true);
+  static void visualize(const SearchSpace &search_space, bool interrupt = true);
 
   ~Graphviz() { ofs.close(); }
 
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
+  void visit(const SearchSpace &search_space);
 
   void log(const ExecutionPlanNode *ep_node) const override;
 
@@ -148,7 +155,11 @@ public:
   DECLARE_VISIT(targets::tofino::TCPUDPModify)
   DECLARE_VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
   DECLARE_VISIT(targets::tofino::TableLookup)
+  DECLARE_VISIT(targets::tofino::TableLookupSimple)
   DECLARE_VISIT(targets::tofino::RegisterRead)
+  DECLARE_VISIT(targets::tofino::IntegerAllocatorAllocate)
+  DECLARE_VISIT(targets::tofino::IntegerAllocatorRejuvenate)
+  DECLARE_VISIT(targets::tofino::IntegerAllocatorQuery)
   DECLARE_VISIT(targets::tofino::Drop)
   DECLARE_VISIT(targets::tofino::SendToController)
   DECLARE_VISIT(targets::tofino::SetupExpirationNotifications)
@@ -181,5 +192,8 @@ public:
   DECLARE_VISIT(targets::x86_tofino::DchainAllocateNewIndex)
   DECLARE_VISIT(targets::x86_tofino::DchainIsIndexAllocated)
   DECLARE_VISIT(targets::x86_tofino::DchainRejuvenateIndex)
+
+private:
+  void visit_table(const targets::tofino::TableLookup *node, bool simple);
 };
 } // namespace synapse

@@ -17,7 +17,7 @@ public:
       : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
                TargetType::x86_Tofino, "PacketModifyTCPUDP") {}
 
-  PacketModifyTCPUDP(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _tcpudp_chunk,
+  PacketModifyTCPUDP(BDD::Node_ptr node, klee::ref<klee::Expr> _tcpudp_chunk,
                      const std::vector<modification_t> &_modifications)
       : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
                TargetType::x86_Tofino, "PacketModifyTCPUDP", node),
@@ -46,10 +46,16 @@ private:
     return len->getKind() != klee::Expr::Kind::Constant;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_RETURN_CHUNK) {

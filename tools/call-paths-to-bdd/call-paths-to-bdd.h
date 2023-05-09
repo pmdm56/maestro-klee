@@ -4,3 +4,4 @@
 #include "bdd/visitor.h"
 #include "bdd/visitors/graphviz-generator.h"
 #include "bdd/visitors/printer-debug.h"
+#include "bdd/utils.h"

@@ -3,7 +3,7 @@
 
 namespace BDD {
 
-BDDNode_ptr ReturnRaw::clone(bool recursive) const {
+Node_ptr ReturnRaw::clone(bool recursive) const {
   auto clone = std::make_shared<ReturnRaw>(id, prev, constraints, calls_list);
   return clone;
 }

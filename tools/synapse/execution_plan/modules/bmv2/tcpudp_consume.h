@@ -16,7 +16,7 @@ public:
       : Module(ModuleType::BMv2_TcpUdpConsume, TargetType::BMv2,
                "TcpUdpConsume") {}
 
-  TcpUdpConsume(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _chunk)
+  TcpUdpConsume(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
       : Module(ModuleType::BMv2_TcpUdpConsume, TargetType::BMv2,
                "TcpUdpConsume", node),
         chunk(_chunk) {}
@@ -44,9 +44,8 @@ private:
     return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
-  bool
-  is_valid_tcpudp(const BDD::Node *ipv4_node, klee::ref<klee::Expr> len,
-                  const klee::ConstraintManager &constraints) {
+  bool is_valid_tcpudp(const BDD::Node *ipv4_node, klee::ref<klee::Expr> len,
+                       const klee::ConstraintManager &constraints) {
     assert(ipv4_node);
     assert(ipv4_node->get_type() == BDD::Node::NodeType::CALL);
 
@@ -101,10 +100,16 @@ private:
     return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_BORROW_CHUNK) {

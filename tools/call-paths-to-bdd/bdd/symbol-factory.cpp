@@ -647,7 +647,7 @@ void SymbolFactory::translate(Node *current, Node *translation_source,
   }
 }
 
-void SymbolFactory::translate(call_t call, BDDNode_ptr node) {
+void SymbolFactory::translate(call_t call, Node_ptr node) {
   assert(node);
   auto found_it = call_processor_lookup_table.find(call.function_name);
 

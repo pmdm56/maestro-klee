@@ -1786,9 +1786,9 @@ void x86BMv2Generator::visit(
   nf_process_stream << ");\n";
 }
 
-klee::ref<klee::Expr> get_future_vector_value(BDD::BDDNode_ptr root,
+klee::ref<klee::Expr> get_future_vector_value(BDD::Node_ptr root,
                                               klee::ref<klee::Expr> vector) {
-  std::vector<BDD::BDDNode_ptr> nodes{root};
+  std::vector<BDD::Node_ptr> nodes{root};
 
   while (nodes.size()) {
     auto node = nodes[0];

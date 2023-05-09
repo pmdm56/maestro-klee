@@ -75,11 +75,15 @@ class IPv4OptionsModify;
 class TCPUDPConsume;
 class TCPUDPModify;
 class IPv4TCPUDPChecksumsUpdate;
-class TableLookup;
-class RegisterRead;
 class Drop;
 class SendToController;
 class SetupExpirationNotifications;
+class TableLookup;
+class TableLookupSimple;
+class RegisterRead;
+class IntegerAllocatorAllocate;
+class IntegerAllocatorRejuvenate;
+class IntegerAllocatorQuery;
 } // namespace tofino
 
 namespace x86_tofino {
@@ -182,8 +186,6 @@ public:
   VISIT(targets::tofino::Forward)
   VISIT(targets::tofino::EthernetConsume)
   VISIT(targets::tofino::EthernetModify)
-  VISIT(targets::tofino::TableLookup)
-  VISIT(targets::tofino::RegisterRead)
   VISIT(targets::tofino::Drop)
   VISIT(targets::tofino::SendToController)
   VISIT(targets::tofino::SetupExpirationNotifications)
@@ -194,6 +196,12 @@ public:
   VISIT(targets::tofino::TCPUDPConsume)
   VISIT(targets::tofino::TCPUDPModify)
   VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
+  VISIT(targets::tofino::TableLookup)
+  VISIT(targets::tofino::TableLookupSimple)
+  VISIT(targets::tofino::RegisterRead)
+  VISIT(targets::tofino::IntegerAllocatorAllocate)
+  VISIT(targets::tofino::IntegerAllocatorRejuvenate)
+  VISIT(targets::tofino::IntegerAllocatorQuery)
 
   /*************************************
    *

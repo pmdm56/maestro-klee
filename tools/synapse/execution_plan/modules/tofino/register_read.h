@@ -1,34 +1,25 @@
 #pragma once
 
-#include "../module.h"
 #include "ignore.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class RegisterRead : public Module {
+class RegisterRead : public TofinoModule {
 public:
   RegisterRead()
-      : Module(ModuleType::Tofino_RegisterRead, TargetType::Tofino,
-               "RegisterRead") {}
+      : TofinoModule(ModuleType::Tofino_RegisterRead, "RegisterRead") {}
 
-  RegisterRead(BDD::BDDNode_ptr node)
-      : Module(ModuleType::Tofino_RegisterRead, TargetType::Tofino,
-               "RegisterRead", node) {}
+  RegisterRead(BDD::Node_ptr node)
+      : TofinoModule(ModuleType::Tofino_RegisterRead, "RegisterRead", node) {}
 
 private:
-  bool process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
-               const BDD::Call *casted, processing_result_t &result) {
-    return false;
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     // TODO: implement
-  }
-
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
     processing_result_t result;
-    process(ep, node, casted, result);
     return result;
   }
 

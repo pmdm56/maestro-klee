@@ -3,17 +3,17 @@
 namespace BDD {
 
 struct candidate_t {
-  BDDNode_ptr node;
+  Node_ptr node;
   std::unordered_set<node_id_t> siblings;
   klee::ref<klee::Expr> extra_condition;
   klee::ref<klee::Expr> condition;
 
-  candidate_t(BDDNode_ptr _node) : node(_node) {}
+  candidate_t(Node_ptr _node) : node(_node) {}
 
-  candidate_t(BDDNode_ptr _node, klee::ref<klee::Expr> _condition)
+  candidate_t(Node_ptr _node, klee::ref<klee::Expr> _condition)
       : candidate_t(_node, _condition, false) {}
 
-  candidate_t(BDDNode_ptr _node, klee::ref<klee::Expr> _condition, bool _negate)
+  candidate_t(Node_ptr _node, klee::ref<klee::Expr> _condition, bool _negate)
       : node(_node) {
     if (_negate) {
       condition = kutil::solver_toolbox.exprBuilder->Not(_condition);
@@ -22,14 +22,14 @@ struct candidate_t {
     }
   }
 
-  candidate_t(const candidate_t &candidate, BDDNode_ptr _node)
+  candidate_t(const candidate_t &candidate, Node_ptr _node)
       : node(_node), condition(candidate.condition) {}
 
-  candidate_t(const candidate_t &candidate, BDDNode_ptr _node,
+  candidate_t(const candidate_t &candidate, Node_ptr _node,
               klee::ref<klee::Expr> _condition)
       : candidate_t(candidate, _node, _condition, false) {}
 
-  candidate_t(const candidate_t &candidate, BDDNode_ptr _node,
+  candidate_t(const candidate_t &candidate, Node_ptr _node,
               klee::ref<klee::Expr> _condition, bool _negate)
       : node(_node) {
     klee::ref<klee::Expr> rhs;
@@ -94,7 +94,6 @@ std::map<std::string, bool> fn_has_side_effects_lookup{
     {"packet_borrow_next_chunk", true},
     {"packet_get_unread_length", true},
     {"packet_return_chunk", true},
-    {"packet_borrow_next_chunk", true},
     {"vector_borrow", false},
     {"vector_return", true},
     {"map_get", false},
@@ -115,9 +114,9 @@ std::map<std::string, bool> fn_has_side_effects_lookup{
 
 std::vector<std::string> fn_cannot_reorder_lookup{
     "current_time",
-    "packet_return_chunk",
     "nf_set_rte_ipv4_udptcp_checksum",
     "packet_borrow_next_chunk",
+    "packet_return_chunk",
 };
 
 bool fn_has_side_effects(std::string fn) {
@@ -357,8 +356,10 @@ bool map_can_reorder(const Node *current,
   return are_io_dependencies_met(before, condition, furthest_back_nodes);
 }
 
-bool dchain_can_reorder(const Node *current, const Node *before,
-                        const Node *after, klee::ref<klee::Expr> &condition) {
+bool dchain_can_reorder(
+    const Node *current,
+    const std::unordered_set<node_id_t> &furthest_back_nodes,
+    const Node *before, const Node *after, klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
       before->get_type() != Node::NodeType::CALL) {
     return true;
@@ -400,10 +401,10 @@ bool dchain_can_reorder(const Node *current, const Node *before,
   return false;
 }
 
-bool vector_can_reorder(const Node *current,
-                        const std::unordered_set<node_id_t> &furthest_back_nodes,
-                        const Node *before, const Node *after,
-                        klee::ref<klee::Expr> &condition) {
+bool vector_can_reorder(
+    const Node *current,
+    const std::unordered_set<node_id_t> &furthest_back_nodes,
+    const Node *before, const Node *after, klee::ref<klee::Expr> &condition) {
   if (before->get_type() != after->get_type() ||
       before->get_type() != Node::NodeType::CALL) {
     return true;
@@ -489,7 +490,8 @@ bool are_rw_dependencies_met(
       return false;
     }
 
-    if (!dchain_can_reorder(root, node.get(), next_node, local_condition)) {
+    if (!dchain_can_reorder(root, furthest_back_nodes, node.get(), next_node,
+                            local_condition)) {
       return false;
     }
 
@@ -497,6 +499,8 @@ bool are_rw_dependencies_met(
                             local_condition)) {
       return false;
     }
+
+    // TODO: missing cht and sketch
 
     if (!local_condition.isNull()) {
       all_conditions.push_back(local_condition);
@@ -667,16 +671,16 @@ get_candidates(const Node *root,
   return viable_candidates;
 }
 
-void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
+void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
   node_id_t id = bdd.get_id();
 
   struct aux_t {
-    BDDNode_ptr node;
+    Node_ptr node;
     bool branch_decision;
     bool branch_decision_set;
 
-    aux_t(BDDNode_ptr _node) : node(_node), branch_decision_set(false) {}
-    aux_t(BDDNode_ptr _node, bool _direction)
+    aux_t(Node_ptr _node) : node(_node), branch_decision_set(false) {}
+    aux_t(Node_ptr _node, bool _direction)
         : node(_node), branch_decision(_direction), branch_decision_set(true) {}
   };
 
@@ -685,11 +689,6 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
 
   auto old_next = root->get_next();
   assert(old_next);
-
-  if (!old_next) {
-    std::cerr << "old_next NULL!\n";
-    exit(1);
-  }
 
   if (!candidate.extra_condition.isNull()) {
     klee::ConstraintManager no_constraints;
@@ -762,7 +761,7 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
                     on_false->get_id());
 
       if (found_on_true_it != candidate.siblings.end()) {
-        BDDNode_ptr next;
+        Node_ptr next;
 
         if (on_true->get_type() == Node::NodeType::BRANCH) {
           auto on_true_branch = static_cast<Branch *>(on_true.get());
@@ -778,7 +777,7 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
       }
 
       if (found_on_false_it != candidate.siblings.end()) {
-        BDDNode_ptr next;
+        Node_ptr next;
 
         if (on_false->get_type() == Node::NodeType::BRANCH) {
           auto on_false_branch = static_cast<Branch *>(on_false.get());
@@ -814,7 +813,7 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
                               candidate.siblings.end(), next->get_id());
 
     if (found_it != candidate.siblings.end()) {
-      BDDNode_ptr next_next;
+      Node_ptr next_next;
 
       if (next->get_type() == Node::NodeType::BRANCH) {
         auto next_branch = static_cast<Branch *>(next.get());
@@ -840,7 +839,7 @@ void reorder(BDD &bdd, BDDNode_ptr root, candidate_t candidate) {
   }
 }
 
-std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root) {
+std::vector<reordered_bdd> reorder(const BDD &bdd, Node_ptr root) {
   std::unordered_set<node_id_t> furthest_back_nodes;
 
   auto init = bdd.get_init();
@@ -858,7 +857,7 @@ std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root) {
 }
 
 std::vector<reordered_bdd>
-reorder(const BDD &bdd, BDDNode_ptr root,
+reorder(const BDD &bdd, Node_ptr root,
         const std::unordered_set<node_id_t> &furthest_back_nodes) {
   std::vector<reordered_bdd> reordered;
 
@@ -892,15 +891,6 @@ reorder(const BDD &bdd, BDDNode_ptr root,
 
     reorder(bdd_cloned, root_cloned, candidate);
 
-    if (candidate.node->get_type() == Node::NodeType::CALL) {
-      auto call = static_cast<const Call *>(candidate.node.get());
-      if (call->get_call().function_name == "packet_borrow_next_chunk") {
-        std::cerr << "root " << root->get_id() << "\n";
-        std::cerr << "pulled " << call->get_call() << "\n";
-        // GraphvizGenerator::visualize(bdd_cloned);
-      }
-    }
-
     reordered.emplace_back(bdd_cloned,
                            bdd_cloned.get_node_by_id(candidate.node->get_id()),
                            candidate.condition);
@@ -911,18 +901,18 @@ reorder(const BDD &bdd, BDDNode_ptr root,
 
 struct reordered {
   BDD bdd;
-  std::vector<BDDNode_ptr> next;
+  std::vector<Node_ptr> next;
   int times;
 
-  reordered(const BDD &_bdd, BDDNode_ptr _next)
-      : bdd(_bdd), next(std::vector<BDDNode_ptr>{_next}), times(0) {}
+  reordered(const BDD &_bdd, Node_ptr _next)
+      : bdd(_bdd), next(std::vector<Node_ptr>{_next}), times(0) {}
 
-  reordered(const BDD &_bdd, std::vector<BDDNode_ptr> _next, int _times)
+  reordered(const BDD &_bdd, std::vector<Node_ptr> _next, int _times)
       : bdd(_bdd), next(_next), times(_times) {}
 
-  reordered(const BDD &_bdd, BDDNode_ptr _on_true, BDDNode_ptr _on_false,
+  reordered(const BDD &_bdd, Node_ptr _on_true, Node_ptr _on_false,
             int _times)
-      : bdd(_bdd), next(std::vector<BDDNode_ptr>{_on_true, _on_false}),
+      : bdd(_bdd), next(std::vector<Node_ptr>{_on_true, _on_false}),
         times(_times) {}
 
   reordered(const reordered &other)
@@ -930,7 +920,7 @@ struct reordered {
 
   bool has_next() const { return next.size() > 0; }
 
-  BDDNode_ptr get_next() const {
+  Node_ptr get_next() const {
     assert(has_next());
     return next[0];
   }
@@ -980,7 +970,7 @@ std::vector<BDD> get_all_reordered_bdds(const BDD &original_bdd,
     auto reordered_bdds = reorder(bdd.bdd, bdd.get_next());
 
     for (auto reordered_bdd : reordered_bdds) {
-      auto new_nexts = std::vector<BDDNode_ptr>{};
+      auto new_nexts = std::vector<Node_ptr>{};
       for (auto n : bdd.next) {
         auto next_in_reordered = reordered_bdd.bdd.get_node_by_id(n->get_id());
         new_nexts.push_back(next_in_reordered);

@@ -1,26 +1,23 @@
 #pragma once
 
-#include "../module.h"
 #include "ignore.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IPv4Modify : public Module {
+class IPv4Modify : public TofinoModule {
 private:
   klee::ref<klee::Expr> ipv4_chunk;
   std::vector<modification_t> modifications;
 
 public:
-  IPv4Modify()
-      : Module(ModuleType::Tofino_IPv4Modify, TargetType::Tofino,
-               "IPv4Modify") {}
+  IPv4Modify() : TofinoModule(ModuleType::Tofino_IPv4Modify, "IPv4Modify") {}
 
-  IPv4Modify(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _ipv4_chunk,
+  IPv4Modify(BDD::Node_ptr node, klee::ref<klee::Expr> _ipv4_chunk,
              const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::Tofino_IPv4Modify, TargetType::Tofino, "IPv4Modify",
-               node),
+      : TofinoModule(ModuleType::Tofino_IPv4Modify, "IPv4Modify", node),
         ipv4_chunk(_ipv4_chunk), modifications(_modifications) {}
 
 private:
@@ -36,10 +33,16 @@ private:
     return call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_RETURN_CHUNK) {

@@ -1,30 +1,38 @@
 #pragma once
 
-#include "../module.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class Drop : public Module {
+class Drop : public TofinoModule {
 public:
-  Drop() : Module(ModuleType::Tofino_Drop, TargetType::Tofino, "Drop") {}
-  Drop(BDD::BDDNode_ptr node)
-      : Module(ModuleType::Tofino_Drop, TargetType::Tofino, "Drop", node) {}
+  Drop() : TofinoModule(ModuleType::Tofino_Drop, "Drop") {}
+
+  Drop(BDD::Node_ptr node)
+      : TofinoModule(ModuleType::Tofino_Drop, "Drop", node) {}
 
 private:
-  processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
-                         const BDD::ReturnProcess *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
 
-    if (casted->get_return_operation() == BDD::ReturnProcess::Operation::DROP) {
-      auto new_module = std::make_shared<Drop>(node);
-      auto new_ep = ep.add_leaves(new_module, node->get_next(), true);
+    auto casted = BDD::cast_node<BDD::ReturnProcess>(node);
 
-      result.module = new_module;
-      result.next_eps.push_back(new_ep);
+    if (!casted) {
+      return result;
     }
+
+    if (casted->get_return_operation() != BDD::ReturnProcess::Operation::DROP) {
+      return result;
+    }
+
+    auto new_module = std::make_shared<Drop>(node);
+    auto new_ep = ep.add_leaves(new_module, node->get_next(), true);
+
+    result.module = new_module;
+    result.next_eps.push_back(new_ep);
 
     return result;
   }

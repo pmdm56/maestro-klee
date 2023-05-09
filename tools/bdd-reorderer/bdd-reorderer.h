@@ -6,18 +6,18 @@ namespace BDD {
 
 struct reordered_bdd {
   BDD bdd;
-  BDDNode_ptr candidate;
+  Node_ptr candidate;
   klee::ref<klee::Expr> condition;
 
-  reordered_bdd(BDD _bdd, BDDNode_ptr _candidate,
+  reordered_bdd(BDD _bdd, Node_ptr _candidate,
                 klee::ref<klee::Expr> _condition)
       : bdd(_bdd), candidate(_candidate), condition(_condition) {}
 };
 
-std::vector<reordered_bdd> reorder(const BDD &bdd, BDDNode_ptr root);
+std::vector<reordered_bdd> reorder(const BDD &bdd, Node_ptr root);
 
 std::vector<reordered_bdd>
-reorder(const BDD &bdd, BDDNode_ptr root,
+reorder(const BDD &bdd, Node_ptr root,
         const std::unordered_set<node_id_t> &furthest_back_nodes);
 
 std::vector<BDD> get_all_reordered_bdds(const BDD &bdd, int max_reordering);

@@ -112,6 +112,49 @@ bool is_eq_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &not_const_kid) {
   return constant_value == 0;
 }
 
+// E.g.
+// (Extract 0
+//   (ZExt w8
+//      (Eq (w32 0) (ReadLSB w32 (w32 0) out_of_space__64))))
+bool is_extract_0_cond(klee::ref<klee::Expr> expr,
+                       klee::ref<klee::Expr> &cond_expr) {
+  assert(!expr.isNull());
+
+  if (expr->getKind() != klee::Expr::Extract) {
+    return false;
+  }
+
+  auto extract = static_cast<klee::ExtractExpr *>(expr.get());
+
+  if (extract->offset != 0) {
+    return false;
+  }
+
+  auto kid = extract->expr;
+
+  if (kid->getKind() == klee::Expr::ZExt) {
+    kid = kid->getKid(0);
+  }
+
+  assert(kid->getKind() != klee::Expr::ZExt);
+
+  auto cond_ops = std::vector<klee::Expr::Kind>{
+      klee::Expr::Or,  klee::Expr::And, klee::Expr::Eq,  klee::Expr::Ne,
+      klee::Expr::Ult, klee::Expr::Ule, klee::Expr::Ugt, klee::Expr::Uge,
+      klee::Expr::Slt, klee::Expr::Sle, klee::Expr::Sgt, klee::Expr::Sge,
+  };
+
+  auto is_cond = std::find(cond_ops.begin(), cond_ops.end(), kid->getKind()) !=
+                 cond_ops.end();
+
+  if (is_cond) {
+    cond_expr = kid;
+    return true;
+  }
+
+  return false;
+}
+
 klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
   klee::ref<klee::Expr> other;
 
@@ -224,6 +267,8 @@ klee::ref<klee::Expr> negate(klee::ref<klee::Expr> expr) {
   return expr;
 }
 
+// Simplify expressions like (Eq 0 (And X Y)) which could be (Or !X !Y),
+// or (Eq 0 (Eq A B)) => (Ne A B)
 bool simplify_cmp_eq_0(klee::ref<klee::Expr> expr, klee::ref<klee::Expr> &out) {
   klee::ref<klee::Expr> other;
 
@@ -278,7 +323,14 @@ private:
 
   klee::ExprVisitor::Action visitExtract(const klee::ExtractExpr &e) {
     klee::ref<klee::Expr> expr = const_cast<klee::ExtractExpr *>(&e);
+    
     simplified = simplify_extract(expr);
+
+    klee::ref<klee::Expr> cond_expr;
+    if (is_extract_0_cond(simplified, cond_expr)) {
+      simplified = cond_expr;
+    }
+
     return klee::ExprVisitor::Action::skipChildren();
   }
 

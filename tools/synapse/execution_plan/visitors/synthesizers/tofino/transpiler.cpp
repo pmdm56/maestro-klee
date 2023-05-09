@@ -207,10 +207,7 @@ transpile_var_comparison(TofinoGenerator &tg, const klee::ref<klee::Expr> &lhs,
   }
 
   auto is_constant = kutil::is_constant(not_var_expr);
-
-  if (!is_constant) {
-    assert(false && "TODO");
-  }
+  assert(is_constant && "TODO");
 
   auto const_value = kutil::solver_toolbox.value_from_expr(not_var_expr);
   auto new_const_value =

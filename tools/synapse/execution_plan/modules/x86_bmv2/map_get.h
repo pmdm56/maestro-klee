@@ -16,20 +16,27 @@ private:
   BDD::symbols_t generated_symbols;
 
 public:
-  MapGet() : Module(ModuleType::x86_BMv2_MapGet, TargetType::x86_BMv2, "MapGet") {}
+  MapGet()
+      : Module(ModuleType::x86_BMv2_MapGet, TargetType::x86_BMv2, "MapGet") {}
 
-  MapGet(BDD::BDDNode_ptr node, klee::ref<klee::Expr> _map_addr,
+  MapGet(BDD::Node_ptr node, klee::ref<klee::Expr> _map_addr,
          klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _map_has_this_key,
          klee::ref<klee::Expr> _value_out, BDD::symbols_t _generated_symbols)
-      : Module(ModuleType::x86_BMv2_MapGet, TargetType::x86_BMv2, "MapGet", node),
+      : Module(ModuleType::x86_BMv2_MapGet, TargetType::x86_BMv2, "MapGet",
+               node),
         map_addr(_map_addr), key(_key), map_has_this_key(_map_has_this_key),
         value_out(_value_out), generated_symbols(_generated_symbols) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     auto call = casted->get_call();
 

@@ -45,7 +45,7 @@ public:
   TableLookup()
       : Module(ModuleType::BMv2_TableLookup, TargetType::BMv2, "TableLookup") {}
 
-  TableLookup(BDD::BDDNode_ptr node, uint64_t _table_id,
+  TableLookup(BDD::Node_ptr node, uint64_t _table_id,
               klee::ref<klee::Expr> _obj, const std::vector<key_t> &_keys,
               const std::vector<param_t> &_params,
               const std::vector<std::string> &_map_has_this_key_labels,
@@ -57,7 +57,7 @@ public:
         bdd_function(_bdd_function) {}
 
 private:
-  bool multiple_queries_to_this_table(BDD::BDDNode_ptr current_node,
+  bool multiple_queries_to_this_table(BDD::Node_ptr current_node,
                                       uint64_t _table_id) const {
     assert(current_node);
     auto node = current_node->get_prev();
@@ -107,7 +107,7 @@ private:
   }
 
   std::pair<bool, TableLookup *>
-  can_be_merged(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  can_be_merged(const ExecutionPlan &ep, BDD::Node_ptr node,
                 klee::ref<klee::Expr> _obj) const {
     std::pair<bool, TableLookup *> result = std::make_pair(false, nullptr);
 
@@ -140,7 +140,7 @@ private:
     return result;
   }
 
-  bool process_map_get(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  bool process_map_get(const ExecutionPlan &ep, BDD::Node_ptr node,
                        const BDD::Call *casted, processing_result_t &result) {
     auto call = casted->get_call();
 
@@ -229,7 +229,7 @@ private:
     return true;
   }
 
-  bool process_vector_borrow(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  bool process_vector_borrow(const ExecutionPlan &ep, BDD::Node_ptr node,
                              const BDD::Call *casted,
                              processing_result_t &result) {
     auto call = casted->get_call();
@@ -315,10 +315,15 @@ private:
     return true;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     if (process_map_get(ep, node, casted, result)) {
       return result;

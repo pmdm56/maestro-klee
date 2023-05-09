@@ -1,27 +1,25 @@
 #pragma once
 
-#include "../module.h"
 #include "ignore.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class EthernetModify : public Module {
+class EthernetModify : public TofinoModule {
 private:
   klee::ref<klee::Expr> ethernet_chunk;
   std::vector<modification_t> modifications;
 
 public:
   EthernetModify()
-      : Module(ModuleType::Tofino_EthernetModify, TargetType::Tofino,
-               "EthernetModify") {}
+      : TofinoModule(ModuleType::Tofino_EthernetModify, "EthernetModify") {}
 
-  EthernetModify(BDD::BDDNode_ptr node,
+  EthernetModify(BDD::Node_ptr node,
                  const klee::ref<klee::Expr> &_ethernet_chunk,
                  const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::Tofino_EthernetModify, TargetType::Tofino,
-               "EthernetModify", node),
+      : TofinoModule(ModuleType::Tofino_EthernetModify, "EthernetModify", node),
         ethernet_chunk(_ethernet_chunk), modifications(_modifications) {}
 
 private:
@@ -37,10 +35,16 @@ private:
     return call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::BDDNode_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_RETURN_CHUNK) {

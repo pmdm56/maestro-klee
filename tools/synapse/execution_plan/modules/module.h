@@ -85,10 +85,14 @@ public:
     Tofino_TCPUDPModify,
     Tofino_IPv4TCPUDPChecksumsUpdate,
     Tofino_TableLookup,
+    Tofino_TableLookupSimple,
     Tofino_Drop,
     Tofino_SendToController,
     Tofino_SetupExpirationNotifications,
     Tofino_RegisterRead,
+    Tofino_IntegerAllocatorAllocate,
+    Tofino_IntegerAllocatorRejuvenate,
+    Tofino_IntegerAllocatorQuery,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
     x86_Tofino_SendToTofino,
@@ -131,11 +135,11 @@ protected:
   TargetType target;
   TargetType next_target;
   const char *name;
-  BDD::BDDNode_ptr node;
+  BDD::Node_ptr node;
 
 protected:
   Module(ModuleType _type, TargetType _target, const char *_name,
-         BDD::BDDNode_ptr _node)
+         BDD::Node_ptr _node)
       : type(_type), target(_target), next_target(_target), name(_name),
         node(_node) {}
 
@@ -154,9 +158,9 @@ public:
   TargetType get_target() const { return target; }
   TargetType get_next_target() const { return next_target; }
 
-  BDD::BDDNode_ptr get_node() const { return node; }
+  BDD::Node_ptr get_node() const { return node; }
 
-  void replace_node(BDD::BDDNode_ptr _node) {
+  void replace_node(BDD::Node_ptr _node) {
     node = _node;
     assert(node);
   }
@@ -183,8 +187,8 @@ public:
 
   std::string get_target_name() const { return target_to_string(target); }
 
-  processing_result_t process_node(const ExecutionPlan &_ep,
-                                   BDD::BDDNode_ptr node, int max_reordered);
+  processing_result_t process_node(const ExecutionPlan &_ep, BDD::Node_ptr node,
+                                   int max_reordered);
 
   virtual void visit(ExecutionPlanVisitor &visitor) const = 0;
   virtual Module_ptr clone() const = 0;
@@ -192,32 +196,23 @@ public:
 
 protected:
   // Shared module functionality
-  virtual processing_result_t process_branch(const ExecutionPlan &ep,
-                                             BDD::BDDNode_ptr node,
-                                             const BDD::Branch *casted);
-
-  virtual processing_result_t process_call(const ExecutionPlan &ep,
-                                           BDD::BDDNode_ptr node,
-                                           const BDD::Call *casted);
-
-  virtual processing_result_t
-  process_return_init(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
-                      const BDD::ReturnInit *casted);
-
-  virtual processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
-                         const BDD::ReturnProcess *casted);
+  virtual processing_result_t process(const ExecutionPlan &ep,
+                                      BDD::Node_ptr node) = 0;
 
 protected:
   // General useful queries
   bool query_contains_map_has_key(const BDD::Branch *node) const;
 
-  std::vector<BDD::BDDNode_ptr>
-  get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  std::vector<BDD::Node_ptr>
+  get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
                          const std::string &function_name) const;
-  std::vector<BDD::BDDNode_ptr>
-  get_all_prev_functions(const ExecutionPlan &ep, BDD::BDDNode_ptr node,
+  std::vector<BDD::Node_ptr>
+  get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
                          const std::vector<std::string> &functions_names) const;
+
+  std::vector<Module_ptr>
+  get_prev_modules(const ExecutionPlan &ep,
+                   const std::vector<ModuleType> &) const;
 
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
@@ -233,8 +228,8 @@ protected:
   struct coalesced_data_t {
     bool can_coalesce;
 
-    BDD::BDDNode_ptr map_get;
-    std::vector<BDD::BDDNode_ptr> vector_borrows;
+    BDD::Node_ptr map_get;
+    std::vector<BDD::Node_ptr> vector_borrows;
 
     coalesced_data_t() : can_coalesce(false) {}
 
@@ -266,7 +261,7 @@ protected:
   };
 
   coalesced_data_t get_coalescing_data(const ExecutionPlan &ep,
-                                       BDD::BDDNode_ptr node) const;
+                                       BDD::Node_ptr node) const;
 };
 
 } // namespace synapse
