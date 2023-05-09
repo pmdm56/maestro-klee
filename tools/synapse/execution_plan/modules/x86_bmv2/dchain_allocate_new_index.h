@@ -17,25 +17,30 @@ private:
 
 public:
   DchainAllocateNewIndex()
-      : Module(ModuleType::x86_BMv2_DchainAllocateNewIndex, TargetType::x86_BMv2,
-               "DchainAllocate") {}
+      : Module(ModuleType::x86_BMv2_DchainAllocateNewIndex,
+               TargetType::x86_BMv2, "DchainAllocate") {}
 
-  DchainAllocateNewIndex(BDD::Node_ptr node,
-                         klee::ref<klee::Expr> _dchain_addr,
+  DchainAllocateNewIndex(BDD::Node_ptr node, klee::ref<klee::Expr> _dchain_addr,
                          klee::ref<klee::Expr> _time,
                          klee::ref<klee::Expr> _index_out,
                          klee::ref<klee::Expr> _success,
                          BDD::symbols_t _generated_symbols)
-      : Module(ModuleType::x86_BMv2_DchainAllocateNewIndex, TargetType::x86_BMv2,
-               "DchainAllocate", node),
+      : Module(ModuleType::x86_BMv2_DchainAllocateNewIndex,
+               TargetType::x86_BMv2, "DchainAllocate", node),
         dchain_addr(_dchain_addr), time(_time), index_out(_index_out),
         success(_success), generated_symbols(_generated_symbols) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_DCHAIN_ALLOCATE_NEW_INDEX) {

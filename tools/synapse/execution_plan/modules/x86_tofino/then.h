@@ -8,10 +8,19 @@ namespace x86_tofino {
 
 class Then : public Module {
 public:
-  Then() : Module(ModuleType::x86_Tofino_Then, TargetType::x86_Tofino, "Then") {}
+  Then()
+      : Module(ModuleType::x86_Tofino_Then, TargetType::x86_Tofino, "Then") {}
 
   Then(BDD::Node_ptr node)
-      : Module(ModuleType::x86_Tofino_Then, TargetType::x86_Tofino, "Then", node) {}
+      : Module(ModuleType::x86_Tofino_Then, TargetType::x86_Tofino, "Then",
+               node) {}
+
+private:
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
+    processing_result_t result;
+    return result;
+  }
 
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const override {
@@ -27,6 +36,6 @@ public:
     return other->get_type() == type;
   }
 };
-} // namespace tofino
+} // namespace x86_tofino
 } // namespace targets
 } // namespace synapse

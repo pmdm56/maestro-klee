@@ -28,6 +28,13 @@ public:
     cpu_code_path.expr = cpu_code_path_expr;
   }
 
+private:
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
+    processing_result_t result;
+    return result;
+  }
+
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const override {
     visitor.visit(this);

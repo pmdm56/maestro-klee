@@ -15,10 +15,16 @@ public:
                node) {}
 
 private:
-  processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
-                         const BDD::ReturnProcess *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::ReturnProcess>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     if (casted->get_return_operation() == BDD::ReturnProcess::Operation::DROP) {
       auto new_module = std::make_shared<Drop>(node);
       auto new_ep = ep.add_leaves(new_module, node->get_next(), true);

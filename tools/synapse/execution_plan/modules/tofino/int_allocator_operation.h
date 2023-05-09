@@ -1,27 +1,24 @@
 #pragma once
 
-#include "../module.h"
-#include "data_structures/int_allocator.h"
+#include "tofino_module.h"
 #include "ignore.h"
-#include "memory_bank.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IntegerAllocatorOperation : public Module {
+class IntegerAllocatorOperation : public TofinoModule {
 protected:
   IntegerAllocatorRef int_allocator;
 
 public:
   IntegerAllocatorOperation(ModuleType _type, const char *_name)
-      : Module(_type, TargetType::Tofino, _name) {}
+      : TofinoModule(_type, _name) {}
 
   IntegerAllocatorOperation(ModuleType _type, const char *_name,
                             BDD::Node_ptr node,
                             IntegerAllocatorRef _int_allocator)
-      : Module(_type, TargetType::Tofino, _name, node),
-        int_allocator(_int_allocator) {}
+      : TofinoModule(_type, _name, node), int_allocator(_int_allocator) {}
 
 protected:
   bool can_place(const ExecutionPlan &ep, obj_addr_t obj,

@@ -1,30 +1,35 @@
 #pragma once
 
-#include "../module.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class EthernetConsume : public Module {
+class EthernetConsume : public TofinoModule {
 private:
   klee::ref<klee::Expr> chunk;
 
 public:
   EthernetConsume()
-      : Module(ModuleType::Tofino_EthernetConsume, TargetType::Tofino,
-               "EthernetConsume") {}
+      : TofinoModule(ModuleType::Tofino_EthernetConsume, "EthernetConsume") {}
 
   EthernetConsume(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::Tofino_EthernetConsume, TargetType::Tofino,
-               "EthernetConsume", node),
+      : TofinoModule(ModuleType::Tofino_EthernetConsume, "EthernetConsume",
+                     node),
         chunk(_chunk) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_BORROW_CHUNK) {

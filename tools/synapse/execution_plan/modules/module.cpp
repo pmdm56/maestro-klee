@@ -60,30 +60,6 @@ std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
   return reordered;
 }
 
-processing_result_t Module::process_branch(const ExecutionPlan &ep,
-                                           BDD::Node_ptr node,
-                                           const BDD::Branch *casted) {
-  return processing_result_t();
-}
-
-processing_result_t Module::process_call(const ExecutionPlan &ep,
-                                         BDD::Node_ptr node,
-                                         const BDD::Call *casted) {
-  return processing_result_t();
-}
-
-processing_result_t Module::process_return_init(const ExecutionPlan &ep,
-                                                BDD::Node_ptr node,
-                                                const BDD::ReturnInit *casted) {
-  return processing_result_t();
-}
-
-processing_result_t
-Module::process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
-                               const BDD::ReturnProcess *casted) {
-  return processing_result_t();
-}
-
 bool can_process_platform(const ExecutionPlan &ep, TargetType target) {
   auto current_target = ep.get_current_platform();
   return current_target == target;
@@ -96,30 +72,7 @@ processing_result_t Module::process_node(const ExecutionPlan &ep,
   processing_result_t result;
 
   if (can_process_platform(ep, target)) {
-    switch (node->get_type()) {
-    case BDD::Node::NodeType::CALL: {
-      auto call_node = static_cast<BDD::Call *>(node.get());
-      result = process_call(ep, node, call_node);
-    } break;
-
-    case BDD::Node::NodeType::BRANCH: {
-      auto branch_node = static_cast<BDD::Branch *>(node.get());
-      result = process_branch(ep, node, branch_node);
-    } break;
-
-    case BDD::Node::NodeType::RETURN_INIT: {
-      auto return_init_node = static_cast<BDD::ReturnInit *>(node.get());
-      result = process_return_init(ep, node, return_init_node);
-    } break;
-
-    case BDD::Node::NodeType::RETURN_PROCESS: {
-      auto return_process_node = static_cast<BDD::ReturnProcess *>(node.get());
-      result = process_return_process(ep, node, return_process_node);
-    } break;
-
-    case BDD::Node::NodeType::RETURN_RAW:
-      assert(false);
-    }
+    result = process(ep, node);
   }
 
   std::vector<ExecutionPlan> reordered;
@@ -465,9 +418,8 @@ find_all_functions_after_node(BDD::Node_ptr root,
   return functions;
 }
 
-next_t
-get_allowed_coalescing_objs(std::vector<BDD::Node_ptr> index_allocators,
-                            obj_addr_t map_addr) {
+next_t get_allowed_coalescing_objs(std::vector<BDD::Node_ptr> index_allocators,
+                                   obj_addr_t map_addr) {
   next_t candidates;
 
   for (auto allocator : index_allocators) {
@@ -502,9 +454,8 @@ get_allowed_coalescing_objs(std::vector<BDD::Node_ptr> index_allocators,
   return candidates;
 }
 
-Module::coalesced_data_t
-Module::get_coalescing_data(const ExecutionPlan &ep,
-                            BDD::Node_ptr node) const {
+Module::coalesced_data_t Module::get_coalescing_data(const ExecutionPlan &ep,
+                                                     BDD::Node_ptr node) const {
   Module::coalesced_data_t coalesced_data;
 
   if (node->get_type() != BDD::Node::CALL) {

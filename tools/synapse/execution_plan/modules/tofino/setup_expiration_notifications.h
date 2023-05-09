@@ -1,21 +1,21 @@
 #pragma once
 
-#include "../module.h"
 #include "ignore.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class SetupExpirationNotifications : public Module {
+class SetupExpirationNotifications : public TofinoModule {
 public:
   SetupExpirationNotifications()
-      : Module(ModuleType::Tofino_SetupExpirationNotifications,
-               TargetType::Tofino, "SetupExpirationNotifications") {}
+      : TofinoModule(ModuleType::Tofino_SetupExpirationNotifications,
+                     "SetupExpirationNotifications") {}
 
   SetupExpirationNotifications(BDD::Node_ptr node)
-      : Module(ModuleType::Tofino_SetupExpirationNotifications,
-               TargetType::Tofino, "SetupExpirationNotifications", node) {}
+      : TofinoModule(ModuleType::Tofino_SetupExpirationNotifications,
+                     "SetupExpirationNotifications", node) {}
 
 private:
   void remember_expiration_data(const ExecutionPlan &ep,
@@ -28,10 +28,16 @@ private:
     mb->set_expiration_data(expiration_data);
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_EXPIRE_MAP) {

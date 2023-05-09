@@ -14,6 +14,13 @@ public:
   Then(BDD::Node_ptr node)
       : Module(ModuleType::BMv2_Then, TargetType::BMv2, "Then", node) {}
 
+private:
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
+    processing_result_t result;
+    return result;
+  }
+
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const override {
     visitor.visit(this);

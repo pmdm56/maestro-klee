@@ -20,10 +20,15 @@ public:
         condition(_condition) {}
 
 private:
-  processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::Node_ptr node,
-                                     const BDD::Branch *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Branch>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     assert(!casted->get_condition().isNull());
     auto _condition = casted->get_condition();

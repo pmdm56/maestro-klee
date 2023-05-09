@@ -187,8 +187,8 @@ public:
 
   std::string get_target_name() const { return target_to_string(target); }
 
-  processing_result_t process_node(const ExecutionPlan &_ep,
-                                   BDD::Node_ptr node, int max_reordered);
+  processing_result_t process_node(const ExecutionPlan &_ep, BDD::Node_ptr node,
+                                   int max_reordered);
 
   virtual void visit(ExecutionPlanVisitor &visitor) const = 0;
   virtual Module_ptr clone() const = 0;
@@ -196,21 +196,8 @@ public:
 
 protected:
   // Shared module functionality
-  virtual processing_result_t process_branch(const ExecutionPlan &ep,
-                                             BDD::Node_ptr node,
-                                             const BDD::Branch *casted);
-
-  virtual processing_result_t process_call(const ExecutionPlan &ep,
-                                           BDD::Node_ptr node,
-                                           const BDD::Call *casted);
-
-  virtual processing_result_t
-  process_return_init(const ExecutionPlan &ep, BDD::Node_ptr node,
-                      const BDD::ReturnInit *casted);
-
-  virtual processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
-                         const BDD::ReturnProcess *casted);
+  virtual processing_result_t process(const ExecutionPlan &ep,
+                                      BDD::Node_ptr node) = 0;
 
 protected:
   // General useful queries

@@ -74,8 +74,7 @@ private:
   }
 
   virtual bool process(const ExecutionPlan &ep, BDD::Node_ptr node,
-                       const BDD::Call *casted, TableRef table,
-                       processing_result_t &result) override {
+                       TableRef table, processing_result_t &result) override {
     auto new_module = std::make_shared<TableLookupSimple>(node, table);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
@@ -87,10 +86,15 @@ private:
     return true;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     auto table = build_non_mergeable_table(casted);
 
@@ -102,7 +106,7 @@ private:
       return result;
     }
 
-    process(ep, node, casted, table, result);
+    process(ep, node, table, result);
 
     return result;
   }

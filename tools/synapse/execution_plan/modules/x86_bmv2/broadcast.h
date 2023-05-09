@@ -9,17 +9,23 @@ namespace x86_bmv2 {
 class Broadcast : public Module {
 public:
   Broadcast()
-      : Module(ModuleType::x86_BMv2_Broadcast, TargetType::x86_BMv2, "Broadcast") {}
+      : Module(ModuleType::x86_BMv2_Broadcast, TargetType::x86_BMv2,
+               "Broadcast") {}
 
   Broadcast(BDD::Node_ptr node)
-      : Module(ModuleType::x86_BMv2_Broadcast, TargetType::x86_BMv2, "Broadcast",
-               node) {}
+      : Module(ModuleType::x86_BMv2_Broadcast, TargetType::x86_BMv2,
+               "Broadcast", node) {}
 
 private:
-  processing_result_t
-  process_return_process(const ExecutionPlan &ep, BDD::Node_ptr node,
-                         const BDD::ReturnProcess *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::ReturnProcess>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     if (casted->get_return_operation() ==
         BDD::ReturnProcess::Operation::BCAST) {

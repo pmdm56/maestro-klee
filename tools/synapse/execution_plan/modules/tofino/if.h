@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../module.h"
 #include "else.h"
 #include "if_header_valid.h"
 #include "ignore.h"
 #include "then.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
@@ -12,15 +12,15 @@ namespace tofino {
 
 typedef std::vector<klee::ref<klee::Expr>> conditions_t;
 
-class If : public Module {
+class If : public TofinoModule {
 private:
   conditions_t conditions;
 
 public:
-  If() : Module(ModuleType::Tofino_If, TargetType::Tofino, "If") {}
+  If() : TofinoModule(ModuleType::Tofino_If, "If") {}
 
   If(BDD::Node_ptr node, conditions_t _conditions)
-      : Module(ModuleType::Tofino_If, TargetType::Tofino, "If", node),
+      : TofinoModule(ModuleType::Tofino_If, "If", node),
         conditions(_conditions) {}
 
 private:
@@ -80,10 +80,15 @@ private:
     return _conditions;
   }
 
-  processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::Node_ptr node,
-                                     const BDD::Branch *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Branch>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     assert(!casted->get_condition().isNull());
     auto _condition = casted->get_condition();

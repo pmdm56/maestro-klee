@@ -48,8 +48,7 @@ private:
     new_next->replace_prev(prev);
   }
 
-  BDD::Node_ptr clone_calls(ExecutionPlan &ep,
-                               BDD::Node_ptr current) const {
+  BDD::Node_ptr clone_calls(ExecutionPlan &ep, BDD::Node_ptr current) const {
     assert(current);
 
     if (!current->get_prev()) {
@@ -87,7 +86,8 @@ private:
     return root;
   }
 
-  processing_result_t process(const ExecutionPlan &ep, BDD::Node_ptr node) {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
 
     auto ep_cloned = ep.clone(true);
@@ -106,18 +106,6 @@ private:
     result.next_eps.push_back(next_ep);
 
     return result;
-  }
-
-  processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::Node_ptr node,
-                                     const BDD::Branch *casted) override {
-    return process(ep, node);
-  }
-
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
-    return process(ep, node);
   }
 
 public:

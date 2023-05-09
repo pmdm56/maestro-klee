@@ -1,18 +1,26 @@
 #pragma once
 
-#include "../module.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class Else : public Module {
+class Else : public TofinoModule {
 public:
-  Else() : Module(ModuleType::Tofino_Else, TargetType::Tofino, "Else") {}
+  Else() : TofinoModule(ModuleType::Tofino_Else, "Else") {}
+
   Else(BDD::Node_ptr node)
-      : Module(ModuleType::Tofino_Else, TargetType::Tofino, "Else", node) {}
+      : TofinoModule(ModuleType::Tofino_Else, "Else", node) {}
 
 public:
+  // We expect to generate this module only manually.
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
+    processing_result_t result;
+    return result;
+  }
+
   virtual void visit(ExecutionPlanVisitor &visitor) const override {
     visitor.visit(this);
   }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../module.h"
 #include "int_allocator_rejuvenate.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
@@ -9,20 +9,19 @@ namespace tofino {
 
 typedef uint16_t cpu_code_path_t;
 
-class SendToController : public Module {
+class SendToController : public TofinoModule {
 private:
   cpu_code_path_t cpu_code_path;
 
 public:
   SendToController()
-      : Module(ModuleType::Tofino_SendToController, TargetType::Tofino,
-               "SendToController") {
+      : TofinoModule(ModuleType::Tofino_SendToController, "SendToController") {
     next_target = TargetType::x86_Tofino;
   }
 
   SendToController(BDD::Node_ptr node, cpu_code_path_t _cpu_code_path)
-      : Module(ModuleType::Tofino_SendToController, TargetType::Tofino,
-               "SendToController", node),
+      : TofinoModule(ModuleType::Tofino_SendToController, "SendToController",
+                     node),
         cpu_code_path(_cpu_code_path) {
     next_target = TargetType::x86_Tofino;
   }
@@ -103,8 +102,7 @@ private:
     new_next->replace_prev(prev);
   }
 
-  BDD::Node_ptr clone_calls(ExecutionPlan &ep,
-                               BDD::Node_ptr current) const {
+  BDD::Node_ptr clone_calls(ExecutionPlan &ep, BDD::Node_ptr current) const {
     assert(current);
 
     if (!current->get_prev()) {
@@ -159,7 +157,8 @@ private:
     return false;
   }
 
-  processing_result_t process(const ExecutionPlan &ep, BDD::Node_ptr node) {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
 
     if (!ep.has_target(TargetType::x86_Tofino)) {
@@ -188,18 +187,6 @@ private:
     result.next_eps.push_back(new_ep);
 
     return result;
-  }
-
-  processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::Node_ptr node,
-                                     const BDD::Branch *casted) override {
-    return process(ep, node);
-  }
-
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
-    return process(ep, node);
   }
 
 public:

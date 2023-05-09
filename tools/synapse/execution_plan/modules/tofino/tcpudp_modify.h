@@ -1,26 +1,24 @@
 #pragma once
 
-#include "../module.h"
+#include "./tofino_module.h"
 #include "ignore.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class TCPUDPModify : public Module {
+class TCPUDPModify : public TofinoModule {
 private:
   klee::ref<klee::Expr> tcpudp_chunk;
   std::vector<modification_t> modifications;
 
 public:
   TCPUDPModify()
-      : Module(ModuleType::Tofino_TCPUDPModify, TargetType::Tofino,
-               "TCPUDPModify") {}
+      : TofinoModule(ModuleType::Tofino_TCPUDPModify, "TCPUDPModify") {}
 
   TCPUDPModify(BDD::Node_ptr node, klee::ref<klee::Expr> _tcpudp_chunk,
                const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::Tofino_TCPUDPModify, TargetType::Tofino,
-               "TCPUDPModify", node),
+      : TofinoModule(ModuleType::Tofino_TCPUDPModify, "TCPUDPModify", node),
         tcpudp_chunk(_tcpudp_chunk), modifications(_modifications) {}
 
 private:
@@ -46,10 +44,16 @@ private:
     return len->getKind() != klee::Expr::Kind::Constant;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_RETURN_CHUNK) {

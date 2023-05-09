@@ -1,25 +1,21 @@
 #pragma once
 
-#include "../module.h"
-#include "data_structures/table.h"
 #include "ignore.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class TableLookup : public Module {
+class TableLookup : public TofinoModule {
 protected:
   TableRef table;
 
 public:
-  TableLookup()
-      : Module(ModuleType::Tofino_TableLookup, TargetType::Tofino,
-               "TableLookup") {}
+  TableLookup() : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup") {}
 
   TableLookup(BDD::Node_ptr node, TableRef _table)
-      : Module(ModuleType::Tofino_TableLookup, TargetType::Tofino,
-               "TableLookup", node),
+      : TofinoModule(ModuleType::Tofino_TableLookup, "TableLookup", node),
         table(_table) {
     assert(table);
   }
@@ -31,12 +27,12 @@ public:
   */
   TableLookup(Module::ModuleType table_module_type,
               const char *table_module_name)
-      : Module(table_module_type, TargetType::Tofino, table_module_name) {}
+      : TofinoModule(table_module_type, table_module_name) {}
 
   TableLookup(Module::ModuleType table_module_type,
               const char *table_module_name, BDD::Node_ptr node,
               TableRef _table)
-      : Module(table_module_type, TargetType::Tofino, table_module_name, node),
+      : TofinoModule(table_module_type, table_module_name, node),
         table(_table) {}
 
 protected:
@@ -307,8 +303,7 @@ protected:
   }
 
   virtual bool process(const ExecutionPlan &ep, BDD::Node_ptr node,
-                       const BDD::Call *casted, TableRef table,
-                       processing_result_t &result) {
+                       TableRef table, processing_result_t &result) {
     auto new_module = std::make_shared<TableLookup>(node, table);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
@@ -320,10 +315,15 @@ protected:
     return true;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     // No point in generating modules for already coalesced tables.
     if (was_coalesced(ep, node)) {
@@ -381,7 +381,7 @@ protected:
       return result;
     }
 
-    process(ep, node, casted, table, result);
+    process(ep, node, table, result);
 
     if (can_coalesce && result.module) {
       assert(result.next_eps.size());

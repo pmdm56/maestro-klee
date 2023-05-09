@@ -21,8 +21,7 @@ public:
       : Module(ModuleType::x86_BMv2_ExpireItemsSingleMap, TargetType::x86_BMv2,
                "Expire") {}
 
-  ExpireItemsSingleMap(BDD::Node_ptr node,
-                       klee::ref<klee::Expr> _dchain_addr,
+  ExpireItemsSingleMap(BDD::Node_ptr node, klee::ref<klee::Expr> _dchain_addr,
                        klee::ref<klee::Expr> _vector_addr,
                        klee::ref<klee::Expr> _map_addr,
                        klee::ref<klee::Expr> _time,
@@ -36,10 +35,16 @@ public:
         generated_symbols(_generated_symbols) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_EXPIRE_MAP) {

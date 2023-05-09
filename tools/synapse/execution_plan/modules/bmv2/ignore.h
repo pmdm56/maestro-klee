@@ -23,10 +23,16 @@ public:
       : Module(ModuleType::BMv2_Ignore, TargetType::BMv2, "Ignore", node) {}
 
 private:
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     auto found_it = std::find(functions_to_ignore.begin(),

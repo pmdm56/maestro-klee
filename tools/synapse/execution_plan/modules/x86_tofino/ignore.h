@@ -27,8 +27,7 @@ public:
                node) {}
 
 private:
-  void process_current_time(const ExecutionPlan &ep, BDD::Node_ptr node,
-                            const BDD::Call *casted) {
+  void process_current_time(const ExecutionPlan &ep, const BDD::Call *casted) {
     auto call = casted->get_call();
     assert(!call.ret.isNull());
 
@@ -43,7 +42,6 @@ private:
   }
 
   void process_expire_items_single_map(const ExecutionPlan &ep,
-                                       BDD::Node_ptr node,
                                        const BDD::Call *casted) {
     auto call = casted->get_call();
 
@@ -68,19 +66,25 @@ private:
     mb->set_expiration(expiration);
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     auto found_it = std::find(functions_to_ignore.begin(),
                               functions_to_ignore.end(), call.function_name);
 
     if (call.function_name == symbex::FN_CURRENT_TIME) {
-      process_current_time(ep, node, casted);
+      process_current_time(ep, casted);
     } else if (call.function_name == symbex::FN_EXPIRE_MAP) {
-      process_expire_items_single_map(ep, node, casted);
+      process_expire_items_single_map(ep, casted);
     }
 
     if (found_it != functions_to_ignore.end()) {

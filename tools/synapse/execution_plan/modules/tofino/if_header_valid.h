@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../module.h"
 #include "else.h"
 #include "ignore.h"
 #include "then.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IfHeaderValid : public Module {
+class IfHeaderValid : public TofinoModule {
 public:
   enum PacketHeader {
     ETHERNET,
@@ -24,12 +24,10 @@ private:
 
 public:
   IfHeaderValid()
-      : Module(ModuleType::Tofino_IfHeaderValid, TargetType::Tofino,
-               "IfHeaderValid") {}
+      : TofinoModule(ModuleType::Tofino_IfHeaderValid, "IfHeaderValid") {}
 
   IfHeaderValid(BDD::Node_ptr node, PacketHeader _header)
-      : Module(ModuleType::Tofino_IfHeaderValid, TargetType::Tofino,
-               "IfHeaderValid", node),
+      : TofinoModule(ModuleType::Tofino_IfHeaderValid, "IfHeaderValid", node),
         header(_header) {}
 
 private:
@@ -80,10 +78,15 @@ private:
            stringified == symbex::KLEE_EXPR_TCPUDP_AFTER_IPV4_OPTIONS_CONDITION;
   }
 
-  processing_result_t process_branch(const ExecutionPlan &ep,
-                                     BDD::Node_ptr node,
-                                     const BDD::Branch *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Branch>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     PacketHeader _header;
     auto is_conditional_header =

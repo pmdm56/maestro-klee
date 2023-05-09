@@ -21,8 +21,8 @@ public:
       : Module(ModuleType::x86_Tofino_MapPut, TargetType::x86_Tofino,
                "MapPut") {}
 
-  MapPut(BDD::Node_ptr node, obj_addr_t _map_addr,
-         klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _value)
+  MapPut(BDD::Node_ptr node, obj_addr_t _map_addr, klee::ref<klee::Expr> _key,
+         klee::ref<klee::Expr> _value)
       : Module(ModuleType::x86_Tofino_MapPut, TargetType::x86_Tofino, "MapPut",
                node),
         map_addr(_map_addr), key(_key), value(_value) {}
@@ -44,9 +44,15 @@ private:
   }
 
   processing_result_t process_map_put(const ExecutionPlan &ep,
-                                      BDD::Node_ptr node,
-                                      const BDD::Call *casted) {
+                                      BDD::Node_ptr node) {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     assert(!call.args[symbex::FN_MAP_ARG_MAP].expr.isNull());
@@ -72,9 +78,15 @@ private:
   }
 
   processing_result_t process_vector_return(const ExecutionPlan &ep,
-                                            BDD::Node_ptr node,
-                                            const BDD::Call *casted) {
+                                            BDD::Node_ptr node) {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
@@ -116,18 +128,24 @@ private:
     return result;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_MAP_PUT) {
-      return process_map_put(ep, node, casted);
+      return process_map_put(ep, node);
     }
 
     if (call.function_name == symbex::FN_VECTOR_RETURN) {
-      return process_vector_return(ep, node, casted);
+      return process_vector_return(ep, node);
     }
 
     return result;

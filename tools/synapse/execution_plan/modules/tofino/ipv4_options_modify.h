@@ -1,25 +1,25 @@
 #pragma once
 
-#include "../module.h"
 #include "ignore.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
 namespace tofino {
 
-class IPv4OptionsModify : public Module {
+class IPv4OptionsModify : public TofinoModule {
 private:
   std::vector<modification_t> modifications;
 
 public:
   IPv4OptionsModify()
-      : Module(ModuleType::Tofino_IPv4OptionsModify, TargetType::Tofino,
-               "IPv4OptionsModify") {}
+      : TofinoModule(ModuleType::Tofino_IPv4OptionsModify,
+                     "IPv4OptionsModify") {}
 
   IPv4OptionsModify(BDD::Node_ptr node,
                     const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::Tofino_IPv4OptionsModify, TargetType::Tofino,
-               "IPv4OptionsModify", node),
+      : TofinoModule(ModuleType::Tofino_IPv4OptionsModify, "IPv4OptionsModify",
+                     node),
         modifications(_modifications) {}
 
 private:
@@ -45,10 +45,16 @@ private:
     return len->getKind() != klee::Expr::Kind::Constant;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
+
     auto call = casted->get_call();
 
     if (call.function_name != symbex::FN_RETURN_CHUNK) {

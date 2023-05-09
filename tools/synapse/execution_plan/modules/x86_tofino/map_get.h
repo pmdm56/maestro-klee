@@ -21,8 +21,8 @@ public:
       : Module(ModuleType::x86_Tofino_MapGet, TargetType::x86_Tofino,
                "MapGet") {}
 
-  MapGet(BDD::Node_ptr node, obj_addr_t _map_addr,
-         klee::ref<klee::Expr> _key, klee::ref<klee::Expr> _map_has_this_key,
+  MapGet(BDD::Node_ptr node, obj_addr_t _map_addr, klee::ref<klee::Expr> _key,
+         klee::ref<klee::Expr> _map_has_this_key,
          klee::ref<klee::Expr> _value_out, BDD::symbols_t _generated_symbols)
       : Module(ModuleType::x86_Tofino_MapGet, TargetType::x86_Tofino, "MapGet",
                node),
@@ -46,9 +46,14 @@ private:
   }
 
   processing_result_t process_map_get(const ExecutionPlan &ep,
-                                      BDD::Node_ptr node,
-                                      const BDD::Call *casted) {
+                                      BDD::Node_ptr node) {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     auto call = casted->get_call();
 
@@ -92,9 +97,14 @@ private:
   }
 
   processing_result_t process_vector_borrow(const ExecutionPlan &ep,
-                                            BDD::Node_ptr node,
-                                            const BDD::Call *casted) {
+                                            BDD::Node_ptr node) {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     auto call = casted->get_call();
 
@@ -141,19 +151,24 @@ private:
     return result;
   }
 
-  processing_result_t process_call(const ExecutionPlan &ep,
-                                   BDD::Node_ptr node,
-                                   const BDD::Call *casted) override {
+  processing_result_t process(const ExecutionPlan &ep,
+                              BDD::Node_ptr node) override {
     processing_result_t result;
+
+    auto casted = BDD::cast_node<BDD::Call>(node);
+
+    if (!casted) {
+      return result;
+    }
 
     auto call = casted->get_call();
 
     if (call.function_name == symbex::FN_MAP_GET) {
-      return process_map_get(ep, node, casted);
+      return process_map_get(ep, node);
     }
 
     if (call.function_name == symbex::FN_VECTOR_BORROW) {
-      return process_vector_borrow(ep, node, casted);
+      return process_vector_borrow(ep, node);
     }
 
     return result;
