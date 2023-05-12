@@ -68,9 +68,13 @@ llvm::cl::opt<int> MaxReordered(
         "Maximum number of reordenations on the BDD (-1 for unlimited)."),
     llvm::cl::Optional, llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
 
-llvm::cl::opt<bool> Show("s", llvm::cl::desc("Show winner Execution Plan."),
-                         llvm::cl::ValueDisallowed, llvm::cl::init(false),
-                         llvm::cl::cat(SyNAPSE));
+llvm::cl::opt<bool> ShowEP("s", llvm::cl::desc("Show winner Execution Plan."),
+                           llvm::cl::ValueDisallowed, llvm::cl::init(false),
+                           llvm::cl::cat(SyNAPSE));
+
+llvm::cl::opt<bool> ShowSS("ss", llvm::cl::desc("Show the entire search space."),
+                           llvm::cl::ValueDisallowed, llvm::cl::init(false),
+                           llvm::cl::cat(SyNAPSE));
 
 llvm::cl::opt<bool> Verbose("v", llvm::cl::desc("Verbose mode."),
                             llvm::cl::ValueDisallowed, llvm::cl::init(false),
@@ -97,7 +101,8 @@ BDD::BDD build_bdd() {
   return BDD::BDD(call_paths);
 }
 
-synapse::ExecutionPlan search(const BDD::BDD &bdd) {
+std::pair<synapse::ExecutionPlan, synapse::SearchSpace>
+search(const BDD::BDD &bdd) {
   synapse::SearchEngine search_engine(bdd, MaxReordered);
 
   for (unsigned i = 0; i != TargetList.size(); ++i) {
@@ -116,8 +121,9 @@ synapse::ExecutionPlan search(const BDD::BDD &bdd) {
   // auto winner = search_engine.search(dfs);
   // auto winner = search_engine.search(most_compact);
   auto winner = search_engine.search(maximize_switch_nodes);
+  const auto &ss = search_engine.get_search_space();
 
-  return winner;
+  return {winner, ss};
 }
 
 void synthesize(const synapse::ExecutionPlan &ep) {
@@ -143,22 +149,26 @@ int main(int argc, char **argv) {
   BDD::BDD bdd = build_bdd();
 
   auto start_search = std::chrono::steady_clock::now();
-  auto winner = search(bdd);
+  auto search_results = search(bdd);
   auto end_search = std::chrono::steady_clock::now();
 
   auto search_dt = std::chrono::duration_cast<std::chrono::seconds>(
                        end_search - start_search)
                        .count();
 
-  if (Show) {
-    synapse::Graphviz::visualize(winner);
+  if (ShowEP) {
+    synapse::Graphviz::visualize(search_results.first);
+  }
+
+  if (ShowSS) {
+    synapse::Graphviz::visualize(search_results.second);
   }
 
   int64_t synthesis_dt = -1;
 
   if (Out.size()) {
     auto start_synthesis = std::chrono::steady_clock::now();
-    synthesize(winner);
+    synthesize(search_results.first);
     auto end_synthesis = std::chrono::steady_clock::now();
 
     synthesis_dt = std::chrono::duration_cast<std::chrono::seconds>(

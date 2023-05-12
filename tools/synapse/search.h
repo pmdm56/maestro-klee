@@ -45,7 +45,6 @@ public:
     targets = se.targets;
   }
 
-public:
   void add_target(TargetType target) {
     switch (target) {
     case TargetType::x86_BMv2:
@@ -85,6 +84,9 @@ public:
       auto next_node = next_ep.get_next_node();
       assert(next_node);
 
+      search_space.submit_leaves();
+      search_space.set_winner(next_ep);
+
       report_t report(available, next_ep, next_node);
 
       for (auto target : targets) {
@@ -108,26 +110,16 @@ public:
         }
       }
 
-      search_space.submit_leaves();
-      search_space.set_winner(h.get());
-
       log_search_iteration(report);
     }
 
     Log::log() << "Solutions:      " << h.get_all().size() << "\n";
     Log::log() << "Winner:         " << h.get_score(h.get()) << "\n";
 
-    // Graphviz::visualize(h.get());
-
-    // for (auto &ep : h.get_all()) {
-    //   std::cerr << "score: " << h.get_score(ep) << "\n";
-    //   Graphviz::visualize(ep);
-    // }
-
-    Graphviz::visualize(search_space);
-
     return h.get();
   }
+
+  const SearchSpace &get_search_space() const { return search_space; }
 
 private:
   void log_search_iteration(const report_t &report) {

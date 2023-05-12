@@ -277,6 +277,7 @@ parser IngressParser(
   state parse_ipv4_no_options {
     transition select (hdr.ipv4.protocol) {
         IP_PROTOCOLS_TCP: parse_tcpudp;
+        IP_PROTOCOLS_UDP: parse_tcpudp;
         default: accept;
     }
   }

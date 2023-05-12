@@ -16,11 +16,15 @@ public:
   TofinoModule(ModuleType _type, const char *_name, BDD::Node_ptr node)
       : Module(_type, TargetType::Tofino, _name, node) {}
 
+protected:
+  
+
 public:
   virtual void visit(ExecutionPlanVisitor &visitor) const = 0;
   virtual Module_ptr clone() const = 0;
   virtual bool equals(const Module *other) const= 0;
 };
+
 } // namespace tofino
 } // namespace targets
 } // namespace synapse
