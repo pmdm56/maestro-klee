@@ -75,6 +75,9 @@ public:
     Tofino_Then,
     Tofino_Else,
     Tofino_Forward,
+    Tofino_ParseCustomHeader,
+    Tofino_ModifyCustomHeader,
+    Tofino_ParserCondition,
     Tofino_EthernetConsume,
     Tofino_EthernetModify,
     Tofino_IPv4Consume,
@@ -152,12 +155,9 @@ public:
   Module(const Module &m) : Module(m.type, m.target, m.name, m.node) {}
 
   ModuleType get_type() const { return type; }
-
   const char *get_name() const { return name; }
-
   TargetType get_target() const { return target; }
   TargetType get_next_target() const { return next_target; }
-
   BDD::Node_ptr get_node() const { return node; }
 
   void replace_node(BDD::Node_ptr _node) {
@@ -190,7 +190,8 @@ public:
   processing_result_t process_node(const ExecutionPlan &_ep, BDD::Node_ptr node,
                                    int max_reordered);
 
-  virtual void visit(ExecutionPlanVisitor &visitor) const = 0;
+  virtual void visit(ExecutionPlanVisitor &visitor,
+                     const ExecutionPlanNode *ep_node) const = 0;
   virtual Module_ptr clone() const = 0;
   virtual bool equals(const Module *other) const = 0;
 
@@ -210,6 +211,13 @@ protected:
   get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
                          const std::vector<std::string> &functions_names) const;
 
+  std::vector<BDD::Node_ptr>
+  get_all_functions_after_node(BDD::Node_ptr root,
+                               const std::string &function_name,
+                               bool stop_on_branches = false) const;
+
+  bool is_parser_drop(BDD::Node_ptr root) const;
+
   std::vector<Module_ptr>
   get_prev_modules(const ExecutionPlan &ep,
                    const std::vector<ModuleType> &) const;
@@ -217,6 +225,8 @@ protected:
   std::vector<modification_t>
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;
+
+  bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) const;
 
   struct dchain_config_t {
     uint64_t index_range;

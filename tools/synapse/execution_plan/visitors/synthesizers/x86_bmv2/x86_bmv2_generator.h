@@ -374,27 +374,48 @@ public:
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
 
-  void visit(const targets::x86_bmv2::MapGet *node) override;
-  void visit(const targets::x86_bmv2::CurrentTime *node) override;
-  void visit(const targets::x86_bmv2::PacketBorrowNextChunk *node) override;
-  void visit(const targets::x86_bmv2::PacketGetMetadata *node) override;
-  void visit(const targets::x86_bmv2::PacketReturnChunk *node) override;
-  void visit(const targets::x86_bmv2::If *node) override;
-  void visit(const targets::x86_bmv2::Then *node) override;
-  void visit(const targets::x86_bmv2::Else *node) override;
-  void visit(const targets::x86_bmv2::Forward *node) override;
-  void visit(const targets::x86_bmv2::Broadcast *node) override;
-  void visit(const targets::x86_bmv2::Drop *node) override;
-  void visit(const targets::x86_bmv2::ExpireItemsSingleMap *node) override;
-  void visit(const targets::x86_bmv2::RteEtherAddrHash *node) override;
-  void visit(const targets::x86_bmv2::DchainRejuvenateIndex *node) override;
-  void visit(const targets::x86_bmv2::VectorBorrow *node) override;
-  void visit(const targets::x86_bmv2::VectorReturn *node) override;
-  void visit(const targets::x86_bmv2::DchainAllocateNewIndex *node) override;
-  void visit(const targets::x86_bmv2::MapPut *node) override;
-  void visit(const targets::x86_bmv2::PacketGetUnreadLength *node) override;
-  void visit(const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) override;
-  void visit(const targets::x86_bmv2::DchainIsIndexAllocated *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::MapGet *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::CurrentTime *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::PacketBorrowNextChunk *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::PacketGetMetadata *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::PacketReturnChunk *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::If *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::Then *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::Else *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::Forward *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::Broadcast *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::Drop *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::ExpireItemsSingleMap *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::RteEtherAddrHash *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::DchainRejuvenateIndex *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::VectorBorrow *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::VectorReturn *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::DchainAllocateNewIndex *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::MapPut *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::PacketGetUnreadLength *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_bmv2::DchainIsIndexAllocated *node) override;
 };
 
 } // namespace synthesizer

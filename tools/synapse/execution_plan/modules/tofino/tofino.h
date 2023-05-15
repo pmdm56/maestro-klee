@@ -12,14 +12,17 @@
 #include "if_header_valid.h"
 #include "ignore.h"
 #include "int_allocator_allocate.h"
-#include "int_allocator_rejuvenate.h"
 #include "int_allocator_query.h"
+#include "int_allocator_rejuvenate.h"
 #include "ipv4_consume.h"
 #include "ipv4_modify.h"
 #include "ipv4_options_consume.h"
 #include "ipv4_options_modify.h"
 #include "ipv4_tcpudp_checksums_update.h"
 #include "memory_bank.h"
+#include "modify_custom_header.h"
+#include "parse_custom_header.h"
+#include "parser_condition.h"
 #include "register_read.h"
 #include "send_to_controller.h"
 #include "setup_expiration_notifications.h"
@@ -40,19 +43,22 @@ public:
                {
                    MODULE(Ignore),
                    MODULE(If),
-                   MODULE(IfHeaderValid),
                    MODULE(Then),
                    MODULE(Else),
                    MODULE(Forward),
-                   MODULE(EthernetConsume),
-                   MODULE(EthernetModify),
-                   MODULE(IPv4Consume),
-                   MODULE(IPv4Modify),
-                   MODULE(IPv4OptionsConsume),
-                   MODULE(IPv4OptionsModify),
-                   MODULE(TCPUDPConsume),
-                   MODULE(TCPUDPModify),
-                   MODULE(IPv4TCPUDPChecksumsUpdate),
+                   MODULE(ParseCustomHeader),
+                   MODULE(ModifyCustomHeader),
+                   MODULE(ParserCondition),
+                   //  MODULE(IfHeaderValid),
+                   //  MODULE(EthernetConsume),
+                   //  MODULE(EthernetModify),
+                   //  MODULE(IPv4Consume),
+                   //  MODULE(IPv4Modify),
+                   //  MODULE(IPv4OptionsConsume),
+                   //  MODULE(IPv4OptionsModify),
+                   //  MODULE(TCPUDPConsume),
+                   //  MODULE(TCPUDPModify),
+                   //  MODULE(IPv4TCPUDPChecksumsUpdate),
                    MODULE(Drop),
                    MODULE(SendToController),
                    MODULE(SetupExpirationNotifications),

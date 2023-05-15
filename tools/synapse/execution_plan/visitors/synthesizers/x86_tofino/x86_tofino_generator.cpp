@@ -235,7 +235,7 @@ void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
   log(ep_node);
 
   ADD_NODE_COMMENT(ep_node->get_module());
-  mod->visit(*this);
+  mod->visit(*this, ep_node);
 
   for (auto branch : next) {
     branch->visit(*this);
@@ -243,11 +243,13 @@ void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketParseCPU *node) {
   assert(false && "TODO");
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::Drop *node) {
+void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                               const targets::x86_tofino::Drop *node) {
   assert(node);
 
   nf_process_builder.indent();
@@ -264,6 +266,7 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::Drop *node) {
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::ForwardThroughTofino *node) {
   assert(node);
   auto port = node->get_port();
@@ -282,6 +285,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketParseEthernet *node) {
   assert(node);
 
@@ -311,6 +315,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketModifyEthernet *node) {
   assert(node);
 
@@ -338,6 +343,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketParseIPv4 *node) {
   assert(node);
 
@@ -372,6 +378,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketModifyIPv4 *node) {
   assert(node);
 
@@ -399,6 +406,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketParseIPv4Options *node) {
   assert(node);
 
@@ -422,11 +430,13 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketModifyIPv4Options *node) {
   assert(false && "TODO");
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketParseTCPUDP *node) {
   assert(node);
 
@@ -453,6 +463,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketModifyTCPUDP *node) {
   assert(node);
 
@@ -480,6 +491,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::PacketModifyChecksums *node) {
   auto ip_header_addr = node->get_ip_header_addr();
   auto l4_header_addr = node->get_l4_header_addr();
@@ -532,7 +544,8 @@ void x86TofinoGenerator::visit(
   nf_process_builder.append_new_line();
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
+void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                               const targets::x86_tofino::If *node) {
   assert(node);
 
   auto condition = node->get_condition();
@@ -550,11 +563,13 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::If *node) {
   pending_ifs.push();
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::Then *node) {
+void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                               const targets::x86_tofino::Then *node) {
   assert(node);
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::Else *node) {
+void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                               const targets::x86_tofino::Else *node) {
   assert(node);
 
   vars.push();
@@ -565,7 +580,8 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::Else *node) {
   nf_process_builder.inc_indentation();
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
+void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                               const targets::x86_tofino::MapGet *node) {
   assert(node);
 
   auto map_addr = node->get_map_addr();
@@ -669,7 +685,8 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapGet *node) {
   nf_process_builder.append_new_line();
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::MapPut *node) {
+void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                               const targets::x86_tofino::MapPut *node) {
   assert(node);
 
   auto map_addr = node->get_map_addr();
@@ -765,7 +782,8 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::MapPut *node) {
   nf_process_builder.append_new_line();
 }
 
-void x86TofinoGenerator::visit(const targets::x86_tofino::EtherAddrHash *node) {
+void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                               const targets::x86_tofino::EtherAddrHash *node) {
   assert(node);
 
   auto addr = node->get_addr();
@@ -787,6 +805,7 @@ void x86TofinoGenerator::visit(const targets::x86_tofino::EtherAddrHash *node) {
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::DchainAllocateNewIndex *node) {
   assert(node);
 
@@ -844,6 +863,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::DchainIsIndexAllocated *node) {
   assert(node);
 
@@ -884,6 +904,7 @@ void x86TofinoGenerator::visit(
 }
 
 void x86TofinoGenerator::visit(
+    const ExecutionPlanNode *ep_node,
     const targets::x86_tofino::DchainRejuvenateIndex *node) {
   assert(node);
 

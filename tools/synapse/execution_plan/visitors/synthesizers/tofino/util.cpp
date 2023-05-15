@@ -1,7 +1,7 @@
 #include "util.h"
 #include "klee-util.h"
-#include "tofino_generator.h"
 #include "pipeline/pipeline.h"
+#include "tofino_generator.h"
 
 namespace synapse {
 namespace synthesizer {
@@ -66,7 +66,7 @@ std::vector<key_var_t> get_key_vars(Ingress &ingress, klee::ref<klee::Expr> key,
     auto key_byte =
         kutil::solver_toolbox.exprBuilder->Extract(key, offset_bits, 8);
 
-    auto hdr_varq = ingress.headers.query_hdr_field_from_chunk(key_byte);
+    auto hdr_varq = ingress.parser.headers.query_hdr_field_from_chunk(key_byte);
 
     if (hdr_varq.valid && hdr_varq.offset_bits == 0) {
       auto hdr_size = hdr_varq.var->get_size_bits();

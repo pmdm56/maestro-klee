@@ -6,18 +6,21 @@ namespace synapse {
 namespace targets {
 namespace tofino {
 
-class EthernetConsume : public TofinoModule {
+class ParseCustomHeader : public TofinoModule {
 private:
   klee::ref<klee::Expr> chunk;
+  bits_t size;
 
 public:
-  EthernetConsume()
-      : TofinoModule(ModuleType::Tofino_EthernetConsume, "EthernetConsume") {}
+  ParseCustomHeader()
+      : TofinoModule(ModuleType::Tofino_ParseCustomHeader,
+                     "ParseCustomHeader") {}
 
-  EthernetConsume(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
-      : TofinoModule(ModuleType::Tofino_EthernetConsume, "EthernetConsume",
-                     node),
-        chunk(_chunk) {}
+  ParseCustomHeader(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk,
+                       bits_t _size)
+      : TofinoModule(ModuleType::Tofino_ParseCustomHeader,
+                     "ParseCustomHeader", node),
+        chunk(_chunk), size(_size) {}
 
 private:
   processing_result_t process(const ExecutionPlan &ep,
@@ -36,25 +39,22 @@ private:
       return result;
     }
 
-    auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(ep, node, symbex::FN_BORROW_CHUNK);
-
-    if (all_prev_packet_borrow_next_chunk.size() != 0) {
-      return result;
-    }
-
     assert(!call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr.isNull());
     assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
     auto _length = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
     auto _chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
 
-    // Make sure that packet_borrow_next_chunk borrows the
-    // 14 ethernet bytes
-    assert(_length->getKind() == klee::Expr::Kind::Constant);
-    assert(kutil::solver_toolbox.value_from_expr(_length) == 14);
+    // Only interested in parsing fixed size headers.
+    if (_length->getKind() != klee::Expr::Kind::Constant) {
+      return result;
+    }
 
-    auto new_module = std::make_shared<EthernetConsume>(node, _chunk);
+    auto _length_bytes = kutil::solver_toolbox.value_from_expr(_length);
+    auto _length_bits = _length_bytes * 8;
+
+    auto new_module =
+        std::make_shared<ParseCustomHeader>(node, _chunk, _length_bits);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -70,15 +70,34 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new EthernetConsume(node, chunk);
+    auto cloned = new ParseCustomHeader(node, chunk, size);
     return std::shared_ptr<Module>(cloned);
   }
 
   virtual bool equals(const Module *other) const override {
-    return other->get_type() == type;
+    if (other->get_type() != type) {
+      return false;
+    }
+
+    auto other_parser = static_cast<const ParseCustomHeader *>(other);
+
+    auto other_chunk = other_parser->get_chunk();
+
+    if (!kutil::solver_toolbox.are_exprs_always_equal(chunk, other_chunk)) {
+      return false;
+    }
+
+    auto other_size = other_parser->get_size();
+
+    if (size != other_size) {
+      return false;
+    }
+
+    return true;
   }
 
   const klee::ref<klee::Expr> &get_chunk() const { return chunk; }
+  bits_t get_size() const { return size; }
 };
 } // namespace tofino
 } // namespace targets

@@ -385,9 +385,33 @@ next_t get_next_maps_and_vectors_ops(BDD::Node_ptr root, obj_addr_t map_addr,
   return candidates;
 }
 
+bool Module::is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) const {
+  kutil::RetrieveSymbols retriever;
+  retriever.visit(expr);
+
+  auto symbols = retriever.get_retrieved_strings();
+
+  std::vector<std::string> allowed_symbols = {
+      synapse::symbex::PACKET_LENGTH,
+      synapse::symbex::CHUNK,
+  };
+
+  for (auto symbol : symbols) {
+    auto found_it =
+        std::find(allowed_symbols.begin(), allowed_symbols.end(), symbol);
+
+    if (found_it == allowed_symbols.end()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 std::vector<BDD::Node_ptr>
-find_all_functions_after_node(BDD::Node_ptr root,
-                              const std::string &function_name) {
+Module::get_all_functions_after_node(BDD::Node_ptr root,
+                                     const std::string &function_name,
+                                     bool stop_on_branches) const {
   assert(root);
 
   std::vector<BDD::Node_ptr> functions;
@@ -397,7 +421,7 @@ find_all_functions_after_node(BDD::Node_ptr root,
     auto node = nodes[0];
     nodes.erase(nodes.begin());
 
-    if (node->get_type() == BDD::Node::BRANCH) {
+    if (node->get_type() == BDD::Node::BRANCH && !stop_on_branches) {
       auto branch_node = static_cast<const BDD::Branch *>(node.get());
       nodes.push_back(branch_node->get_on_true());
       nodes.push_back(branch_node->get_on_false());
@@ -416,6 +440,42 @@ find_all_functions_after_node(BDD::Node_ptr root,
   }
 
   return functions;
+}
+
+bool Module::is_parser_drop(BDD::Node_ptr root) const {
+  assert(root);
+
+  std::vector<BDD::Node_ptr> functions;
+  std::vector<BDD::Node_ptr> nodes{root};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    nodes.erase(nodes.begin());
+
+    switch (node->get_type()) {
+    case BDD::Node::CALL: {
+      auto call_node = BDD::cast_node<BDD::Call>(node);
+
+      if (call_node->get_call().function_name != symbex::FN_RETURN_CHUNK) {
+        return false;
+      }
+
+      nodes.push_back(node->get_next());
+    } break;
+    case BDD::Node::RETURN_PROCESS: {
+      auto return_node = static_cast<const BDD::ReturnProcess *>(node.get());
+      auto ret_value = return_node->get_return_operation();
+
+      if (ret_value != BDD::ReturnProcess::Operation::DROP) {
+        return false;
+      }
+    } break;
+    default:
+      return false;
+    }
+  }
+
+  return true;
 }
 
 next_t get_allowed_coalescing_objs(std::vector<BDD::Node_ptr> index_allocators,
@@ -480,7 +540,7 @@ Module::coalesced_data_t Module::get_coalescing_data(const ExecutionPlan &ep,
   assert(root);
 
   auto index_allocators =
-      find_all_functions_after_node(root, symbex::FN_DCHAIN_ALLOCATE_NEW_INDEX);
+      get_all_functions_after_node(root, symbex::FN_DCHAIN_ALLOCATE_NEW_INDEX);
 
   if (index_allocators.size() == 0) {
     return coalesced_data;

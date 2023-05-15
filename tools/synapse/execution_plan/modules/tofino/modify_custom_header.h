@@ -1,34 +1,47 @@
 #pragma once
 
-#include "../module.h"
 #include "ignore.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
-namespace bmv2 {
+namespace tofino {
 
-class EthernetModify : public Module {
+class ModifyCustomHeader : public TofinoModule {
 private:
-  klee::ref<klee::Expr> ethernet_chunk;
+  klee::ref<klee::Expr> original_chunk;
   std::vector<modification_t> modifications;
 
 public:
-  EthernetModify()
-      : Module(ModuleType::BMv2_EthernetModify, TargetType::BMv2,
-               "EthernetModify") {}
+  ModifyCustomHeader()
+      : TofinoModule(ModuleType::Tofino_ModifyCustomHeader,
+                     "ModifyCustomHeader") {}
 
-  EthernetModify(BDD::Node_ptr node,
-                 const klee::ref<klee::Expr> &_ethernet_chunk,
-                 const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::BMv2_EthernetModify, TargetType::BMv2,
-               "EthernetModify", node),
-        ethernet_chunk(_ethernet_chunk), modifications(_modifications) {}
+  ModifyCustomHeader(BDD::Node_ptr node,
+                        const klee::ref<klee::Expr> &_original_chunk,
+                        const std::vector<modification_t> &_modifications)
+      : TofinoModule(ModuleType::Tofino_ModifyCustomHeader,
+                     "ModifyCustomHeader", node),
+        original_chunk(_original_chunk), modifications(_modifications) {}
 
 private:
-  klee::ref<klee::Expr> get_ethernet_chunk(const BDD::Node *node) const {
-    assert(node->get_type() == BDD::Node::NodeType::CALL);
+  klee::ref<klee::Expr> get_original_chunk(const ExecutionPlan &ep,
+                                           BDD::Node_ptr node) const {
+    auto prev_borrows =
+        get_all_prev_functions(ep, node, symbex::FN_BORROW_CHUNK);
 
-    auto call_node = static_cast<const BDD::Call *>(node);
+    assert(prev_borrows.size());
+
+    auto prev_returns =
+        get_all_prev_functions(ep, node, symbex::FN_RETURN_CHUNK);
+
+    assert(prev_borrows.size() > prev_returns.size());
+
+    auto target = prev_borrows[prev_returns.size()];
+
+    auto call_node = BDD::cast_node<BDD::Call>(target);
+    assert(call_node);
+
     auto call = call_node->get_call();
 
     assert(call.function_name == symbex::FN_BORROW_CHUNK);
@@ -53,35 +66,16 @@ private:
       return result;
     }
 
-    auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(ep, node, symbex::FN_BORROW_CHUNK);
-
-    assert(all_prev_packet_borrow_next_chunk.size());
-
-    auto all_prev_packet_return_chunk =
-        get_all_prev_functions(ep, node, symbex::FN_RETURN_CHUNK);
-
-    if (all_prev_packet_return_chunk.size() !=
-        all_prev_packet_borrow_next_chunk.size() - 1) {
-      return result;
-    }
-
     assert(!call.args[symbex::FN_BORROW_CHUNK_EXTRA].in.isNull());
 
-    auto borrow_ethernet = all_prev_packet_borrow_next_chunk.back();
+    auto _current_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
+    auto _original_chunk = get_original_chunk(ep, node);
 
-    auto curr_ether_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
-    auto prev_ether_chunk = get_ethernet_chunk(borrow_ethernet.get());
-
-    assert(curr_ether_chunk->getWidth() == 14 * 8);
-    assert(prev_ether_chunk->getWidth() == 14 * 8);
-
-    auto _modifications =
-        build_modifications(prev_ether_chunk, curr_ether_chunk);
+    auto _modifications = build_modifications(_original_chunk, _current_chunk);
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::BMv2);
+      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::Tofino);
 
       result.module = new_module;
       result.next_eps.push_back(new_ep);
@@ -89,8 +83,8 @@ private:
       return result;
     }
 
-    auto new_module = std::make_shared<EthernetModify>(node, prev_ether_chunk,
-                                                       _modifications);
+    auto new_module = std::make_shared<ModifyCustomHeader>(
+        node, _original_chunk, _modifications);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -106,7 +100,8 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new EthernetModify(node, ethernet_chunk, modifications);
+    auto cloned =
+        new ModifyCustomHeader(node, original_chunk, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -115,10 +110,10 @@ public:
       return false;
     }
 
-    auto other_cast = static_cast<const EthernetModify *>(other);
+    auto other_cast = static_cast<const ModifyCustomHeader *>(other);
 
     if (!kutil::solver_toolbox.are_exprs_always_equal(
-            ethernet_chunk, other_cast->ethernet_chunk)) {
+            original_chunk, other_cast->original_chunk)) {
       return false;
     }
 
@@ -145,14 +140,14 @@ public:
     return true;
   }
 
-  const klee::ref<klee::Expr> &get_ethernet_chunk() const {
-    return ethernet_chunk;
+  const klee::ref<klee::Expr> &get_original_chunk() const {
+    return original_chunk;
   }
 
   const std::vector<modification_t> &get_modifications() const {
     return modifications;
   }
 };
-} // namespace bmv2
+} // namespace tofino
 } // namespace targets
 } // namespace synapse

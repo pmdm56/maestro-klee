@@ -6,8 +6,11 @@ namespace tofino {
 
 constexpr char TOFINO_BOILERPLATE_FILE[] = "boilerplate.p4";
 
+constexpr char MARKER_INGRESS_HEADERS_DEF[] = "INGRESS HEADERS DEFINITIONS";
+constexpr char MARKER_INGRESS_HEADERS_DECL[] = "INGRESS HEADERS DECLARATIONS";
 constexpr char MARKER_INGRESS_METADATA[] = "INGRESS METADATA";
 constexpr char MARKER_EGRESS_METADATA[] = "EGRESS METADATA";
+constexpr char MARKER_INGRESS_PARSER[] = "INGRESS PARSER";
 constexpr char MARKER_INGRESS_STATE[] = "INGRESS STATE";
 constexpr char MARKER_INGRESS_APPLY[] = "INGRESS APPLY";
 
@@ -15,6 +18,10 @@ constexpr char INGRESS_FORWARD_ACTION[] = "fwd";
 constexpr char INGRESS_DROP_ACTION[] = "drop";
 constexpr char INGRESS_FLOOD_ACTION[] = "flood";
 constexpr char INGRESS_SEND_TO_CPU_ACTION[] = "send_to_cpu";
+
+constexpr char PARSER_STATE_INIT_LABEL[] = "parse_init";
+constexpr char PARSER_ACCEPT[] = "accept";
+constexpr char PARSER_REJECT[] = "reject";
 
 constexpr char PARSER_CONDITIONAL_LABEL[] = "conditional_state_t_";
 constexpr char PARSER_PACKET_VARIABLE_LABEL[] = "pkt";

@@ -13,6 +13,7 @@
 #include "data_structures/int_allocator.h"
 
 #include "headers.h"
+#include "parser.h"
 
 namespace synapse {
 namespace synthesizer {
@@ -32,14 +33,17 @@ public:
   CodeBuilder apply_block_builder;
   CodeBuilder user_metadata_builder;
 
-  Headers headers;
+  Parser parser;
 
   stack_t local_vars;
   PendingIfs pending_ifs;
 
-  Ingress(int state_ind, int apply_block_ind, int user_meta_ind)
+  Ingress(int headers_def_ind, int headers_decl_ind, int parser_ind,
+          int user_meta_ind, int state_ind, int apply_block_ind)
       : state_builder(state_ind), apply_block_builder(apply_block_ind),
-        user_metadata_builder(user_meta_ind), pending_ifs(apply_block_builder) {
+        user_metadata_builder(user_meta_ind),
+        parser(headers_def_ind, headers_decl_ind, parser_ind),
+        pending_ifs(apply_block_builder) {
     intrinsic_metadata = std::vector<Variable>{
         {
             INGRESS_INTRINSIC_META_RESUBMIT_FLAG,
@@ -326,6 +330,12 @@ public:
 
     user_metadata_builder.dump(os);
   }
+
+  void synthesize_headers(std::ostream &def, std::ostream &decl) {
+    parser.synthesize_headers(def, decl);
+  }
+
+  void synthesize_parser(std::ostream &os) { parser.synthesize(os); }
 }; // namespace tofino
 
 } // namespace tofino

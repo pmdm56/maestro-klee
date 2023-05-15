@@ -4,7 +4,9 @@
 #include <memory>
 
 #define VISIT(MODULE)                                                          \
-  virtual void visit(const MODULE *m) { assert(false && "Unexpected module."); }
+  virtual void visit(const ExecutionPlanNode *ep_node, const MODULE *m) {      \
+    assert(false && "Unexpected module.");                                     \
+  }
 
 namespace synapse {
 
@@ -66,8 +68,11 @@ class IfHeaderValid;
 class Then;
 class Else;
 class Forward;
+class ParseCustomHeader;
+class ModifyCustomHeader;
 class EthernetConsume;
 class EthernetModify;
+class ParserCondition;
 class IPv4Consume;
 class IPv4Modify;
 class IPv4OptionsConsume;
@@ -184,6 +189,9 @@ public:
   VISIT(targets::tofino::Then)
   VISIT(targets::tofino::Else)
   VISIT(targets::tofino::Forward)
+  VISIT(targets::tofino::ParseCustomHeader)
+  VISIT(targets::tofino::ModifyCustomHeader)
+  VISIT(targets::tofino::ParserCondition)
   VISIT(targets::tofino::EthernetConsume)
   VISIT(targets::tofino::EthernetModify)
   VISIT(targets::tofino::Drop)

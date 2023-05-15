@@ -7,7 +7,8 @@
 
 #include <vector>
 
-#define DECLARE_VISIT(M) void visit(const M *node) override;
+#define DECLARE_VISIT(M)                                                       \
+  void visit(const ExecutionPlanNode *ep_node, const M *node) override;
 
 namespace synapse {
 
@@ -49,8 +50,8 @@ public:
   Graphviz() : Graphviz(get_rand_fname()) {}
 
 private:
-  void function_call(BDD::Node_ptr node, TargetType target,
-                     std::string label);
+  void function_call(BDD::Node_ptr node, TargetType target, std::string label);
+  void branch(BDD::Node_ptr node, TargetType target, std::string label);
 
   struct rgb_t {
     int r;
@@ -145,6 +146,9 @@ public:
   DECLARE_VISIT(targets::tofino::Then)
   DECLARE_VISIT(targets::tofino::Else)
   DECLARE_VISIT(targets::tofino::Forward)
+  DECLARE_VISIT(targets::tofino::ParseCustomHeader)
+  DECLARE_VISIT(targets::tofino::ModifyCustomHeader)
+  DECLARE_VISIT(targets::tofino::ParserCondition)
   DECLARE_VISIT(targets::tofino::EthernetConsume)
   DECLARE_VISIT(targets::tofino::EthernetModify)
   DECLARE_VISIT(targets::tofino::IPv4Consume)

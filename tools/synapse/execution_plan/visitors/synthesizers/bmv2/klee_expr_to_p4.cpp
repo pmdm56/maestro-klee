@@ -35,21 +35,6 @@ klee::ExprVisitor::Action KleeExprToP4::visitRead(const klee::ReadExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
-void KleeExprToP4::swap_endianness(klee::ref<klee::Expr> &expr) {
-  kutil::RetrieveSymbols retriever;
-  retriever.visit(expr);
-  auto symbols = retriever.get_retrieved_strings();
-
-  if (symbols.size() != 1 || *symbols.begin() != "packet_chunks") {
-    return;
-  }
-
-  kutil::SwapPacketEndianness swapper;
-  auto after = swapper.swap(expr);
-
-  expr = after;
-}
-
 klee::ExprVisitor::Action KleeExprToP4::visitSelect(const klee::SelectExpr &e) {
   e.dump();
   std::cerr << "\n";
@@ -251,7 +236,8 @@ klee::ExprVisitor::Action KleeExprToP4::visitAdd(const klee::AddExpr &e) {
 
     code << "(" << rhs_parsed << ") ";
     code << constant_signed;
-  } else if (kutil::is_constant_signed(rhs) && !kutil::is_constant_signed(lhs)) {
+  } else if (kutil::is_constant_signed(rhs) &&
+             !kutil::is_constant_signed(lhs)) {
     auto constant_signed = kutil::get_constant_signed(rhs);
     auto lhs_parsed = generator.transpile(lhs, is_signed);
 
@@ -456,7 +442,7 @@ klee::ref<klee::Expr> change_width(klee::ref<klee::Expr> expr,
 
     auto eq = kutil::solver_toolbox.are_exprs_always_equal(
         expr, kutil::solver_toolbox.exprBuilder->Extract(modified, 0,
-                                                        expr->getWidth()));
+                                                         expr->getWidth()));
 
     assert(eq);
   }
@@ -857,6 +843,6 @@ klee::ExprVisitor::Action KleeExprToP4::visitSge(const klee::SgeExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
-}
+} // namespace bmv2
 } // namespace synthesizer
 } // namespace synapse

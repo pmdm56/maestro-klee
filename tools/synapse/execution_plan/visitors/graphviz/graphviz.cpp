@@ -14,8 +14,13 @@
 #include <unistd.h>
 
 #define DEFAULT_VISIT_PRINT_MODULE_NAME(M)                                     \
-  void Graphviz::visit(const M *node) {                                        \
+  void Graphviz::visit(const ExecutionPlanNode *ep_node, const M *node) {      \
     function_call(node->get_node(), node->get_target(), node->get_name());     \
+  }
+
+#define DEFAULT_BRANCH_VISIT_PRINT_MODULE_NAME(M)                              \
+  void Graphviz::visit(const ExecutionPlanNode *ep_node, const M *node) {      \
+    branch(node->get_node(), node->get_target(), node->get_name());            \
   }
 
 namespace synapse {
@@ -89,6 +94,22 @@ void Graphviz::function_call(BDD::Node_ptr node, TargetType target,
                              std::string label) {
   assert(node_colors.find(target) != node_colors.end());
   ofs << "[label=\"";
+
+  if (node) {
+    ofs << "[";
+    ofs << node->get_id();
+    ofs << "] ";
+  }
+
+  ofs << label << "\", ";
+  ofs << "color=" << node_colors[target] << "];";
+  ofs << "\n";
+}
+
+void Graphviz::branch(BDD::Node_ptr node, TargetType target,
+                      std::string label) {
+  assert(node_colors.find(target) != node_colors.end());
+  ofs << "[shape=Mdiamond, label=\"";
 
   if (node) {
     ofs << "[";
@@ -514,7 +535,7 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::CurrentTime)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketBorrowNextChunk)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketGetMetadata)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::PacketReturnChunk)
-DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::If)
+DEFAULT_BRANCH_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::If)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Then)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Else)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::Forward)
@@ -540,7 +561,7 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_bmv2::DchainIsIndexAllocated)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::SendToController)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Ignore)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::SetupExpirationNotifications)
-DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::If)
+DEFAULT_BRANCH_VISIT_PRINT_MODULE_NAME(targets::bmv2::If)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Then)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::Else)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::EthernetConsume)
@@ -564,14 +585,14 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::bmv2::VectorReturn)
 
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Ignore)
 
-void Graphviz::visit(const targets::tofino::If *node) {
+void Graphviz::visit(const ExecutionPlanNode *ep_node,
+                     const targets::tofino::If *node) {
   std::stringstream label_builder;
 
   auto bdd_node = node->get_node();
   auto target = node->get_target();
   auto conditions = node->get_conditions();
 
-  label_builder << "if(";
   for (auto i = 0u; i < conditions.size(); i++) {
     auto condition = conditions[i];
 
@@ -581,18 +602,60 @@ void Graphviz::visit(const targets::tofino::If *node) {
 
     label_builder << kutil::expr_to_string(condition, true) << "\n";
   }
-  label_builder << ")";
 
   auto label = label_builder.str();
-  find_and_replace(label, {{"\n", "\n"}});
+  find_and_replace(label, {{"\n", "\\n"}});
+
+  branch(bdd_node, target, label);
+}
+
+DEFAULT_BRANCH_VISIT_PRINT_MODULE_NAME(targets::tofino::IfHeaderValid)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Then)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
+
+void Graphviz::visit(const ExecutionPlanNode *ep_node,
+                     const targets::tofino::ParseCustomHeader *node) {
+  std::stringstream label_builder;
+
+  auto bdd_node = node->get_node();
+  auto target = node->get_target();
+  auto size = node->get_size();
+
+  label_builder << "Parse header [";
+  label_builder << size;
+  label_builder << " bits (";
+  label_builder << size / 8;
+  label_builder << " bytes)]";
+
+  auto label = label_builder.str();
+  find_and_replace(label, {{"\n", "\\n"}});
 
   function_call(bdd_node, target, label);
 }
 
-DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IfHeaderValid)
-DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Then)
-DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Else)
-DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::Forward)
+void Graphviz::visit(const ExecutionPlanNode *ep_node,
+                     const targets::tofino::ParserCondition *node) {
+  std::stringstream label_builder;
+
+  auto bdd_node = node->get_node();
+  auto target = node->get_target();
+  auto condition = node->get_condition();
+  auto apply_is_valid = node->get_apply_is_valid();
+
+  label_builder << "Parser condition ";
+  label_builder << " [apply: " << apply_is_valid << "]";
+  label_builder << "\n";
+  label_builder << kutil::expr_to_string(condition);
+
+  auto label = label_builder.str();
+  find_and_replace(label, {{"\n", "\\n"}});
+
+  branch(bdd_node, target, label);
+}
+
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::ModifyCustomHeader)
+
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetConsume)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::EthernetModify)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4Consume)
@@ -686,11 +749,13 @@ void Graphviz::visit_table(const targets::tofino::TableLookup *node,
   function_call(bdd_node, target, label);
 }
 
-void Graphviz::visit(const targets::tofino::TableLookup *node) {
+void Graphviz::visit(const ExecutionPlanNode *ep_node,
+                     const targets::tofino::TableLookup *node) {
   visit_table(node, false);
 }
 
-void Graphviz::visit(const targets::tofino::TableLookupSimple *node) {
+void Graphviz::visit(const ExecutionPlanNode *ep_node,
+                     const targets::tofino::TableLookupSimple *node) {
   visit_table(node, true);
 }
 
@@ -720,7 +785,7 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyIPv4Options)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseTCPUDP)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyTCPUDP)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyChecksums)
-DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::If)
+DEFAULT_BRANCH_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::If)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Then)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Else)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::Drop)

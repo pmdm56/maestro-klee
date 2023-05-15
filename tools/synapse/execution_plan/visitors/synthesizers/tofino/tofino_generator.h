@@ -22,9 +22,12 @@ private:
 public:
   TofinoGenerator()
       : Synthesizer(GET_BOILERPLATE_PATH(TOFINO_BOILERPLATE_FILE)),
-        ingress(get_indentation_level(MARKER_INGRESS_STATE),
-                get_indentation_level(MARKER_INGRESS_APPLY),
-                get_indentation_level(MARKER_INGRESS_METADATA)),
+        ingress(get_indentation_level(MARKER_INGRESS_HEADERS_DEF),
+                get_indentation_level(MARKER_INGRESS_HEADERS_DECL),
+                get_indentation_level(MARKER_INGRESS_METADATA),
+                get_indentation_level(MARKER_INGRESS_PARSER),
+                get_indentation_level(MARKER_INGRESS_STATE),
+                get_indentation_level(MARKER_INGRESS_APPLY)),
         transpiler(*this) {}
 
   virtual void generate(ExecutionPlan &target_ep) override { visit(target_ep); }
@@ -32,27 +35,46 @@ public:
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
 
-  void visit(const targets::tofino::If *node) override;
-  void visit(const targets::tofino::IfHeaderValid *node) override;
-  void visit(const targets::tofino::Then *node) override;
-  void visit(const targets::tofino::Else *node) override;
-  void visit(const targets::tofino::Forward *node) override;
-  void visit(const targets::tofino::EthernetConsume *node) override;
-  void visit(const targets::tofino::EthernetModify *node) override;
-  void visit(const targets::tofino::IPv4Consume *node) override;
-  void visit(const targets::tofino::IPv4Modify *node) override;
-  void visit(const targets::tofino::IPv4OptionsConsume *node) override;
-  void visit(const targets::tofino::TCPUDPConsume *node) override;
-  void visit(const targets::tofino::TCPUDPModify *node) override;
-  void visit(const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) override;
-  void visit(const targets::tofino::Drop *node) override;
-  void visit(const targets::tofino::Ignore *node) override;
-  void visit(const targets::tofino::SendToController *node) override;
-  void visit(const targets::tofino::TableLookup *node) override;
-  void visit(const targets::tofino::TableLookupSimple *node) override;
-  void visit(const targets::tofino::IntegerAllocatorAllocate *node) override;
-  void visit(const targets::tofino::IntegerAllocatorRejuvenate *node) override;
-  void visit(const targets::tofino::IntegerAllocatorQuery *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::If *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::IfHeaderValid *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::Then *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::Else *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::Forward *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::ParseCustomHeader *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::ModifyCustomHeader *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::ParserCondition *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::EthernetModify *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::IPv4Modify *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::TCPUDPModify *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::Drop *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::Ignore *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::SendToController *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::TableLookup *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::TableLookupSimple *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::IntegerAllocatorAllocate *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::IntegerAllocatorRejuvenate *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::tofino::IntegerAllocatorQuery *node) override;
 
   std::string transpile(klee::ref<klee::Expr> expr);
 

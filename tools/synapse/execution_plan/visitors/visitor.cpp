@@ -22,7 +22,7 @@ void ExecutionPlanVisitor::visit(const ExecutionPlanNode *ep_node) {
 
   log(ep_node);
 
-  mod->visit(*this);
+  mod->visit(*this, ep_node);
 
   for (auto branch : next) {
     branch->visit(*this);
@@ -32,7 +32,8 @@ void ExecutionPlanVisitor::visit(const ExecutionPlanNode *ep_node) {
 void ExecutionPlanVisitor::log(const ExecutionPlanNode *ep_node) const {
   auto mod = ep_node->get_module();
 
-  Log::dbg() << "[" << mod->get_target_name() << "] " << mod->get_name() << "\n";
+  Log::dbg() << "[" << mod->get_target_name() << "] " << mod->get_name()
+             << "\n";
 }
 
 } // namespace synapse

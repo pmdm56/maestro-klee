@@ -393,8 +393,9 @@ protected:
   }
 
 public:
-  virtual void visit(ExecutionPlanVisitor &visitor) const override {
-    visitor.visit(this);
+  virtual void visit(ExecutionPlanVisitor &visitor,
+                     const ExecutionPlanNode *ep_node) const override {
+    visitor.visit(ep_node, this);
   }
 
   virtual Module_ptr clone() const override {

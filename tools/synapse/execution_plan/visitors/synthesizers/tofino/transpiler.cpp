@@ -740,6 +740,66 @@ klee::ExprVisitor::Action InternalTranspiler::visitSge(const klee::SgeExpr &e) {
   return klee::ExprVisitor::Action::skipChildren();
 }
 
+Transpiler::parser_cond_data_t
+Transpiler::get_parser_cond_data_from_eq(klee::ref<klee::Expr> expr) {
+  Transpiler::parser_cond_data_t data;
+
+  assert(!expr.isNull());
+  assert(expr->getKind() == klee::Expr::Eq);
+
+  auto lhs = expr->getKid(0);
+  auto rhs = expr->getKid(1);
+
+  auto lhs_pkt_dep = kutil::is_packet_readLSB(lhs);
+
+  auto hdr = lhs_pkt_dep ? lhs : rhs;
+  auto not_hdr = !lhs_pkt_dep ? lhs : rhs;
+
+  assert(not_hdr->getKind() == klee::Expr::Constant);
+
+  data.hdr = tg.transpile(hdr);
+  data.values.push_back(tg.transpile(not_hdr));
+
+  return data;
+}
+
+Transpiler::parser_cond_data_t
+Transpiler::get_parser_cond_data(klee::ref<klee::Expr> expr) {
+  Transpiler::parser_cond_data_t data;
+
+  switch (expr->getKind()) {
+  case klee::Expr::Eq: {
+    return get_parser_cond_data_from_eq(expr);
+  };
+  case klee::Expr::Or: {
+    auto lhs = expr->getKid(0);
+    auto rhs = expr->getKid(1);
+
+    assert(lhs->getKind() == klee::Expr::Eq);
+    assert(rhs->getKind() == klee::Expr::Eq);
+
+    auto lhs_data = get_parser_cond_data_from_eq(lhs);
+    auto rhs_data = get_parser_cond_data_from_eq(rhs);
+
+    assert(lhs_data.hdr == rhs_data.hdr);
+
+    data.hdr = lhs_data.hdr;
+
+    data.values.insert(data.values.end(), lhs_data.values.begin(),
+                       lhs_data.values.end());
+
+    data.values.insert(data.values.end(), rhs_data.values.begin(),
+                       rhs_data.values.end());
+
+    return data;
+  };
+  default:
+    assert(false && "TODO");
+  }
+
+  return data;
+}
+
 } // namespace tofino
 } // namespace synthesizer
 } // namespace synapse

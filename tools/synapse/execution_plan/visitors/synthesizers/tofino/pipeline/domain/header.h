@@ -8,6 +8,7 @@
 #include "variable.h"
 
 #include "../../../../../../symbex.h"
+#include "../../../code_builder.h"
 #include "../../constants.h"
 
 namespace synapse {
@@ -15,6 +16,7 @@ namespace synthesizer {
 namespace tofino {
 
 enum hdr_field_id_t {
+  DATA,
   ETH_DST_ADDR,
   ETH_SRC_ADDR,
   ETH_ETHER_TYPE,
@@ -63,6 +65,7 @@ struct hdr_field_t : public Variable {
 };
 
 enum hdr_id_t {
+  CUSTOM,
   ETHERNET,
   IPV4,
   IPV4_OPTIONS,
@@ -70,7 +73,7 @@ enum hdr_id_t {
 };
 
 class Header : public Variable {
-private:
+protected:
   hdr_id_t hdr_id;
   std::vector<hdr_field_t> fields;
 
@@ -105,6 +108,42 @@ public:
     }
 
     assert(!size_check || total_size_bits == _chunk->getWidth());
+  }
+
+  void synthesize_def(CodeBuilder& builder) const {
+    builder.indent();
+    builder.append("header ");
+    builder.append(label);
+    builder.append("_h");
+    builder.append(" {");
+    builder.append_new_line();
+
+    builder.inc_indentation();
+
+    builder.indent();
+    builder.append(fields[0].get_type());
+    builder.append(" ");
+    builder.append(fields[0].get_label());
+    builder.append(";");
+    builder.append_new_line();
+
+    builder.dec_indentation();
+
+    builder.indent();
+    builder.append("}");
+    builder.append_new_line();
+
+    builder.append_new_line();
+  }
+
+  void synthesize_decl(CodeBuilder& builder) const {
+    builder.indent();
+    builder.append(label);
+    builder.append("_h");
+    builder.append(" ");
+    builder.append(label);
+    builder.append(";");
+    builder.append_new_line();
   }
 
 public:
@@ -175,6 +214,13 @@ public:
       return hash;
     }
   };
+};
+
+class CustomHeader : public Header {
+public:
+  CustomHeader(const std::string &_label, const klee::ref<klee::Expr> &_chunk,
+               bits_t size)
+      : Header(CUSTOM, _label, _chunk, {hdr_field_t(DATA, "data", size)}) {}
 };
 
 } // namespace tofino

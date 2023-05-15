@@ -62,28 +62,48 @@ public:
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
 
-  void visit(const targets::x86_tofino::PacketParseCPU *node) override;
-
-  void visit(const targets::x86_tofino::Drop *node) override;
-  void visit(const targets::x86_tofino::ForwardThroughTofino *node) override;
-  void visit(const targets::x86_tofino::PacketParseEthernet *node) override;
-  void visit(const targets::x86_tofino::PacketModifyEthernet *node) override;
-  void visit(const targets::x86_tofino::PacketParseIPv4 *node) override;
-  void visit(const targets::x86_tofino::PacketModifyIPv4 *node) override;
-  void visit(const targets::x86_tofino::PacketParseIPv4Options *node) override;
-  void visit(const targets::x86_tofino::PacketModifyIPv4Options *node) override;
-  void visit(const targets::x86_tofino::PacketParseTCPUDP *node) override;
-  void visit(const targets::x86_tofino::PacketModifyTCPUDP *node) override;
-  void visit(const targets::x86_tofino::PacketModifyChecksums *node) override;
-  void visit(const targets::x86_tofino::If *node) override;
-  void visit(const targets::x86_tofino::Then *node) override;
-  void visit(const targets::x86_tofino::Else *node) override;
-  void visit(const targets::x86_tofino::MapGet *node) override;
-  void visit(const targets::x86_tofino::MapPut *node) override;
-  void visit(const targets::x86_tofino::EtherAddrHash *node) override;
-  void visit(const targets::x86_tofino::DchainAllocateNewIndex *node) override;
-  void visit(const targets::x86_tofino::DchainIsIndexAllocated *node) override;
-  void visit(const targets::x86_tofino::DchainRejuvenateIndex *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketParseCPU *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::Drop *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::ForwardThroughTofino *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketParseEthernet *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketModifyEthernet *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketParseIPv4 *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketModifyIPv4 *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketParseIPv4Options *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketModifyIPv4Options *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketParseTCPUDP *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketModifyTCPUDP *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::PacketModifyChecksums *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::If *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::Then *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::Else *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::MapGet *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::MapPut *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::EtherAddrHash *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::DchainAllocateNewIndex *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::DchainIsIndexAllocated *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::x86_tofino::DchainRejuvenateIndex *node) override;
 };
 
 } // namespace x86_tofino

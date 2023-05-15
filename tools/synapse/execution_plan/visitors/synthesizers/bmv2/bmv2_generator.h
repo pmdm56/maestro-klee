@@ -600,24 +600,42 @@ public:
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
 
-  void visit(const targets::bmv2::Drop *node) override;
-  void visit(const targets::bmv2::Else *node) override;
-  void visit(const targets::bmv2::EthernetConsume *node) override;
-  void visit(const targets::bmv2::EthernetModify *node) override;
-  void visit(const targets::bmv2::Forward *node) override;
-  void visit(const targets::bmv2::If *node) override;
-  void visit(const targets::bmv2::Ignore *node) override;
-  void visit(const targets::bmv2::IPv4Consume *node) override;
-  void visit(const targets::bmv2::IPv4Modify *node) override;
-  void visit(const targets::bmv2::IPOptionsConsume *node) override;
-  void visit(const targets::bmv2::IPOptionsModify *node) override;
-  void visit(const targets::bmv2::TcpUdpConsume *node) override;
-  void visit(const targets::bmv2::TcpUdpModify *node) override;
-  void visit(const targets::bmv2::SendToController *node) override;
-  void visit(const targets::bmv2::SetupExpirationNotifications *node) override;
-  void visit(const targets::bmv2::TableLookup *node) override;
-  void visit(const targets::bmv2::Then *node) override;
-  void visit(const targets::bmv2::VectorReturn *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::Drop *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::Else *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::EthernetConsume *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::EthernetModify *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::Forward *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::If *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::Ignore *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::IPv4Consume *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::IPv4Modify *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::IPOptionsConsume *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::IPOptionsModify *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::TcpUdpConsume *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::TcpUdpModify *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::SendToController *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::SetupExpirationNotifications *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::TableLookup *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::Then *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const targets::bmv2::VectorReturn *node) override;
 };
 
 } // namespace bmv2

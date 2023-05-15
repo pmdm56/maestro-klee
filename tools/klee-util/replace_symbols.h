@@ -1,10 +1,10 @@
 #pragma once
 
-#include "klee/ExprBuilder.h"
-#include "klee/Constraints.h"
 #include "expr/Parser.h"
+#include "klee/Constraints.h"
+#include "klee/ExprBuilder.h"
 #include "klee/util/ExprVisitor.h"
-
+#include <iostream>
 namespace kutil {
 
 class ReplaceSymbols : public klee::ExprVisitor::ExprVisitor {
@@ -61,7 +61,7 @@ public:
       std::map<klee::ref<klee::Expr>, klee::ref<klee::Expr>>::const_iterator
           it = replacements.find(replaced);
 
-      if (it != replacements.end()) {
+      if (it == replacements.end()) {
         replacements.insert({replaced, read});
       }
 

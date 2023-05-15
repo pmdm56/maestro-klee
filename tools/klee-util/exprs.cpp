@@ -104,6 +104,12 @@ bool is_packet_readLSB(klee::ref<klee::Expr> expr, bytes_t &offset,
   return true;
 }
 
+bool is_packet_readLSB(klee::ref<klee::Expr> expr) {
+  bytes_t offset;
+  int n_bytes;
+  return is_packet_readLSB(expr, offset, n_bytes);
+}
+
 bool is_bool(klee::ref<klee::Expr> expr) {
   assert(!expr.isNull());
 
