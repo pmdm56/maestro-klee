@@ -102,7 +102,8 @@ private:
     new_next->replace_prev(prev);
   }
 
-  BDD::Node_ptr clone_calls(ExecutionPlan &ep, BDD::Node_ptr current) const {
+  BDD::Node_ptr clone_packet_parsing(ExecutionPlan &ep,
+                                     BDD::Node_ptr current) const {
     assert(current);
 
     if (!current->get_prev()) {
@@ -120,6 +121,14 @@ private:
       node = node->get_prev();
 
       if (node->get_type() == BDD::Node::NodeType::CALL) {
+        auto call_node = BDD::cast_node<BDD::Call>(node);
+        auto call = call_node->get_call();
+
+        if (call.function_name != symbex::FN_BORROW_CHUNK &&
+            call.function_name != symbex::FN_CURRENT_TIME) {
+          continue;
+        }
+
         auto clone = node->clone();
 
         clone->disconnect();
@@ -173,7 +182,7 @@ private:
     auto &bdd = ep_cloned.get_bdd();
     auto node_cloned = bdd.get_node_by_id(node->get_id());
 
-    auto next_node = clone_calls(ep_cloned, node_cloned);
+    auto next_node = clone_packet_parsing(ep_cloned, node_cloned);
     auto _code_path = node->get_id();
 
     auto send_to_controller =

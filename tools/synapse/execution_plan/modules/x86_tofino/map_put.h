@@ -4,8 +4,6 @@
 #include "ignore.h"
 #include "memory_bank.h"
 
-#include "klee-util.h" //FIXME: remove this
-
 namespace synapse {
 namespace targets {
 namespace x86_tofino {
@@ -104,26 +102,27 @@ private:
       return result;
     }
 
-    auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
-    auto last_value = mb->get_vector_borrow_value(_vector_addr);
-    assert(!last_value.isNull());
+    // auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
+    // auto last_value = mb->get_vector_borrow_value(_vector_addr);
+    // assert(!last_value.isNull());
 
-    auto eq = kutil::solver_toolbox.are_exprs_always_equal(last_value, _value);
+    // auto eq = kutil::solver_toolbox.are_exprs_always_equal(last_value,
+    // _value);
 
-    if (eq) {
-      auto new_module = std::make_shared<Ignore>(node);
-      auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
+    // if (eq) {
+    //   auto new_module = std::make_shared<Ignore>(node);
+    //   auto new_ep = ep.ignore_leaf(node->get_next(), TargetType::x86_Tofino);
 
-      result.module = new_module;
-      result.next_eps.push_back(new_ep);
-    } else {
-      auto new_module =
-          std::make_shared<MapPut>(node, _vector_addr, _index, _value);
-      auto new_ep = ep.add_leaves(new_module, node->get_next());
+    //   result.module = new_module;
+    //   result.next_eps.push_back(new_ep);
+    // } else {
+    auto new_module =
+        std::make_shared<MapPut>(node, _vector_addr, _index, _value);
+    auto new_ep = ep.add_leaves(new_module, node->get_next());
 
-      result.module = new_module;
-      result.next_eps.push_back(new_ep);
-    }
+    result.module = new_module;
+    result.next_eps.push_back(new_ep);
+    // }
 
     return result;
   }
