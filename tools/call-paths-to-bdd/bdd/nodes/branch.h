@@ -33,6 +33,12 @@ public:
 
   virtual std::vector<node_id_t> get_terminating_node_ids() const override;
 
+  void disconnect() {
+    prev = nullptr;
+    next = nullptr;
+    on_false = nullptr;
+  }
+
   void replace_on_true(const Node_ptr &_on_true) { replace_next(_on_true); }
   void replace_on_false(const Node_ptr &_on_false) { on_false = _on_false; }
 

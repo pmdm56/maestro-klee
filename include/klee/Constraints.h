@@ -45,6 +45,11 @@ public:
     constraints.clear();
   }
 
+  void dump() const {
+    for(auto c : constraints)
+      c->dump();
+  }
+
   ref<Expr> simplifyExpr(ref<Expr> e) const;
 
   void addConstraint(ref<Expr> e);
