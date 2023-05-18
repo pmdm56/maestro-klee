@@ -796,4 +796,41 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainAllocateNewIndex)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainIsIndexAllocated)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainRejuvenateIndex)
 
+/********************************************
+ *
+ *                     x86
+ *
+ ********************************************/
+
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::MapGet)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::CurrentTime)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::PacketBorrowNextChunk)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::PacketReturnChunk)
+DEFAULT_BRANCH_VISIT_PRINT_MODULE_NAME(targets::x86::If)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::Then)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::Else)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::Forward)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::Broadcast)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::Drop)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::ExpireItemsSingleMap)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::ExpireItemsSingleMapIteratively)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::RteEtherAddrHash)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::DchainRejuvenateIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::VectorBorrow)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::VectorReturn)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::DchainAllocateNewIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::MapPut)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::PacketGetUnreadLength)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::SetIpv4UdpTcpChecksum)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::DchainIsIndexAllocated)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::SketchComputeHashes)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::SketchExpire)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::SketchFetch)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::SketchRefresh)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::SketchTouchBuckets)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::MapErase)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::DchainFreeIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::LoadBalancedFlowHash)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::ChtFindBackend)
+
 } // namespace synapse

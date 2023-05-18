@@ -11,6 +11,7 @@
 
 namespace synapse {
 namespace synthesizer {
+namespace x86_bmv2 {
 
 std::string build_table_label(std::string bdd_function, uint64_t table_id) {
   std::stringstream table_label;
@@ -1154,7 +1155,7 @@ void x86BMv2Generator::fill_is_controller() {
 
     auto module = node->get_module();
 
-    if (module->get_target() != synapse::TargetType::x86_BMv2) {
+    if (module->get_target() != TargetType::x86_BMv2) {
       is_controller = std::make_pair(true, module->get_target());
       return;
     }
@@ -1365,8 +1366,7 @@ void x86BMv2Generator::visit(ExecutionPlan ep) {
 
   allocate(ep);
 
-  if (is_controller.first &&
-      is_controller.second == synapse::TargetType::BMv2) {
+  if (is_controller.first && is_controller.second == TargetType::BMv2) {
     lvl = get_indentation_level(MARKER_RUNTIME_CONFIGURE);
     build_runtime_configure();
   }
@@ -1410,7 +1410,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::MapGet *node) {
+                             const target::MapGet *node) {
   auto map_addr = node->get_map_addr();
   auto key = node->get_key();
   auto map_has_this_key = node->get_map_has_this_key();
@@ -1461,7 +1461,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::CurrentTime *node) {
+                             const target::CurrentTime *node) {
   auto generated_symbols = node->get_generated_symbols();
   assert(generated_symbols.size() == 1);
 
@@ -1471,9 +1471,8 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
   stack.set_value(next_time_label, node->get_time());
 }
 
-void x86BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::x86_bmv2::PacketBorrowNextChunk *node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                             const target::PacketBorrowNextChunk *node) {
   auto p_addr = node->get_p_addr();
   auto chunk = node->get_chunk();
   auto chunk_addr = node->get_chunk_addr();
@@ -1507,7 +1506,7 @@ void x86BMv2Generator::visit(
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::PacketGetMetadata *node) {
+                             const target::PacketGetMetadata *node) {
   auto metadata = node->get_metadata();
 
   assert(!metadata.isNull());
@@ -1544,7 +1543,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::PacketReturnChunk *node) {
+                             const target::PacketReturnChunk *node) {
   auto chunk_addr = node->get_chunk_addr();
   assert(!chunk_addr.isNull());
 
@@ -1584,7 +1583,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::If *node) {
+                             const target::If *node) {
   auto condition = node->get_condition();
 
   pad(nf_process_stream);
@@ -1598,10 +1597,10 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::Then *node) {}
+                             const target::Then *node) {}
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::Else *node) {
+                             const target::Else *node) {
   pad(nf_process_stream);
   nf_process_stream << "else {\n";
   lvl++;
@@ -1610,7 +1609,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::Forward *node) {
+                             const target::Forward *node) {
   pad(nf_process_stream);
   nf_process_stream << "return " << node->get_port() << ";\n";
 
@@ -1621,7 +1620,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::Broadcast *node) {
+                             const target::Broadcast *node) {
   pad(nf_process_stream);
   nf_process_stream << "return 65535;\n";
 
@@ -1632,7 +1631,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::Drop *node) {
+                             const target::Drop *node) {
   pad(nf_process_stream);
   nf_process_stream << "return device;\n";
 
@@ -1667,9 +1666,8 @@ uint64_t get_expiration_time_value(klee::ref<klee::Expr> time) {
   return expiration_time;
 }
 
-void x86BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::x86_bmv2::ExpireItemsSingleMap *node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                             const target::ExpireItemsSingleMap *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto vector_addr = node->get_vector_addr();
   auto map_addr = node->get_map_addr();
@@ -1713,8 +1711,7 @@ void x86BMv2Generator::visit(
   // expiration is controlled by the switch
   // TODO: if a specific object is not on the switch, its expiration time
   // must be controlled by the controller
-  if (is_controller.first &&
-      is_controller.second == synapse::TargetType::BMv2) {
+  if (is_controller.first && is_controller.second == TargetType::BMv2) {
     return;
   }
 
@@ -1746,7 +1743,7 @@ void x86BMv2Generator::visit(
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::RteEtherAddrHash *node) {
+                             const target::RteEtherAddrHash *node) {
   auto obj = node->get_obj();
   auto hash = node->get_hash();
   auto generated_symbols = node->get_generated_symbols();
@@ -1775,9 +1772,8 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
   nf_process_stream << ");\n";
 }
 
-void x86BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::x86_bmv2::DchainRejuvenateIndex *node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                             const target::DchainRejuvenateIndex *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto time = node->get_time();
   auto index = node->get_index();
@@ -1840,7 +1836,7 @@ klee::ref<klee::Expr> get_future_vector_value(BDD::Node_ptr root,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::VectorBorrow *node) {
+                             const target::VectorBorrow *node) {
   auto vector_addr = node->get_vector_addr();
   auto index = node->get_index();
   auto value_out = node->get_value_out();
@@ -1890,7 +1886,7 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::VectorReturn *node) {
+                             const target::VectorReturn *node) {
   auto vector_addr = node->get_vector_addr();
   auto index = node->get_index();
   auto value_addr = node->get_value_addr();
@@ -1924,15 +1920,13 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
   nf_process_stream << ", (void *)" << value_label;
   nf_process_stream << ");\n";
 
-  if (is_controller.first &&
-      is_controller.second == synapse::TargetType::BMv2) {
+  if (is_controller.first && is_controller.second == TargetType::BMv2) {
     issue_write_to_switch(vector_addr, index, value);
   }
 }
 
-void x86BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::x86_bmv2::DchainAllocateNewIndex *node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                             const target::DchainAllocateNewIndex *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto time = node->get_time();
   auto index_out = node->get_index_out();
@@ -2168,7 +2162,7 @@ void x86BMv2Generator::issue_write_to_switch(klee::ref<klee::Expr> libvig_obj,
 }
 
 void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                             const targets::x86_bmv2::MapPut *node) {
+                             const target::MapPut *node) {
   auto map_addr = node->get_map_addr();
   auto key_addr = node->get_key_addr();
   auto key = node->get_key();
@@ -2202,15 +2196,13 @@ void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
   nf_process_stream << ", " << transpiled_value;
   nf_process_stream << ");\n";
 
-  if (is_controller.first &&
-      is_controller.second == synapse::TargetType::BMv2) {
+  if (is_controller.first && is_controller.second == TargetType::BMv2) {
     issue_write_to_switch(map_addr, key, value);
   }
 }
 
-void x86BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::x86_bmv2::PacketGetUnreadLength *node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                             const target::PacketGetUnreadLength *node) {
   auto p_addr = node->get_p_addr();
   auto unread_length = node->get_unread_length();
   auto generated_symbols = node->get_generated_symbols();
@@ -2232,9 +2224,8 @@ void x86BMv2Generator::visit(
   nf_process_stream << ");\n";
 }
 
-void x86BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                             const target::SetIpv4UdpTcpChecksum *node) {
   auto ip_header_addr = node->get_ip_header_addr();
   auto l4_header_addr = node->get_l4_header_addr();
   auto p_addr = node->get_p_addr();
@@ -2270,9 +2261,8 @@ void x86BMv2Generator::visit(
   nf_process_stream << ");\n";
 }
 
-void x86BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::x86_bmv2::DchainIsIndexAllocated *node) {
+void x86BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                             const target::DchainIsIndexAllocated *node) {
   auto dchain_addr = node->get_dchain_addr();
   auto index = node->get_index();
   auto is_allocated = node->get_is_allocated();
@@ -2305,5 +2295,6 @@ void x86BMv2Generator::visit(
   nf_process_stream << ");\n";
 }
 
+} // namespace x86_bmv2
 } // namespace synthesizer
 } // namespace synapse

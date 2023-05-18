@@ -117,6 +117,39 @@ class DchainIsIndexAllocated;
 class DchainRejuvenateIndex;
 } // namespace x86_tofino
 
+namespace x86 {
+class MapGet;
+class CurrentTime;
+class PacketBorrowNextChunk;
+class PacketReturnChunk;
+class If;
+class Then;
+class Else;
+class Forward;
+class Broadcast;
+class Drop;
+class ExpireItemsSingleMap;
+class ExpireItemsSingleMapIteratively;
+class RteEtherAddrHash;
+class DchainRejuvenateIndex;
+class VectorBorrow;
+class VectorReturn;
+class DchainAllocateNewIndex;
+class MapPut;
+class PacketGetUnreadLength;
+class SetIpv4UdpTcpChecksum;
+class DchainIsIndexAllocated;
+class SketchComputeHashes;
+class SketchExpire;
+class SketchFetch;
+class SketchRefresh;
+class SketchTouchBuckets;
+class MapErase;
+class DchainFreeIndex;
+class LoadBalancedFlowHash;
+class ChtFindBackend;
+} // namespace x86
+
 } // namespace targets
 
 class ExecutionPlanVisitor {
@@ -240,6 +273,43 @@ public:
   VISIT(targets::x86_tofino::DchainAllocateNewIndex)
   VISIT(targets::x86_tofino::DchainIsIndexAllocated)
   VISIT(targets::x86_tofino::DchainRejuvenateIndex)
+
+  /*************************************
+   *
+   *                x86
+   *
+   * **********************************/
+
+  VISIT(targets::x86::MapGet)
+  VISIT(targets::x86::CurrentTime)
+  VISIT(targets::x86::PacketBorrowNextChunk)
+  VISIT(targets::x86::PacketReturnChunk)
+  VISIT(targets::x86::If)
+  VISIT(targets::x86::Then)
+  VISIT(targets::x86::Else)
+  VISIT(targets::x86::Forward)
+  VISIT(targets::x86::Broadcast)
+  VISIT(targets::x86::Drop)
+  VISIT(targets::x86::ExpireItemsSingleMap)
+  VISIT(targets::x86::ExpireItemsSingleMapIteratively)
+  VISIT(targets::x86::RteEtherAddrHash)
+  VISIT(targets::x86::DchainRejuvenateIndex)
+  VISIT(targets::x86::VectorBorrow)
+  VISIT(targets::x86::VectorReturn)
+  VISIT(targets::x86::DchainAllocateNewIndex)
+  VISIT(targets::x86::MapPut)
+  VISIT(targets::x86::PacketGetUnreadLength)
+  VISIT(targets::x86::SetIpv4UdpTcpChecksum)
+  VISIT(targets::x86::DchainIsIndexAllocated)
+  VISIT(targets::x86::SketchComputeHashes)
+  VISIT(targets::x86::SketchExpire)
+  VISIT(targets::x86::SketchFetch)
+  VISIT(targets::x86::SketchRefresh)
+  VISIT(targets::x86::SketchTouchBuckets)
+  VISIT(targets::x86::MapErase)
+  VISIT(targets::x86::DchainFreeIndex)
+  VISIT(targets::x86::LoadBalancedFlowHash)
+  VISIT(targets::x86::ChtFindBackend)
 
 protected:
   virtual void log(const ExecutionPlanNode *ep_node) const;

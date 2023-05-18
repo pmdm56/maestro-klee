@@ -142,8 +142,9 @@ std::unordered_set<std::string> get_all_symbols(const Node *node) {
   return symbols;
 }
 
-std::vector<std::string> filter_symbols_by_base(const std::unordered_set<std::string> &symbols,
-                           const std::string &base) {
+std::vector<std::string>
+filter_symbols_by_base(const std::unordered_set<std::string> &symbols,
+                       const std::string &base) {
   auto base_finder = [&](const std::string &symbol) {
     if (symbol == base) {
       return true;
@@ -225,7 +226,7 @@ std::string SymbolFactory::build_label(std::string base, const Node *node,
 
   auto labels = filter_symbols_by_base(all_symbols, base);
 
-  if (counter >= labels.size()) {
+  if (counter >= static_cast<int>(labels.size())) {
     // Apparently this symbol will not be used in future nodes
     return base;
   }
@@ -436,7 +437,7 @@ symbols_t SymbolFactory::expire_items_single_map(call_t call, const Node *node,
   assert(!call.ret.isNull());
   auto number_of_freed_flows = call.ret;
   auto number_of_freed_flows_label =
-      build_label("number_of_freed_flows", node, save);
+      build_label(number_of_freed_flows, "number_of_freed_flows", save);
 
   symbols.emplace(number_of_freed_flows_label, "number_of_freed_flows",
                   number_of_freed_flows);

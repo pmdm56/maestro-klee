@@ -41,6 +41,7 @@ public:
         {TargetType::FPGA, "coral1"},
         {TargetType::x86_BMv2, "darkorange2"},
         {TargetType::x86_Tofino, "firebrick2"},
+        {TargetType::x86, "cadetblue1"},
     };
 
     ofs.open(fpath);
@@ -196,6 +197,43 @@ public:
   DECLARE_VISIT(targets::x86_tofino::DchainAllocateNewIndex)
   DECLARE_VISIT(targets::x86_tofino::DchainIsIndexAllocated)
   DECLARE_VISIT(targets::x86_tofino::DchainRejuvenateIndex)
+
+  /********************************************
+   *
+   *                  x86
+   *
+   ********************************************/
+
+  DECLARE_VISIT(targets::x86::MapGet)
+  DECLARE_VISIT(targets::x86::CurrentTime)
+  DECLARE_VISIT(targets::x86::PacketBorrowNextChunk)
+  DECLARE_VISIT(targets::x86::PacketReturnChunk)
+  DECLARE_VISIT(targets::x86::If)
+  DECLARE_VISIT(targets::x86::Then)
+  DECLARE_VISIT(targets::x86::Else)
+  DECLARE_VISIT(targets::x86::Forward)
+  DECLARE_VISIT(targets::x86::Broadcast)
+  DECLARE_VISIT(targets::x86::Drop)
+  DECLARE_VISIT(targets::x86::ExpireItemsSingleMap)
+  DECLARE_VISIT(targets::x86::ExpireItemsSingleMapIteratively)
+  DECLARE_VISIT(targets::x86::RteEtherAddrHash)
+  DECLARE_VISIT(targets::x86::DchainRejuvenateIndex)
+  DECLARE_VISIT(targets::x86::VectorBorrow)
+  DECLARE_VISIT(targets::x86::VectorReturn)
+  DECLARE_VISIT(targets::x86::DchainAllocateNewIndex)
+  DECLARE_VISIT(targets::x86::MapPut)
+  DECLARE_VISIT(targets::x86::PacketGetUnreadLength)
+  DECLARE_VISIT(targets::x86::SetIpv4UdpTcpChecksum)
+  DECLARE_VISIT(targets::x86::DchainIsIndexAllocated)
+  DECLARE_VISIT(targets::x86::SketchComputeHashes)
+  DECLARE_VISIT(targets::x86::SketchExpire)
+  DECLARE_VISIT(targets::x86::SketchFetch)
+  DECLARE_VISIT(targets::x86::SketchRefresh)
+  DECLARE_VISIT(targets::x86::SketchTouchBuckets)
+  DECLARE_VISIT(targets::x86::MapErase)
+  DECLARE_VISIT(targets::x86::DchainFreeIndex)
+  DECLARE_VISIT(targets::x86::LoadBalancedFlowHash)
+  DECLARE_VISIT(targets::x86::ChtFindBackend)
 
 private:
   void visit_table(const targets::tofino::TableLookup *node, bool simple);

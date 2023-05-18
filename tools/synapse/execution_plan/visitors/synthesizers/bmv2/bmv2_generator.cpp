@@ -15,6 +15,9 @@
 #define MARKER_INGRESS_TAG_VERSIONS_ACTIONS "ingress_tag_versions_action"
 #define MARKER_DEPARSER_APPLY "deparser_apply"
 
+using synapse::Module;
+using synapse::TargetType;
+
 namespace synapse {
 namespace synthesizer {
 namespace bmv2 {
@@ -580,7 +583,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
   mod->visit(*this, ep_node);
 
   auto pending_packet_borrow_ep =
-      pending_packet_borrow_next_chunk(ep_node, synapse::TargetType::BMv2);
+      pending_packet_borrow_next_chunk(ep_node, TargetType::BMv2);
 
   if (parsing_headers && !pending_packet_borrow_ep) {
     parser.accept();
@@ -589,10 +592,9 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
   parsing_headers = pending_packet_borrow_ep;
 
   for (auto branch : next) {
-    if (ep_node->get_module()->get_type() == Module::ModuleType::BMv2_If &&
+    if (ep_node->get_module()->get_type() == Module::BMv2_If &&
         pending_packet_borrow_ep &&
-        !pending_packet_borrow_next_chunk(branch.get(),
-                                          synapse::TargetType::BMv2)) {
+        !pending_packet_borrow_next_chunk(branch.get(), TargetType::BMv2)) {
       parser.reject();
     }
 
@@ -601,7 +603,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node) {
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::Else *node) {
+                          const target::Else *node) {
   local_vars.push();
   metadata.push();
   parser.push_on_false();
@@ -613,7 +615,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::EthernetConsume *node) {
+                          const target::EthernetConsume *node) {
   hdr_field_t dstAddr(48, "dstAddr");
   hdr_field_t srcAddr(48, "srcAddr");
   hdr_field_t etherType(16, "etherType");
@@ -631,7 +633,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::EthernetModify *node) {
+                          const target::EthernetModify *node) {
   auto ethernet_chunk = node->get_ethernet_chunk();
   auto modifications = node->get_modifications();
 
@@ -677,7 +679,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::Forward *node) {
+                          const target::Forward *node) {
   pad(ingress.apply_block, ingress.lvl);
   ingress.apply_block << "forward(" << node->get_port() << ");\n";
 
@@ -691,7 +693,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::Drop *node) {
+                          const target::Drop *node) {
   pad(ingress.apply_block, ingress.lvl);
   ingress.apply_block << "drop();\n";
 
@@ -705,7 +707,7 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::If *node) {
+                          const target::If *node) {
   parser.add_condition(transpile(node->get_condition(), true));
 
   local_vars.push();
@@ -721,10 +723,10 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::Ignore *node) {}
+                          const target::Ignore *node) {}
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::IPv4Consume *node) {
+                          const target::IPv4Consume *node) {
   hdr_field_t version_ihl(8, "version_ihl");
   hdr_field_t diff_serv(8, "diff_serv");
   hdr_field_t total_len(16, "total_len");
@@ -753,12 +755,12 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::IPv4Modify *node) {
+                          const target::IPv4Modify *node) {
   assert(false && "TODO");
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::IPOptionsConsume *node) {
+                          const target::IPOptionsConsume *node) {
   auto chunk = node->get_chunk();
   auto length = node->get_length();
 
@@ -789,12 +791,12 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::IPOptionsModify *node) {
+                          const target::IPOptionsModify *node) {
   assert(false && "TODO");
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::TcpUdpConsume *node) {
+                          const target::TcpUdpConsume *node) {
   hdr_field_t src_port(16, "src_port");
   hdr_field_t dst_port(16, "dst_port");
 
@@ -812,12 +814,12 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::TcpUdpModify *node) {
+                          const target::TcpUdpModify *node) {
   assert(false && "TODO");
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::SendToController *node) {
+                          const target::SendToController *node) {
   auto code_path = node->get_metadata_code_path();
 
   pad(ingress.apply_block, ingress.lvl);
@@ -832,14 +834,13 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
   }
 }
 
-void BMv2Generator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::bmv2::SetupExpirationNotifications *node) {
+void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
+                          const target::SetupExpirationNotifications *node) {
   // FIXME: assert(false && "TODO");
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::TableLookup *node) {
+                          const target::TableLookup *node) {
   auto keys = node->get_keys();
   auto params = node->get_params();
   auto bdd_function = node->get_bdd_function();
@@ -941,12 +942,12 @@ void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::Then *node) {
+                          const target::Then *node) {
   parser.push_on_true();
 }
 
 void BMv2Generator::visit(const ExecutionPlanNode *ep_node,
-                          const targets::bmv2::VectorReturn *node) {
+                          const target::VectorReturn *node) {
   // do nothing
 }
 

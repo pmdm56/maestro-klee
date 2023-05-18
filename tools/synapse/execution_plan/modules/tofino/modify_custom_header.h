@@ -18,8 +18,8 @@ public:
                      "ModifyCustomHeader") {}
 
   ModifyCustomHeader(BDD::Node_ptr node,
-                        const klee::ref<klee::Expr> &_original_chunk,
-                        const std::vector<modification_t> &_modifications)
+                     const klee::ref<klee::Expr> &_original_chunk,
+                     const std::vector<modification_t> &_modifications)
       : TofinoModule(ModuleType::Tofino_ModifyCustomHeader,
                      "ModifyCustomHeader", node),
         original_chunk(_original_chunk), modifications(_modifications) {}
@@ -27,14 +27,10 @@ public:
 private:
   klee::ref<klee::Expr> get_original_chunk(const ExecutionPlan &ep,
                                            BDD::Node_ptr node) const {
-    auto prev_borrows =
-        get_all_prev_functions(ep, node, symbex::FN_BORROW_CHUNK);
+    auto prev_borrows = get_prev_fn(ep, node, symbex::FN_BORROW_CHUNK);
+    auto prev_returns = get_prev_fn(ep, node, symbex::FN_RETURN_CHUNK);
 
     assert(prev_borrows.size());
-
-    auto prev_returns =
-        get_all_prev_functions(ep, node, symbex::FN_RETURN_CHUNK);
-
     assert(prev_borrows.size() > prev_returns.size());
 
     auto target = prev_borrows[prev_returns.size()];
@@ -100,8 +96,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned =
-        new ModifyCustomHeader(node, original_chunk, modifications);
+    auto cloned = new ModifyCustomHeader(node, original_chunk, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 

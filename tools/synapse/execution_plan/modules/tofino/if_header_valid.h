@@ -5,6 +5,9 @@
 #include "then.h"
 #include "tofino_module.h"
 
+using synapse::symbex::CHUNK;
+using synapse::symbex::PACKET_LENGTH;
+
 namespace synapse {
 namespace targets {
 namespace tofino {
@@ -38,8 +41,8 @@ private:
     auto symbols = retriever.get_retrieved_strings();
 
     std::vector<std::string> allowed_symbols = {
-        synapse::symbex::PACKET_LENGTH,
-        synapse::symbex::CHUNK,
+        symbex::PACKET_LENGTH,
+        symbex::CHUNK,
     };
 
     // check if there are unexpected symbols

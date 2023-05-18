@@ -16,6 +16,10 @@ namespace synapse {
 namespace synthesizer {
 namespace bmv2 {
 
+using synapse::TargetType;
+using namespace synapse::targets;
+namespace target = synapse::targets::bmv2;
+
 class KleeExprToP4;
 class KeysFromKleeExpr;
 
@@ -601,41 +605,40 @@ public:
   void visit(const ExecutionPlanNode *ep_node) override;
 
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::Drop *node) override;
+             const target::Drop *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::Else *node) override;
+             const target::Else *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::EthernetConsume *node) override;
+             const target::EthernetConsume *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::EthernetModify *node) override;
+             const target::EthernetModify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::Forward *node) override;
+             const target::Forward *node) override;
+  void visit(const ExecutionPlanNode *ep_node, const target::If *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::If *node) override;
+             const target::Ignore *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::Ignore *node) override;
+             const target::IPv4Consume *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::IPv4Consume *node) override;
+             const target::IPv4Modify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::IPv4Modify *node) override;
+             const target::IPOptionsConsume *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::IPOptionsConsume *node) override;
+             const target::IPOptionsModify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::IPOptionsModify *node) override;
+             const target::TcpUdpConsume *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::TcpUdpConsume *node) override;
+             const target::TcpUdpModify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::TcpUdpModify *node) override;
+             const target::SendToController *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::SendToController *node) override;
+             const target::SetupExpirationNotifications *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::SetupExpirationNotifications *node) override;
+             const target::TableLookup *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::TableLookup *node) override;
+             const target::Then *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::Then *node) override;
-  void visit(const ExecutionPlanNode *ep_node,
-             const targets::bmv2::VectorReturn *node) override;
+             const target::VectorReturn *node) override;
 };
 
 } // namespace bmv2

@@ -119,6 +119,36 @@ public:
     x86_Tofino_DchainAllocateNewIndex,
     x86_Tofino_DchainIsIndexAllocated,
     x86_Tofino_DchainRejuvenateIndex,
+    x86_CurrentTime,
+    x86_If,
+    x86_Then,
+    x86_Else,
+    x86_MapGet,
+    x86_MapPut,
+    x86_MapErase,
+    x86_VectorBorrow,
+    x86_VectorReturn,
+    x86_DchainRejuvenateIndex,
+    x86_DchainAllocateNewIndex,
+    x86_DchainIsIndexAllocated,
+    x86_DchainFreeIndex,
+    x86_SketchExpire,
+    x86_SketchComputeHashes,
+    x86_SketchRefresh,
+    x86_SketchFetch,
+    x86_SketchTouchBuckets,
+    x86_PacketGetUnreadLength,
+    x86_PacketBorrowNextChunk,
+    x86_PacketReturnChunk,
+    x86_Forward,
+    x86_Drop,
+    x86_Broadcast,
+    x86_ExpireItemsSingleMap,
+    x86_ExpireItemsSingleMapIteratively,
+    x86_RteEtherAddrHash,
+    x86_SetIpv4UdpTcpChecksum,
+    x86_LoadBalancedFlowHash,
+    x86_ChtFindBackend,
   };
 
 protected:
@@ -179,6 +209,8 @@ public:
       return "FPGA";
     case BMv2:
       return "BMv2";
+    case x86:
+      return "x86";
     }
 
     assert(false && "I should not be here");
@@ -205,11 +237,11 @@ protected:
   bool query_contains_map_has_key(const BDD::Branch *node) const;
 
   std::vector<BDD::Node_ptr>
-  get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
-                         const std::string &function_name) const;
+  get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
+              const std::string &function_name) const;
   std::vector<BDD::Node_ptr>
-  get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
-                         const std::vector<std::string> &functions_names) const;
+  get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
+              const std::vector<std::string> &functions_names) const;
 
   std::vector<BDD::Node_ptr>
   get_all_functions_after_node(BDD::Node_ptr root,
@@ -227,13 +259,6 @@ protected:
                       klee::ref<klee::Expr> after) const;
 
   bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) const;
-
-  struct dchain_config_t {
-    uint64_t index_range;
-  };
-
-  dchain_config_t get_dchain_config(const BDD::BDD &bdd,
-                                    obj_addr_t dchain_addr);
 
   struct coalesced_data_t {
     bool can_coalesce;

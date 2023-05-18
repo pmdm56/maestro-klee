@@ -70,7 +70,6 @@ private:
 
     auto offset = extract->offset;
     auto expr = extract->expr;
-    auto expr_size = expr->getWidth();
     auto size = extract->width;
 
     // concats
@@ -701,9 +700,6 @@ klee::ref<klee::Expr> __simplify(klee::ref<klee::Expr> expr, bool &changed) {
 
   auto simplified = true;
 
-  constexpr int GUARD_LIMIT = 100;
-  auto guard = 0;
-
   while (simplified) {
     Simplifier simplifier;
     simplifier.visit(expr);
@@ -721,8 +717,6 @@ klee::ref<klee::Expr> __simplify(klee::ref<klee::Expr> expr, bool &changed) {
       changed = true;
     }
   }
-
-  assert(guard != GUARD_LIMIT && "Guard triggered on simplification");
 
   return expr;
 }

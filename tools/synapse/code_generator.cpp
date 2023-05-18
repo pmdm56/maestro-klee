@@ -1,8 +1,8 @@
 #include "code_generator.h"
-#include "execution_plan/visitors/graphviz/graphviz.h"
 #include "execution_plan/execution_plan.h"
 #include "execution_plan/execution_plan_node.h"
 #include "execution_plan/modules/modules.h"
+#include "execution_plan/visitors/graphviz/graphviz.h"
 
 namespace synapse {
 
@@ -57,7 +57,8 @@ struct annotated_node_t {
   annotated_node_t(ExecutionPlanNode_ptr _node)
       : node(_node), save(false), path_id(0) {}
 
-  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save, BDD::node_id_t _path_id)
+  annotated_node_t(ExecutionPlanNode_ptr _node, bool _save,
+                   BDD::node_id_t _path_id)
       : node(_node), save(_save), path_id(_path_id) {}
 
   annotated_node_t clone() const {
@@ -420,6 +421,30 @@ ExecutionPlan
 CodeGenerator::netronome_extractor(const ExecutionPlan &execution_plan) const {
   assert(false && "TODO");
   exit(1);
+}
+
+ExecutionPlan
+CodeGenerator::x86_extractor(const ExecutionPlan &execution_plan) const {
+  // No extraction at all, just asserting that this targets contains only x86
+  // nodes.
+
+  auto nodes = std::vector<ExecutionPlanNode_ptr>{execution_plan.get_root()};
+
+  while (nodes.size()) {
+    auto node = nodes[0];
+    assert(node);
+
+    nodes.erase(nodes.begin());
+
+    auto module = node->get_module();
+    assert(module);
+    assert(module->get_target() == TargetType::x86);
+
+    auto next = node->get_next();
+    nodes.insert(nodes.end(), next.begin(), next.end());
+  }
+
+  return execution_plan;
 }
 
 } // namespace synapse

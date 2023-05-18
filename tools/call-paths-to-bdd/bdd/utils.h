@@ -2,6 +2,8 @@
 
 #include "nodes/nodes.h"
 
+#include <vector>
+
 namespace BDD {
 
 template <class T> inline const T *cast_node(Node_ptr node) = delete;
@@ -38,5 +40,8 @@ inline const ReturnProcess *cast_node<ReturnProcess>(Node_ptr node) {
 
   return static_cast<const ReturnProcess *>(node.get());
 }
+
+std::vector<Node_ptr> get_call_nodes(Node_ptr root,
+                                     const std::vector<std::string> &fnames);
 
 } // namespace BDD

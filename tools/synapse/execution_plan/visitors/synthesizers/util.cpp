@@ -4,11 +4,13 @@
 #include "../../execution_plan_node.h"
 #include "../../modules/module.h"
 
+using synapse::TargetType;
+
 namespace synapse {
 namespace synthesizer {
 
 bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
-                                      synapse::TargetType target) {
+                                      TargetType target) {
   assert(ep_node);
   // std::vector<ExecutionPlanNode_ptr> nodes;
   std::vector<const ExecutionPlanNode *> nodes{ep_node};
@@ -53,7 +55,6 @@ bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
 bool is_primitive_type(bits_t size) {
   return size == 8 || size == 16 || size == 32 || size == 64;
 }
-
 
 } // namespace synthesizer
 } // namespace synapse

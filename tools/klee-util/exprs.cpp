@@ -41,6 +41,11 @@ bool get_bytes_read(klee::ref<klee::Expr> expr, std::vector<unsigned> &bytes) {
 }
 
 bool is_readLSB(klee::ref<klee::Expr> expr) {
+  std::string symbol;
+  return is_readLSB(expr, symbol);
+}
+
+bool is_readLSB(klee::ref<klee::Expr> expr, std::string &symbol) {
   if (expr->getKind() != klee::Expr::Concat) {
     return false;
   }
@@ -52,7 +57,9 @@ bool is_readLSB(klee::ref<klee::Expr> expr) {
   RetrieveSymbols retriever;
   retriever.visit(expr);
 
-  if (retriever.get_retrieved_strings().size() > 1) {
+  auto symbols = retriever.get_retrieved_strings();
+
+  if (symbols.size() > 1) {
     return false;
   }
 
@@ -69,6 +76,8 @@ bool is_readLSB(klee::ref<klee::Expr> expr) {
 
     expected_byte -= 1;
   }
+
+  symbol = *symbols.begin();
 
   return true;
 }

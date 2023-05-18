@@ -54,6 +54,6 @@ public:
     return other->get_type() == type;
   }
 };
-} // namespace x86_bmv2
+} // namespace x86
 } // namespace targets
 } // namespace synapse

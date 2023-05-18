@@ -19,6 +19,8 @@ namespace synapse {
 namespace synthesizer {
 namespace x86_tofino {
 
+namespace target = synapse::targets::x86_tofino;
+
 class x86TofinoGenerator : public Synthesizer {
   friend Transpiler;
 
@@ -63,47 +65,47 @@ public:
   void visit(const ExecutionPlanNode *ep_node) override;
 
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketParseCPU *node) override;
+             const target::PacketParseCPU *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::Drop *node) override;
+             const target::Drop *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::ForwardThroughTofino *node) override;
+             const target::ForwardThroughTofino *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketParseEthernet *node) override;
+             const target::PacketParseEthernet *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketModifyEthernet *node) override;
+             const target::PacketModifyEthernet *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketParseIPv4 *node) override;
+             const target::PacketParseIPv4 *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketModifyIPv4 *node) override;
+             const target::PacketModifyIPv4 *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketParseIPv4Options *node) override;
+             const target::PacketParseIPv4Options *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketModifyIPv4Options *node) override;
+             const target::PacketModifyIPv4Options *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketParseTCPUDP *node) override;
+             const target::PacketParseTCPUDP *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketModifyTCPUDP *node) override;
+             const target::PacketModifyTCPUDP *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::PacketModifyChecksums *node) override;
+             const target::PacketModifyChecksums *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::If *node) override;
+             const target::If *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::Then *node) override;
+             const target::Then *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::Else *node) override;
+             const target::Else *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::MapGet *node) override;
+             const target::MapGet *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::MapPut *node) override;
+             const target::MapPut *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::EtherAddrHash *node) override;
+             const target::EtherAddrHash *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::DchainAllocateNewIndex *node) override;
+             const target::DchainAllocateNewIndex *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::DchainIsIndexAllocated *node) override;
+             const target::DchainIsIndexAllocated *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_tofino::DchainRejuvenateIndex *node) override;
+             const target::DchainRejuvenateIndex *node) override;
 };
 
 } // namespace x86_tofino

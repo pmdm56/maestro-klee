@@ -16,6 +16,10 @@
 
 namespace synapse {
 namespace synthesizer {
+namespace x86_bmv2 {
+
+using synapse::TargetType;
+namespace target = synapse::targets::x86_bmv2;
 
 struct variable_t {
   std::string label;
@@ -334,7 +338,7 @@ private:
   stack_t stack;
   std::vector<std::pair<klee::ref<klee::Expr>, uint64_t>> expiration_times;
 
-  std::pair<bool, synapse::TargetType> is_controller;
+  std::pair<bool, TargetType> is_controller;
 
 private:
   void pad(std::ostream &_os) const { _os << std::string(lvl * 2, ' '); }
@@ -375,48 +379,48 @@ public:
   void visit(const ExecutionPlanNode *ep_node) override;
 
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::MapGet *node) override;
+             const target::MapGet *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::CurrentTime *node) override;
+             const target::CurrentTime *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::PacketBorrowNextChunk *node) override;
+             const target::PacketBorrowNextChunk *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::PacketGetMetadata *node) override;
+             const target::PacketGetMetadata *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::PacketReturnChunk *node) override;
+             const target::PacketReturnChunk *node) override;
+  void visit(const ExecutionPlanNode *ep_node, const target::If *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::If *node) override;
+             const target::Then *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::Then *node) override;
+             const target::Else *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::Else *node) override;
+             const target::Forward *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::Forward *node) override;
+             const target::Broadcast *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::Broadcast *node) override;
+             const target::Drop *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::Drop *node) override;
+             const target::ExpireItemsSingleMap *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::ExpireItemsSingleMap *node) override;
+             const target::RteEtherAddrHash *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::RteEtherAddrHash *node) override;
+             const target::DchainRejuvenateIndex *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::DchainRejuvenateIndex *node) override;
+             const target::VectorBorrow *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::VectorBorrow *node) override;
+             const target::VectorReturn *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::VectorReturn *node) override;
+             const target::DchainAllocateNewIndex *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::DchainAllocateNewIndex *node) override;
+             const target::MapPut *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::MapPut *node) override;
+             const target::PacketGetUnreadLength *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::PacketGetUnreadLength *node) override;
+             const target::SetIpv4UdpTcpChecksum *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::SetIpv4UdpTcpChecksum *node) override;
-  void visit(const ExecutionPlanNode *ep_node,
-             const targets::x86_bmv2::DchainIsIndexAllocated *node) override;
+             const target::DchainIsIndexAllocated *node) override;
 };
 
+} // namespace x86_bmv2
 } // namespace synthesizer
 } // namespace synapse

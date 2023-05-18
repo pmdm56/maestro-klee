@@ -1,0 +1,78 @@
+#pragma once
+
+#include <klee/Expr.h>
+
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+
+#include "../../../symbex.h"
+#include "data_structures/data_structures.h"
+
+#define HAS_CONFIG(T)                                                          \
+  bool has_##T##_config(obj_addr_t addr) const {                               \
+    return T##_configs.find(addr) != T##_configs.end();                        \
+  }
+
+#define SAVE_CONFIG(T)                                                         \
+  void save_##T##_config(obj_addr_t addr, symbex::T##_config_t cfg) {          \
+    assert(!has_##T##_config(addr));                                           \
+    T##_configs.insert({addr, cfg});                                           \
+  }
+
+#define GET_CONFIG(T)                                                          \
+  const std::unordered_map<obj_addr_t, symbex::T##_config_t>                   \
+      &get_##T##_configs() {                                                   \
+    return T##_configs;                                                        \
+  }
+
+namespace synapse {
+namespace targets {
+namespace x86 {
+
+class x86MemoryBank : public MemoryBank {
+public:
+private:
+  std::unordered_map<obj_addr_t, symbex::map_config_t> map_configs;
+  std::unordered_map<obj_addr_t, symbex::vector_config_t> vector_configs;
+  std::unordered_map<obj_addr_t, symbex::dchain_config_t> dchain_configs;
+  std::unordered_map<obj_addr_t, symbex::sketch_config_t> sketch_configs;
+  std::unordered_map<obj_addr_t, symbex::cht_config_t> cht_configs;
+
+public:
+  x86MemoryBank() : MemoryBank() {}
+
+  x86MemoryBank(const MemoryBank &mb) : MemoryBank(mb) {}
+
+  x86MemoryBank(const x86MemoryBank &mb)
+      : MemoryBank(mb), map_configs(mb.map_configs),
+        vector_configs(mb.vector_configs), dchain_configs(mb.dchain_configs),
+        sketch_configs(mb.sketch_configs), cht_configs(mb.cht_configs) {}
+
+  HAS_CONFIG(map)
+  HAS_CONFIG(vector)
+  HAS_CONFIG(dchain)
+  HAS_CONFIG(sketch)
+  HAS_CONFIG(cht)
+
+  SAVE_CONFIG(map)
+  SAVE_CONFIG(vector)
+  SAVE_CONFIG(dchain)
+  SAVE_CONFIG(sketch)
+  SAVE_CONFIG(cht)
+
+  GET_CONFIG(map)
+  GET_CONFIG(vector)
+  GET_CONFIG(dchain)
+  GET_CONFIG(sketch)
+  GET_CONFIG(cht)
+
+  virtual MemoryBank_ptr clone() const {
+    auto clone = new x86MemoryBank(*this);
+    return MemoryBank_ptr(clone);
+  }
+};
+
+} // namespace x86
+} // namespace targets
+} // namespace synapse

@@ -31,54 +31,57 @@
 #include "log.h"
 #include "search.h"
 
+using llvm::cl::cat;
+using llvm::cl::desc;
+using llvm::cl::OneOrMore;
+using llvm::cl::Positional;
+using llvm::cl::Required;
+using llvm::cl::values;
+
+using namespace synapse;
+
 namespace {
-llvm::cl::list<std::string> InputCallPathFiles(llvm::cl::desc("<call paths>"),
-                                               llvm::cl::Positional);
+llvm::cl::list<std::string> InputCallPathFiles(desc("<call paths>"),
+                                               Positional);
 
 llvm::cl::OptionCategory SyNAPSE("SyNAPSE specific options");
 
-llvm::cl::list<synapse::TargetType> TargetList(
-    llvm::cl::desc("Available targets:"), llvm::cl::Required,
-    llvm::cl::OneOrMore,
-    llvm::cl::values(
-        clEnumValN(synapse::TargetType::x86_BMv2, "x86-bmv2",
-                   "x86 controller for BMv2 (C)"),
-        clEnumValN(synapse::TargetType::BMv2, "bmv2",
-                   "BMv2 Lab 5: Apoio ao projeto -- mE1(P4)"),
-        clEnumValN(synapse::TargetType::FPGA, "fpga", "FPGA (veriLog)"),
-        clEnumValN(synapse::TargetType::Netronome, "netronome",
-                   "Netronome (micro C)"),
-        clEnumValN(synapse::TargetType::Tofino, "tofino", "Tofino (P4)"),
-        clEnumValN(synapse::TargetType::x86_Tofino, "x86-tofino",
-                   "x86 controller for Tofino (C)"),
-        clEnumValEnd),
-    llvm::cl::cat(SyNAPSE));
+llvm::cl::list<TargetType> TargetList(
+    desc("Available targets:"), Required, OneOrMore,
+    values(clEnumValN(TargetType::x86_BMv2, "x86-bmv2", "BMv2 ctrl (C)"),
+           clEnumValN(TargetType::BMv2, "bmv2", "BMv2 (P4)"),
+           clEnumValN(TargetType::FPGA, "fpga", "FPGA (veriLog)"),
+           clEnumValN(TargetType::Netronome, "netronome", "Netronome (uC)"),
+           clEnumValN(TargetType::Tofino, "tofino", "Tofino (P4)"),
+           clEnumValN(TargetType::x86_Tofino, "x86-tofino",
+                      "Tofino ctrl (C++)"),
+           clEnumValN(TargetType::x86, "x86", "x86 (DPDK C)"), clEnumValEnd),
+    cat(SyNAPSE));
 
 llvm::cl::opt<std::string>
-    InputBDDFile("in", llvm::cl::desc("Input file for BDD deserialization."),
-                 llvm::cl::cat(SyNAPSE));
+    InputBDDFile("in", desc("Input file for BDD deserialization."),
+                 cat(SyNAPSE));
 
 llvm::cl::opt<std::string>
-    Out("out", llvm::cl::desc("Output directory for every generated file."),
-        llvm::cl::cat(SyNAPSE));
+    Out("out", desc("Output directory for every generated file."),
+        cat(SyNAPSE));
 
 llvm::cl::opt<int> MaxReordered(
     "max-reordered",
-    llvm::cl::desc(
-        "Maximum number of reordenations on the BDD (-1 for unlimited)."),
-    llvm::cl::Optional, llvm::cl::init(-1), llvm::cl::cat(SyNAPSE));
+    desc("Maximum number of reordenations on the BDD (-1 for unlimited)."),
+    llvm::cl::Optional, llvm::cl::init(-1), cat(SyNAPSE));
 
-llvm::cl::opt<bool> ShowEP("s", llvm::cl::desc("Show winner Execution Plan."),
+llvm::cl::opt<bool> ShowEP("s", desc("Show winner Execution Plan."),
                            llvm::cl::ValueDisallowed, llvm::cl::init(false),
-                           llvm::cl::cat(SyNAPSE));
+                           cat(SyNAPSE));
 
-llvm::cl::opt<bool> ShowSS("ss", llvm::cl::desc("Show the entire search space."),
+llvm::cl::opt<bool> ShowSS("ss", desc("Show the entire search space."),
                            llvm::cl::ValueDisallowed, llvm::cl::init(false),
-                           llvm::cl::cat(SyNAPSE));
+                           cat(SyNAPSE));
 
-llvm::cl::opt<bool> Verbose("v", llvm::cl::desc("Verbose mode."),
+llvm::cl::opt<bool> Verbose("v", desc("Verbose mode."),
                             llvm::cl::ValueDisallowed, llvm::cl::init(false),
-                            llvm::cl::cat(SyNAPSE));
+                            cat(SyNAPSE));
 } // namespace
 
 BDD::BDD build_bdd() {
@@ -101,20 +104,19 @@ BDD::BDD build_bdd() {
   return BDD::BDD(call_paths);
 }
 
-std::pair<synapse::ExecutionPlan, synapse::SearchSpace>
-search(const BDD::BDD &bdd) {
-  synapse::SearchEngine search_engine(bdd, MaxReordered);
+std::pair<ExecutionPlan, SearchSpace> search(const BDD::BDD &bdd) {
+  SearchEngine search_engine(bdd, MaxReordered);
 
   for (unsigned i = 0; i != TargetList.size(); ++i) {
     auto target = TargetList[i];
     search_engine.add_target(target);
   }
 
-  synapse::Biggest biggest;
-  synapse::DFS dfs;
-  synapse::MostCompact most_compact;
-  synapse::LeastReordered least_reordered;
-  synapse::MaximizeSwitchNodes maximize_switch_nodes;
+  Biggest biggest;
+  DFS dfs;
+  MostCompact most_compact;
+  LeastReordered least_reordered;
+  MaximizeSwitchNodes maximize_switch_nodes;
 
   // auto winner = search_engine.search(biggest);
   // auto winner = search_engine.search(least_reordered);
@@ -126,8 +128,8 @@ search(const BDD::BDD &bdd) {
   return {winner, ss};
 }
 
-void synthesize(const synapse::ExecutionPlan &ep) {
-  synapse::CodeGenerator code_generator(Out);
+void synthesize(const ExecutionPlan &ep) {
+  CodeGenerator code_generator(Out);
 
   for (unsigned i = 0; i != TargetList.size(); ++i) {
     auto target = TargetList[i];
@@ -141,9 +143,9 @@ int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   if (Verbose) {
-    synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::DEBUG;
+    Log::MINIMUM_LOG_LEVEL = Log::Level::DEBUG;
   } else {
-    synapse::Log::MINIMUM_LOG_LEVEL = synapse::Log::Level::LOG;
+    Log::MINIMUM_LOG_LEVEL = Log::Level::LOG;
   }
 
   BDD::BDD bdd = build_bdd();
@@ -157,11 +159,11 @@ int main(int argc, char **argv) {
                        .count();
 
   if (ShowEP) {
-    synapse::Graphviz::visualize(search_results.first);
+    Graphviz::visualize(search_results.first);
   }
 
   if (ShowSS) {
-    synapse::Graphviz::visualize(search_results.second);
+    Graphviz::visualize(search_results.second);
   }
 
   int64_t synthesis_dt = -1;
@@ -176,10 +178,10 @@ int main(int argc, char **argv) {
                        .count();
   }
 
-  synapse::Log::log() << "Search time:     " << search_dt << " sec\n";
+  Log::log() << "Search time:     " << search_dt << " sec\n";
 
   if (synthesis_dt >= 0) {
-    synapse::Log::log() << "Generation time: " << synthesis_dt << " sec\n";
+    Log::log() << "Generation time: " << synthesis_dt << " sec\n";
   }
 
   return 0;

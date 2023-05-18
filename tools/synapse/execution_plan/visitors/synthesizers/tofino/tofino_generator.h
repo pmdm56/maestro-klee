@@ -12,6 +12,8 @@ namespace synapse {
 namespace synthesizer {
 namespace tofino {
 
+namespace target = synapse::targets::tofino;
+
 class TofinoGenerator : public Synthesizer {
   friend Transpiler;
 
@@ -35,46 +37,45 @@ public:
   void visit(ExecutionPlan ep) override;
   void visit(const ExecutionPlanNode *ep_node) override;
 
+  void visit(const ExecutionPlanNode *ep_node, const target::If *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::If *node) override;
+             const target::IfHeaderValid *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::IfHeaderValid *node) override;
+             const target::Then *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::Then *node) override;
+             const target::Else *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::Else *node) override;
+             const target::Forward *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::Forward *node) override;
+             const target::ParseCustomHeader *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::ParseCustomHeader *node) override;
+             const target::ModifyCustomHeader *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::ModifyCustomHeader *node) override;
+             const target::ParserCondition *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::ParserCondition *node) override;
+             const target::EthernetModify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::EthernetModify *node) override;
+             const target::IPv4Modify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::IPv4Modify *node) override;
+             const target::TCPUDPModify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::TCPUDPModify *node) override;
+             const target::IPv4TCPUDPChecksumsUpdate *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) override;
+             const target::Drop *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::Drop *node) override;
+             const target::Ignore *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::Ignore *node) override;
+             const target::SendToController *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::SendToController *node) override;
+             const target::TableLookup *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::TableLookup *node) override;
+             const target::TableLookupSimple *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::TableLookupSimple *node) override;
+             const target::IntegerAllocatorAllocate *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::IntegerAllocatorAllocate *node) override;
+             const target::IntegerAllocatorRejuvenate *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::IntegerAllocatorRejuvenate *node) override;
-  void visit(const ExecutionPlanNode *ep_node,
-             const targets::tofino::IntegerAllocatorQuery *node) override;
+             const target::IntegerAllocatorQuery *node) override;
 
   std::string transpile(klee::ref<klee::Expr> expr);
 
@@ -83,9 +84,8 @@ public:
 
 private:
   void allocate_state(const ExecutionPlan &ep);
-  void allocate_table(const targets::tofino::Table *table);
-  void allocate_int_allocator(
-      const targets::tofino::IntegerAllocator *int_allocator);
+  void allocate_table(const target::Table *table);
+  void allocate_int_allocator(const target::IntegerAllocator *int_allocator);
   void
   visit_if_multiple_conditions(std::vector<klee::ref<klee::Expr>> conditions);
   void visit_if_simple_condition(klee::ref<klee::Expr> condition);

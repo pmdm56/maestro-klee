@@ -37,7 +37,7 @@ private:
   call_t get_previous_vector_borrow(const ExecutionPlan &ep, BDD::Node_ptr node,
                                     klee::ref<klee::Expr> wanted_vector) const {
     auto prev_vector_borrows =
-        get_all_prev_functions(ep, node, symbex::FN_VECTOR_BORROW);
+        get_prev_fn(ep, node, symbex::FN_VECTOR_BORROW);
 
     for (auto prev_node : prev_vector_borrows) {
       assert(prev_node->get_type() == BDD::Node::NodeType::CALL);

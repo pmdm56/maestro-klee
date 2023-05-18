@@ -86,7 +86,7 @@ private:
       auto saved = mb->has_data_structure(_dchain_addr);
 
       if (!saved) {
-        auto config = get_dchain_config(ep.get_bdd(), _dchain_addr);
+        auto config = symbex::get_dchain_config(ep.get_bdd(), _dchain_addr);
         auto dchain_ds = std::shared_ptr<x86TofinoMemoryBank::ds_t>(
             new x86TofinoMemoryBank::dchain_t(_dchain_addr, node->get_id(),
                                               config.index_range));

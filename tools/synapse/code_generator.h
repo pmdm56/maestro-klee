@@ -6,13 +6,20 @@
 #include <sys/stat.h>
 #include <vector>
 
+using synapse::synthesizer::Synthesizer;
+using synapse::synthesizer::bmv2::BMv2Generator;
+using synapse::synthesizer::tofino::TofinoGenerator;
+using synapse::synthesizer::x86::x86Generator;
+using synapse::synthesizer::x86_bmv2::x86BMv2Generator;
+using synapse::synthesizer::x86_tofino::x86TofinoGenerator;
+
 namespace synapse {
 
 class CodeGenerator {
 private:
   typedef ExecutionPlan (CodeGenerator::*ExecutionPlanTargetExtractor)(
       const ExecutionPlan &) const;
-  typedef std::shared_ptr<synapse::synthesizer::Synthesizer> Synthesizer_ptr;
+  typedef std::shared_ptr<Synthesizer> Synthesizer_ptr;
 
   struct target_helper_t {
     ExecutionPlanTargetExtractor extractor;
@@ -30,6 +37,7 @@ private:
   std::map<TargetType, target_helper_t> target_helpers_bank;
 
 private:
+  ExecutionPlan x86_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan x86_bmv2_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan x86_tofino_extractor(const ExecutionPlan &execution_plan) const;
   ExecutionPlan bmv2_extractor(const ExecutionPlan &execution_plan) const;
@@ -43,30 +51,27 @@ public:
   CodeGenerator(const std::string &_directory) : directory(_directory) {
     target_helpers_bank = {
         {TargetType::x86_BMv2,
-         target_helper_t(
-             &CodeGenerator::x86_bmv2_extractor,
-             std::make_shared<synapse::synthesizer::x86BMv2Generator>())},
+         target_helper_t(&CodeGenerator::x86_bmv2_extractor,
+                         std::make_shared<x86BMv2Generator>())},
 
-        {TargetType::BMv2,
-         target_helper_t(
-             &CodeGenerator::bmv2_extractor,
-             std::make_shared<synapse::synthesizer::bmv2::BMv2Generator>())},
+        {TargetType::BMv2, target_helper_t(&CodeGenerator::bmv2_extractor,
+                                           std::make_shared<BMv2Generator>())},
 
         {TargetType::FPGA, target_helper_t(&CodeGenerator::fpga_extractor)},
 
         {TargetType::x86_Tofino,
-         target_helper_t(
-             &CodeGenerator::x86_tofino_extractor,
-             std::make_shared<
-                 synapse::synthesizer::x86_tofino::x86TofinoGenerator>())},
+         target_helper_t(&CodeGenerator::x86_tofino_extractor,
+                         std::make_shared<x86TofinoGenerator>())},
 
         {TargetType::Tofino,
          target_helper_t(&CodeGenerator::tofino_extractor,
-                         std::make_shared<
-                             synapse::synthesizer::tofino::TofinoGenerator>())},
+                         std::make_shared<TofinoGenerator>())},
 
         {TargetType::Netronome,
          target_helper_t(&CodeGenerator::netronome_extractor)},
+
+        {TargetType::x86, target_helper_t(&CodeGenerator::x86_extractor,
+                                          std::make_shared<x86Generator>())},
     };
   }
 
@@ -101,6 +106,9 @@ public:
       break;
     case TargetType::Netronome:
       output_file += "netronome.c";
+      break;
+    case TargetType::x86:
+      output_file += "x86.c";
       break;
     }
 

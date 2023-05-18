@@ -65,6 +65,9 @@ public:
     case TargetType::BMv2:
       targets.push_back(targets::bmv2::BMv2Target::build());
       break;
+    case TargetType::x86:
+      targets.push_back(targets::x86::x86Target::build());
+      break;
     }
   }
 

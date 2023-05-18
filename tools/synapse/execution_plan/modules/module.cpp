@@ -7,6 +7,9 @@
 
 #include <algorithm>
 
+using synapse::symbex::CHUNK;
+using synapse::symbex::PACKET_LENGTH;
+
 namespace synapse {
 
 std::vector<ExecutionPlan> get_reordered(const ExecutionPlan &ep,
@@ -113,7 +116,7 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
   return true;
 }
 
-std::vector<BDD::Node_ptr> Module::get_all_prev_functions(
+std::vector<BDD::Node_ptr> Module::get_prev_fn(
     const ExecutionPlan &ep, BDD::Node_ptr node,
     const std::vector<std::string> &functions_names) const {
   std::vector<BDD::Node_ptr> prev_functions;
@@ -154,10 +157,10 @@ std::vector<BDD::Node_ptr> Module::get_all_prev_functions(
 }
 
 std::vector<BDD::Node_ptr>
-Module::get_all_prev_functions(const ExecutionPlan &ep, BDD::Node_ptr node,
+Module::get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
                                const std::string &function_name) const {
   auto functions_names = std::vector<std::string>{function_name};
-  return get_all_prev_functions(ep, node, functions_names);
+  return get_prev_fn(ep, node, functions_names);
 }
 
 std::vector<Module_ptr>
@@ -207,51 +210,6 @@ Module::build_modifications(klee::ref<klee::Expr> before,
   }
 
   return _modifications;
-}
-
-Module::dchain_config_t Module::get_dchain_config(const BDD::BDD &bdd,
-                                                  obj_addr_t dchain_addr) {
-  auto node = bdd.get_init();
-
-  while (node) {
-    auto curr = node;
-
-    // gets the successful branching condition, so this works all the time
-    node = curr->get_next();
-
-    if (curr->get_type() != BDD::Node::NodeType::CALL) {
-      continue;
-    }
-
-    auto call_node = static_cast<const BDD::Call *>(curr.get());
-    auto call = call_node->get_call();
-
-    if (call.function_name != symbex::FN_DCHAIN_ALLOCATE) {
-      continue;
-    }
-
-    assert(!call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_CHAIN_OUT].out.isNull());
-    assert(
-        !call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_INDEX_RANGE].expr.isNull());
-
-    auto chain_out = call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_CHAIN_OUT].out;
-    auto index_range =
-        call.args[symbex::FN_DCHAIN_ALLOCATE_ARG_INDEX_RANGE].expr;
-
-    auto chain_out_addr = kutil::expr_addr_to_obj_addr(chain_out);
-
-    if (chain_out_addr != dchain_addr) {
-      continue;
-    }
-
-    auto index_range_value = kutil::solver_toolbox.value_from_expr(index_range);
-    return dchain_config_t{index_range_value};
-  }
-
-  assert(false && "Should have found dchain configuration");
-
-  Log::err() << "Dchain configuration not found.\n";
-  exit(1);
 }
 
 /*
@@ -392,8 +350,8 @@ bool Module::is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) const {
   auto symbols = retriever.get_retrieved_strings();
 
   std::vector<std::string> allowed_symbols = {
-      synapse::symbex::PACKET_LENGTH,
-      synapse::symbex::CHUNK,
+      symbex::PACKET_LENGTH,
+      symbex::CHUNK,
   };
 
   for (auto symbol : symbols) {

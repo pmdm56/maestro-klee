@@ -12,6 +12,7 @@ class MemoryBank;
 typedef std::shared_ptr<MemoryBank> MemoryBank_ptr;
 
 enum TargetType {
+  x86,
   x86_BMv2,
   x86_Tofino,
   Tofino,

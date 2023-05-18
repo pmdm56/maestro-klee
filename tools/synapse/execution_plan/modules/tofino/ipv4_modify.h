@@ -50,12 +50,12 @@ private:
     }
 
     auto all_prev_packet_borrow_next_chunk =
-        get_all_prev_functions(ep, node, symbex::FN_BORROW_CHUNK);
+        get_prev_fn(ep, node, symbex::FN_BORROW_CHUNK);
 
     assert(all_prev_packet_borrow_next_chunk.size());
 
     auto all_prev_packet_return_chunk =
-        get_all_prev_functions(ep, node, symbex::FN_RETURN_CHUNK);
+        get_prev_fn(ep, node, symbex::FN_RETURN_CHUNK);
 
     if (all_prev_packet_return_chunk.size() !=
         all_prev_packet_borrow_next_chunk.size() - 2) {

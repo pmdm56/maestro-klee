@@ -4,6 +4,8 @@
 #include "data_structures/data_structures.h"
 #include "memory_bank.h"
 
+using synapse::symbex::CHUNK;
+
 namespace synapse {
 namespace targets {
 namespace tofino {
@@ -21,7 +23,7 @@ protected:
   // other symbols (e.g. packet length).
   klee::ref<klee::Expr>
   cleanup_parsing_condition(klee::ref<klee::Expr> condition) const {
-    auto parser_cond = kutil::filter(condition, {synapse::symbex::CHUNK});
+    auto parser_cond = kutil::filter(condition, {symbex::CHUNK});
 
     parser_cond = kutil::swap_packet_endianness(parser_cond);
     parser_cond = kutil::simplify(parser_cond);

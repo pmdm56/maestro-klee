@@ -3,6 +3,8 @@
 #include "../../execution_plan.h"
 #include "code_builder.h"
 
+using synapse::TargetType;
+
 namespace synapse {
 namespace synthesizer {
 
@@ -47,7 +49,7 @@ public:
 };
 
 bool pending_packet_borrow_next_chunk(const ExecutionPlanNode *ep_node,
-                                      synapse::TargetType target);
+                                      TargetType target);
 
 bool is_primitive_type(bits_t size);
 

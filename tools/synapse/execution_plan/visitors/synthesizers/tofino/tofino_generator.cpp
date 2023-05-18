@@ -52,7 +52,7 @@ TofinoGenerator::search_variable(klee::ref<klee::Expr> expr) const {
   return variable_query_t();
 }
 
-void TofinoGenerator::allocate_table(const targets::tofino::Table *_table) {
+void TofinoGenerator::allocate_table(const target::Table *_table) {
   assert(_table);
 
   auto table_name = _table->get_name();
@@ -84,7 +84,7 @@ void TofinoGenerator::allocate_table(const targets::tofino::Table *_table) {
 }
 
 void TofinoGenerator::allocate_int_allocator(
-    const targets::tofino::IntegerAllocator *_int_allocator) {
+    const target::IntegerAllocator *_int_allocator) {
   assert(_int_allocator);
 
   auto objs = _int_allocator->get_objs();
@@ -126,19 +126,18 @@ void TofinoGenerator::allocate_int_allocator(
 }
 
 void TofinoGenerator::allocate_state(const ExecutionPlan &ep) {
-  auto tmb = ep.get_memory_bank<targets::tofino::TofinoMemoryBank>(Tofino);
+  auto tmb = ep.get_memory_bank<target::TofinoMemoryBank>(Tofino);
   auto implementations = tmb->get_implementations();
 
   for (const auto &impl : implementations) {
     switch (impl->get_type()) {
-    case targets::tofino::DataStructure::TABLE_NON_MERGEABLE:
-    case targets::tofino::DataStructure::TABLE: {
-      auto table = static_cast<targets::tofino::Table *>(impl.get());
+    case target::DataStructure::TABLE_NON_MERGEABLE:
+    case target::DataStructure::TABLE: {
+      auto table = static_cast<target::Table *>(impl.get());
       allocate_table(table);
     } break;
-    case targets::tofino::DataStructure::INTEGER_ALLOCATOR: {
-      auto int_allocator =
-          static_cast<targets::tofino::IntegerAllocator *>(impl.get());
+    case target::DataStructure::INTEGER_ALLOCATOR: {
+      auto int_allocator = static_cast<target::IntegerAllocator *>(impl.get());
       allocate_int_allocator(int_allocator);
     } break;
     }
@@ -268,7 +267,7 @@ void TofinoGenerator::visit_if_simple_condition(
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::If *node) {
+                            const target::If *node) {
   assert(node);
 
   auto conditions = node->get_conditions();
@@ -282,7 +281,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::IfHeaderValid *node) {
+                            const target::IfHeaderValid *node) {
   assert(node);
 
   auto header = node->get_header();
@@ -293,21 +292,21 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   ingress_condition_builder << ".";
 
   switch (header) {
-  case targets::tofino::IfHeaderValid::PacketHeader::ETHERNET: {
+  case target::IfHeaderValid::PacketHeader::ETHERNET: {
     ingress_condition_builder << HDR_ETH;
     ingress_condition_builder << ".isValid()";
   } break;
-  case targets::tofino::IfHeaderValid::PacketHeader::IPV4: {
+  case target::IfHeaderValid::PacketHeader::IPV4: {
     ingress_condition_builder << HDR_IPV4;
     ingress_condition_builder << ".isValid()";
   } break;
-  case targets::tofino::IfHeaderValid::PacketHeader::NOT_IPV4_OPTIONS: {
+  case target::IfHeaderValid::PacketHeader::NOT_IPV4_OPTIONS: {
     ingress_condition_builder << HDR_IPV4;
     ingress_condition_builder << ".";
     ingress_condition_builder << HDR_IPV4_IHL_FIELD;
     ingress_condition_builder << " <= 5";
   } break;
-  case targets::tofino::IfHeaderValid::PacketHeader::TCPUDP: {
+  case target::IfHeaderValid::PacketHeader::TCPUDP: {
     ingress_condition_builder << HDR_TCPUDP;
     ingress_condition_builder << ".isValid()";
   } break;
@@ -330,12 +329,12 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::Then *node) {
+                            const target::Then *node) {
   assert(node);
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::Else *node) {
+                            const target::Else *node) {
   assert(node);
 
   ingress.local_vars.push();
@@ -347,7 +346,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::Forward *node) {
+                            const target::Forward *node) {
   assert(node);
   auto port = node->get_port();
 
@@ -377,9 +376,8 @@ bool has_pending_parsing_ops(const ExecutionPlanNode *node) {
     auto m = node->get_module();
     assert(m);
 
-    if (m->get_type() ==
-            synapse::Module::ModuleType::Tofino_ParseCustomHeader ||
-        m->get_type() == synapse::Module::ModuleType::Tofino_ParserCondition) {
+    if (m->get_type() == Module::Tofino_ParseCustomHeader ||
+        m->get_type() == Module::Tofino_ParserCondition) {
       return true;
     }
 
@@ -402,7 +400,7 @@ bool get_expecting_parsing_operations_after_header_parse(
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::ParseCustomHeader *node) {
+                            const target::ParseCustomHeader *node) {
   assert(node);
 
   auto chunk = node->get_chunk();
@@ -413,7 +411,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::ModifyCustomHeader *node) {
+                            const target::ModifyCustomHeader *node) {
   assert(node);
 
   auto original_chunk = node->get_original_chunk();
@@ -439,7 +437,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::ParserCondition *node) {
+                            const target::ParserCondition *node) {
   assert(node);
 
   auto condition = node->get_condition();
@@ -469,7 +467,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::EthernetModify *node) {
+                            const target::EthernetModify *node) {
   assert(node);
 
   auto ethernet_chunk = node->get_ethernet_chunk();
@@ -495,7 +493,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::IPv4Modify *node) {
+                            const target::IPv4Modify *node) {
   assert(node);
 
   auto ipv4_chunk = node->get_ipv4_chunk();
@@ -526,7 +524,7 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::TCPUDPModify *node) {
+                            const target::TCPUDPModify *node) {
   assert(node);
 
   auto tcpudp_chunk = node->get_tcpudp_chunk();
@@ -551,20 +549,19 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   }
 }
 
-void TofinoGenerator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::tofino::IPv4TCPUDPChecksumsUpdate *node) {
+void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                            const target::IPv4TCPUDPChecksumsUpdate *node) {
   // TODO: implement
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::TableLookupSimple *node) {
-  auto simple_table = static_cast<const targets::tofino::TableLookup *>(node);
+                            const target::TableLookupSimple *node) {
+  auto simple_table = static_cast<const target::TableLookup *>(node);
   visit(ep_node, simple_table);
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::TableLookup *node) {
+                            const target::TableLookup *node) {
   assert(node);
 
   auto _table = node->get_table();
@@ -637,9 +634,8 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   }
 }
 
-void TofinoGenerator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::tofino::IntegerAllocatorAllocate *node) {
+void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                            const target::IntegerAllocatorAllocate *node) {
   assert(node);
 
   auto _int_allocator = node->get_int_allocator();
@@ -652,9 +648,8 @@ void TofinoGenerator::visit(
   int_allocator.synthesize_allocate(ingress.apply_block_builder);
 }
 
-void TofinoGenerator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::tofino::IntegerAllocatorRejuvenate *node) {
+void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                            const target::IntegerAllocatorRejuvenate *node) {
   assert(node);
 
   auto _int_allocator = node->get_int_allocator();
@@ -679,9 +674,8 @@ void TofinoGenerator::visit(
   int_allocator.synthesize_rejuvenate(ingress.apply_block_builder);
 }
 
-void TofinoGenerator::visit(
-    const ExecutionPlanNode *ep_node,
-    const targets::tofino::IntegerAllocatorQuery *node) {
+void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                            const target::IntegerAllocatorQuery *node) {
   assert(node);
 
   auto _int_allocator = node->get_int_allocator();
@@ -711,7 +705,7 @@ void TofinoGenerator::visit(
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::Drop *node) {
+                            const target::Drop *node) {
   ingress.apply_block_builder.indent();
   ingress.apply_block_builder.append("drop();");
   ingress.apply_block_builder.append_new_line();
@@ -724,12 +718,12 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::Ignore *node) {
+                            const target::Ignore *node) {
   assert(false && "TODO");
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const targets::tofino::SendToController *node) {
+                            const target::SendToController *node) {
   auto cpu_code_path = node->get_cpu_code_path();
 
   ingress.apply_block_builder.indent();
