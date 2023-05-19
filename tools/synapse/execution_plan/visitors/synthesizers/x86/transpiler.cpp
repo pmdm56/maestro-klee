@@ -145,11 +145,10 @@ std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
   }
 
   auto simplified = kutil::simplify(expr);
-
   auto variable_result = try_transpile_variable(simplified);
 
   if (variable_result.first) {
-    return const_result.second;
+    return variable_result.second;
   }
 
   auto transpiler = InternalTranspiler(generator, *this);
