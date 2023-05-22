@@ -234,6 +234,7 @@ public:
   DECLARE_VISIT(targets::x86::DchainFreeIndex)
   DECLARE_VISIT(targets::x86::LoadBalancedFlowHash)
   DECLARE_VISIT(targets::x86::ChtFindBackend)
+  DECLARE_VISIT(targets::x86::HashObj)
 
 private:
   void visit_table(const targets::tofino::TableLookup *node, bool simple);

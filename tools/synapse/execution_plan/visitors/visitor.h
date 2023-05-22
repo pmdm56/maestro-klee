@@ -148,6 +148,7 @@ class MapErase;
 class DchainFreeIndex;
 class LoadBalancedFlowHash;
 class ChtFindBackend;
+class HashObj;
 } // namespace x86
 
 } // namespace targets
@@ -310,6 +311,7 @@ public:
   VISIT(targets::x86::DchainFreeIndex)
   VISIT(targets::x86::LoadBalancedFlowHash)
   VISIT(targets::x86::ChtFindBackend)
+  VISIT(targets::x86::HashObj)
 
 protected:
   virtual void log(const ExecutionPlanNode *ep_node) const;

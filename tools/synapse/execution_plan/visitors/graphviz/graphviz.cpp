@@ -832,5 +832,6 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::MapErase)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::DchainFreeIndex)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::LoadBalancedFlowHash)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::ChtFindBackend)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86::HashObj)
 
 } // namespace synapse

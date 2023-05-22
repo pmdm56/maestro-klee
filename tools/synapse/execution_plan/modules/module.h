@@ -149,6 +149,7 @@ public:
     x86_SetIpv4UdpTcpChecksum,
     x86_LoadBalancedFlowHash,
     x86_ChtFindBackend,
+    x86_HashObj,
   };
 
 protected:

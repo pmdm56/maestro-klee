@@ -131,6 +131,11 @@ constexpr char FN_LOADBALANCEDFLOW_HASH[] = "LoadBalancedFlow_hash";
 constexpr char FN_LOADBALANCEDFLOW_HASH_ARG_OBJ[] = "obj";
 constexpr char LOADBALANCEDFLOW_HASH_SYMBOL[] = "LoadBalancedFlow_hash";
 
+constexpr char FN_HASH_OBJ[] = "hash_obj";
+constexpr char FN_HASH_OBJ_ARG_OBJ[] = "obj";
+constexpr char FN_HASH_OBJ_ARG_SIZE[] = "size";
+constexpr char HASH_OBJ_HASH_SYMBOL[] = "hash";
+
 constexpr char KLEE_EXPR_IPV4_CONDITION[] =
     "(Eq (w32 0) (Or w32 (ZExt w32 (Eq false (Eq (w16 8) (ReadLSB w16 (w32 12) "
     "packet_chunks)))) (ZExt w32 (Ult (ZExt w64 (Extract w16 0 (Add w32 (w32 "
