@@ -188,7 +188,7 @@ private:
     }
 
     auto num_kids = expr->getNumKids();
-    for (auto i = 0; i < num_kids; i++) {
+    for (auto i = 0u; i < num_kids; i++) {
       auto kid = expr->getKid(i);
       if (allowed.find(kid->getKind()) == allowed.end()) {
         return false;

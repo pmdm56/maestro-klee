@@ -73,6 +73,7 @@ private:
     assert(prev_ipv4_chunk->getWidth() == 20 * 8);
 
     auto _modifications = build_modifications(prev_ipv4_chunk, curr_ipv4_chunk);
+    _modifications = ignore_checksum_modifications(_modifications);
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);

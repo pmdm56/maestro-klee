@@ -84,6 +84,7 @@ private:
 
     auto _modifications =
         build_modifications(prev_tcpudp_chunk, curr_tcpudp_chunk);
+    _modifications = ignore_checksum_modifications(_modifications);
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);

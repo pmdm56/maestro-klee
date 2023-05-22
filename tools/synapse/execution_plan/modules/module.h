@@ -259,6 +259,9 @@ protected:
   build_modifications(klee::ref<klee::Expr> before,
                       klee::ref<klee::Expr> after) const;
 
+  std::vector<modification_t> ignore_checksum_modifications(
+      const std::vector<modification_t> &modifications) const;
+
   bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) const;
 
   struct coalesced_data_t {

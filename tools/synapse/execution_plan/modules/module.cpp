@@ -116,9 +116,9 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
   return true;
 }
 
-std::vector<BDD::Node_ptr> Module::get_prev_fn(
-    const ExecutionPlan &ep, BDD::Node_ptr node,
-    const std::vector<std::string> &functions_names) const {
+std::vector<BDD::Node_ptr>
+Module::get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
+                    const std::vector<std::string> &functions_names) const {
   std::vector<BDD::Node_ptr> prev_functions;
 
   auto target = ep.get_current_platform();
@@ -158,7 +158,7 @@ std::vector<BDD::Node_ptr> Module::get_prev_fn(
 
 std::vector<BDD::Node_ptr>
 Module::get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
-                               const std::string &function_name) const {
+                    const std::string &function_name) const {
   auto functions_names = std::vector<std::string>{function_name};
   return get_prev_fn(ep, node, functions_names);
 }
@@ -210,6 +210,31 @@ Module::build_modifications(klee::ref<klee::Expr> before,
   }
 
   return _modifications;
+}
+
+// This is somewhat of a hack... We assume that checksum expressions will only
+// be used to modify checksum fields of a packet, not other packet fields.
+std::vector<Module::modification_t> Module::ignore_checksum_modifications(
+    const std::vector<Module::modification_t> &modifications) const {
+  std::vector<Module::modification_t> filtered;
+
+  for (auto mod : modifications) {
+    auto simplified = kutil::simplify(mod.expr);
+    auto symbols = kutil::get_symbols(simplified);
+
+    if (symbols.size() == 1 && simplified->getWidth() == 8) {
+      auto symbol = *symbols.begin();
+      auto delim = symbol.find(symbex::CHECKSUM);
+
+      if (delim != std::string::npos) {
+        continue;
+      }
+    }
+
+    filtered.emplace_back(mod.byte, simplified);
+  }
+
+  return filtered;
 }
 
 /*
