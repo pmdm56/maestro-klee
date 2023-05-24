@@ -39,8 +39,6 @@ public:
 
   void visit(const ExecutionPlanNode *ep_node, const target::If *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const target::IfHeaderValid *node) override;
-  void visit(const ExecutionPlanNode *ep_node,
              const target::Then *node) override;
   void visit(const ExecutionPlanNode *ep_node,
              const target::Else *node) override;
@@ -52,12 +50,6 @@ public:
              const target::ModifyCustomHeader *node) override;
   void visit(const ExecutionPlanNode *ep_node,
              const target::ParserCondition *node) override;
-  void visit(const ExecutionPlanNode *ep_node,
-             const target::EthernetModify *node) override;
-  void visit(const ExecutionPlanNode *ep_node,
-             const target::IPv4Modify *node) override;
-  void visit(const ExecutionPlanNode *ep_node,
-             const target::TCPUDPModify *node) override;
   void visit(const ExecutionPlanNode *ep_node,
              const target::IPv4TCPUDPChecksumsUpdate *node) override;
   void visit(const ExecutionPlanNode *ep_node,

@@ -1084,6 +1084,7 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
     nf_process_builder.append_new_line();
   }
 
+  nf_process_builder.indent();
   nf_process_builder.append(symbex::FN_MAP_ERASE);
   nf_process_builder.append("(");
   nf_process_builder.append(map.var->get_label());

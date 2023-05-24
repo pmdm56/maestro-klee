@@ -196,6 +196,13 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node) {
 
   mod->visit(*this, ep_node);
 
+  if (ep_node->is_terminal_node()) {
+    auto closed = ingress.pending_ifs.close();
+    for (auto i = 0; i < closed; i++) {
+      ingress.local_vars.pop();
+    }
+  }
+
   for (auto branch : next) {
     branch->visit(*this);
   }
@@ -281,54 +288,6 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const target::IfHeaderValid *node) {
-  assert(node);
-
-  auto header = node->get_header();
-
-  std::stringstream ingress_condition_builder;
-
-  ingress_condition_builder << INGRESS_PACKET_HEADER_VARIABLE;
-  ingress_condition_builder << ".";
-
-  switch (header) {
-  case target::IfHeaderValid::PacketHeader::ETHERNET: {
-    ingress_condition_builder << HDR_ETH;
-    ingress_condition_builder << ".isValid()";
-  } break;
-  case target::IfHeaderValid::PacketHeader::IPV4: {
-    ingress_condition_builder << HDR_IPV4;
-    ingress_condition_builder << ".isValid()";
-  } break;
-  case target::IfHeaderValid::PacketHeader::NOT_IPV4_OPTIONS: {
-    ingress_condition_builder << HDR_IPV4;
-    ingress_condition_builder << ".";
-    ingress_condition_builder << HDR_IPV4_IHL_FIELD;
-    ingress_condition_builder << " <= 5";
-  } break;
-  case target::IfHeaderValid::PacketHeader::TCPUDP: {
-    ingress_condition_builder << HDR_TCPUDP;
-    ingress_condition_builder << ".isValid()";
-  } break;
-  default:
-    assert(false && "Should not be here.");
-  }
-
-  auto transpiled = ingress_condition_builder.str();
-
-  ingress.apply_block_builder.indent();
-  ingress.apply_block_builder.append("if (");
-  ingress.apply_block_builder.append(transpiled);
-  ingress.apply_block_builder.append(") {");
-  ingress.apply_block_builder.append_new_line();
-
-  ingress.apply_block_builder.inc_indentation();
-
-  ingress.local_vars.push();
-  ingress.pending_ifs.push();
-}
-
-void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
                             const target::Then *node) {
   assert(node);
 }
@@ -356,12 +315,6 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   ingress.apply_block_builder.append(port);
   ingress.apply_block_builder.append(");");
   ingress.apply_block_builder.append_new_line();
-
-  auto closed = ingress.pending_ifs.close();
-
-  for (auto i = 0; i < closed; i++) {
-    ingress.local_vars.pop();
-  }
 }
 
 bool has_pending_parsing_ops(const ExecutionPlanNode *node) {
@@ -463,89 +416,6 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 
     ingress.local_vars.push();
     ingress.pending_ifs.push();
-  }
-}
-
-void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const target::EthernetModify *node) {
-  assert(node);
-
-  auto ethernet_chunk = node->get_ethernet_chunk();
-  auto modifications = node->get_modifications();
-
-  for (auto mod : modifications) {
-    auto byte = mod.byte;
-    auto expr = mod.expr;
-
-    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
-        ethernet_chunk, byte * 8, klee::Expr::Int8);
-
-    auto transpiled_byte = transpile(modified_byte);
-    auto transpiled_expr = transpile(expr);
-
-    ingress.apply_block_builder.indent();
-    ingress.apply_block_builder.append(transpiled_byte);
-    ingress.apply_block_builder.append(" = ");
-    ingress.apply_block_builder.append(transpiled_expr);
-    ingress.apply_block_builder.append(";");
-    ingress.apply_block_builder.append_new_line();
-  }
-}
-
-void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const target::IPv4Modify *node) {
-  assert(node);
-
-  auto ipv4_chunk = node->get_ipv4_chunk();
-  auto modifications = node->get_modifications();
-
-  for (auto mod : modifications) {
-    auto byte = mod.byte;
-    auto expr = mod.expr;
-
-    if (byte >= 10 && byte <= 11) {
-      // We don't care about changes to the checksum here
-      continue;
-    }
-
-    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
-        ipv4_chunk, byte * 8, klee::Expr::Int8);
-
-    auto transpiled_byte = transpile(modified_byte);
-    auto transpiled_expr = transpile(expr);
-
-    ingress.apply_block_builder.indent();
-    ingress.apply_block_builder.append(transpiled_byte);
-    ingress.apply_block_builder.append(" = ");
-    ingress.apply_block_builder.append(transpiled_expr);
-    ingress.apply_block_builder.append(";");
-    ingress.apply_block_builder.append_new_line();
-  }
-}
-
-void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const target::TCPUDPModify *node) {
-  assert(node);
-
-  auto tcpudp_chunk = node->get_tcpudp_chunk();
-  auto modifications = node->get_modifications();
-
-  for (auto mod : modifications) {
-    auto byte = mod.byte;
-    auto expr = mod.expr;
-
-    auto modified_byte = kutil::solver_toolbox.exprBuilder->Extract(
-        tcpudp_chunk, byte * 8, klee::Expr::Int8);
-
-    auto transpiled_byte = transpile(modified_byte);
-    auto transpiled_expr = transpile(expr);
-
-    ingress.apply_block_builder.indent();
-    ingress.apply_block_builder.append(transpiled_byte);
-    ingress.apply_block_builder.append(" = ");
-    ingress.apply_block_builder.append(transpiled_expr);
-    ingress.apply_block_builder.append(";");
-    ingress.apply_block_builder.append_new_line();
   }
 }
 
@@ -709,12 +579,6 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   ingress.apply_block_builder.indent();
   ingress.apply_block_builder.append("drop();");
   ingress.apply_block_builder.append_new_line();
-
-  auto closed = ingress.pending_ifs.close();
-
-  for (auto i = 0; i < closed; i++) {
-    ingress.local_vars.pop();
-  }
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
@@ -732,12 +596,6 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   ingress.apply_block_builder.append(cpu_code_path);
   ingress.apply_block_builder.append(");");
   ingress.apply_block_builder.append_new_line();
-
-  auto closed = ingress.pending_ifs.close();
-
-  for (auto i = 0; i < closed; i++) {
-    ingress.local_vars.pop();
-  }
 }
 
 } // namespace tofino

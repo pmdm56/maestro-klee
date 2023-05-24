@@ -5,19 +5,12 @@
 
 #include "drop.h"
 #include "else.h"
-#include "ethernet_consume.h"
-#include "ethernet_modify.h"
 #include "forward.h"
 #include "if.h"
-#include "if_header_valid.h"
 #include "ignore.h"
 #include "int_allocator_allocate.h"
 #include "int_allocator_query.h"
 #include "int_allocator_rejuvenate.h"
-#include "ipv4_consume.h"
-#include "ipv4_modify.h"
-#include "ipv4_options_consume.h"
-#include "ipv4_options_modify.h"
 #include "ipv4_tcpudp_checksums_update.h"
 #include "memory_bank.h"
 #include "modify_custom_header.h"
@@ -28,8 +21,6 @@
 #include "setup_expiration_notifications.h"
 #include "table_lookup.h"
 #include "table_lookup_simple.h"
-#include "tcpudp_consume.h"
-#include "tcpudp_modify.h"
 #include "then.h"
 
 namespace synapse {
@@ -49,16 +40,6 @@ public:
                    MODULE(ParseCustomHeader),
                    MODULE(ModifyCustomHeader),
                    MODULE(ParserCondition),
-                   //  MODULE(IfHeaderValid),
-                   //  MODULE(EthernetConsume),
-                   //  MODULE(EthernetModify),
-                   //  MODULE(IPv4Consume),
-                   //  MODULE(IPv4Modify),
-                   //  MODULE(IPv4OptionsConsume),
-                   //  MODULE(IPv4OptionsModify),
-                   //  MODULE(TCPUDPConsume),
-                   //  MODULE(TCPUDPModify),
-                   //  MODULE(IPv4TCPUDPChecksumsUpdate),
                    MODULE(Drop),
                    MODULE(SendToController),
                    MODULE(SetupExpirationNotifications),

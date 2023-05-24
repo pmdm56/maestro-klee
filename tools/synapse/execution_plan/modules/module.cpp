@@ -118,7 +118,8 @@ bool Module::query_contains_map_has_key(const BDD::Branch *node) const {
 
 std::vector<BDD::Node_ptr>
 Module::get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
-                    const std::vector<std::string> &functions_names) const {
+                    const std::vector<std::string> &functions_names,
+                    bool ignore_targets) const {
   std::vector<BDD::Node_ptr> prev_functions;
 
   auto target = ep.get_current_platform();
@@ -127,7 +128,8 @@ Module::get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
   auto starting_points_it = targets_bdd_starting_points.find(target);
 
   auto is_starting_point = [&](const BDD::Node_ptr &node) -> bool {
-    if (starting_points_it == targets_bdd_starting_points.end()) {
+    if (ignore_targets ||
+        starting_points_it == targets_bdd_starting_points.end()) {
       return false;
     }
 
@@ -156,11 +158,12 @@ Module::get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
   return prev_functions;
 }
 
-std::vector<BDD::Node_ptr>
-Module::get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
-                    const std::string &function_name) const {
+std::vector<BDD::Node_ptr> Module::get_prev_fn(const ExecutionPlan &ep,
+                                               BDD::Node_ptr node,
+                                               const std::string &function_name,
+                                               bool ignore_targets) const {
   auto functions_names = std::vector<std::string>{function_name};
-  return get_prev_fn(ep, node, functions_names);
+  return get_prev_fn(ep, node, functions_names, ignore_targets);
 }
 
 std::vector<Module_ptr>

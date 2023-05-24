@@ -61,6 +61,11 @@ protected:
     return only_looks_at_packet;
   }
 
+  processing_result_t postpone(const ExecutionPlan &ep, BDD::Node_ptr node,
+                               Module_ptr new_module) const;
+  ExecutionPlan apply_postponed(ExecutionPlan ep, BDD::Node_ptr current_node,
+                                BDD::Node_ptr next_node) const;
+
 public:
   virtual void visit(ExecutionPlanVisitor &visitor,
                      const ExecutionPlanNode *ep_node) const = 0;

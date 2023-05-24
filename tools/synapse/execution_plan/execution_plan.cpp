@@ -420,6 +420,11 @@ ExecutionPlan ExecutionPlan::ignore_leaf(const BDD::Node_ptr &next,
   return new_ep;
 }
 
+void ExecutionPlan::force_termination() {
+  assert(leaves.size());
+  leaves.erase(leaves.begin());
+}
+
 ExecutionPlan ExecutionPlan::add_leaves(Module_ptr new_module,
                                         const BDD::Node_ptr &next,
                                         bool is_terminal,

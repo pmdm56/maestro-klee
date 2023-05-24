@@ -237,12 +237,14 @@ protected:
   // General useful queries
   bool query_contains_map_has_key(const BDD::Branch *node) const;
 
+  std::vector<BDD::Node_ptr> get_prev_fn(const ExecutionPlan &ep,
+                                         BDD::Node_ptr node,
+                                         const std::string &function_name,
+                                         bool ignore_targets = false) const;
   std::vector<BDD::Node_ptr>
   get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
-              const std::string &function_name) const;
-  std::vector<BDD::Node_ptr>
-  get_prev_fn(const ExecutionPlan &ep, BDD::Node_ptr node,
-              const std::vector<std::string> &functions_names) const;
+              const std::vector<std::string> &functions_names,
+              bool ignore_targets = false) const;
 
   std::vector<BDD::Node_ptr>
   get_all_functions_after_node(BDD::Node_ptr root,

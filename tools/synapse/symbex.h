@@ -7,10 +7,14 @@ namespace synapse {
 namespace symbex {
 
 constexpr char CHUNK[] = "packet_chunks";
-constexpr char PORT[] = "VIGOR_DEVICE";
 constexpr char PORT2[] = "device";
 constexpr char CPU_CODE_PATH[] = "cpu_code_path";
+
+constexpr char TIME[] = "next_time";
+constexpr char RECEIVED_PACKET[] = "received_a_packet";
+constexpr char BUFFER_LENGTH[] = "data_len";
 constexpr char PACKET_LENGTH[] = "pkt_len";
+constexpr char PORT[] = "VIGOR_DEVICE";
 
 constexpr char MAP_TYPE[] = "struct Map";
 constexpr char VECTOR_TYPE[] = "struct Vector";

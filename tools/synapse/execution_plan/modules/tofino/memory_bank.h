@@ -10,12 +10,19 @@
 #include "data_structures/data_structures.h"
 
 namespace synapse {
+
+class Module;
+typedef std::shared_ptr<Module> Module_ptr;
+
 namespace targets {
 namespace tofino {
+
+typedef std::pair<BDD::node_id_t, Module_ptr> postponed_t;
 
 class TofinoMemoryBank : public MemoryBank {
 private:
   DataStructuresSet implementations;
+  std::vector<postponed_t> postponed;
 
 public:
   TofinoMemoryBank() : MemoryBank() {}
@@ -23,7 +30,11 @@ public:
   TofinoMemoryBank(const MemoryBank &mb) : MemoryBank(mb) {}
 
   TofinoMemoryBank(const TofinoMemoryBank &mb)
-      : MemoryBank(mb), implementations(mb.implementations) {}
+      : MemoryBank(mb), implementations(mb.implementations),
+        postponed(mb.postponed) {}
+
+  void postpone(BDD::node_id_t node_id, Module_ptr module);
+  const std::vector<postponed_t> &get_postponed() const;
 
   void save_implementation(const DataStructureRef &ds) {
     implementations.insert(ds);

@@ -51,8 +51,10 @@ public:
   Graphviz() : Graphviz(get_rand_fname()) {}
 
 private:
-  void function_call(BDD::Node_ptr node, TargetType target, std::string label);
-  void branch(BDD::Node_ptr node, TargetType target, std::string label);
+  void function_call(const ExecutionPlanNode *ep_node, BDD::Node_ptr node,
+                     TargetType target, const std::string &label);
+  void branch(const ExecutionPlanNode *ep_node, BDD::Node_ptr node,
+              TargetType target, const std::string &label);
 
   struct rgb_t {
     int r;
@@ -143,21 +145,12 @@ public:
 
   DECLARE_VISIT(targets::tofino::Ignore)
   DECLARE_VISIT(targets::tofino::If)
-  DECLARE_VISIT(targets::tofino::IfHeaderValid)
   DECLARE_VISIT(targets::tofino::Then)
   DECLARE_VISIT(targets::tofino::Else)
   DECLARE_VISIT(targets::tofino::Forward)
   DECLARE_VISIT(targets::tofino::ParseCustomHeader)
   DECLARE_VISIT(targets::tofino::ModifyCustomHeader)
   DECLARE_VISIT(targets::tofino::ParserCondition)
-  DECLARE_VISIT(targets::tofino::EthernetConsume)
-  DECLARE_VISIT(targets::tofino::EthernetModify)
-  DECLARE_VISIT(targets::tofino::IPv4Consume)
-  DECLARE_VISIT(targets::tofino::IPv4Modify)
-  DECLARE_VISIT(targets::tofino::IPv4OptionsConsume)
-  DECLARE_VISIT(targets::tofino::IPv4OptionsModify)
-  DECLARE_VISIT(targets::tofino::TCPUDPConsume)
-  DECLARE_VISIT(targets::tofino::TCPUDPModify)
   DECLARE_VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
   DECLARE_VISIT(targets::tofino::TableLookup)
   DECLARE_VISIT(targets::tofino::TableLookupSimple)
@@ -237,6 +230,7 @@ public:
   DECLARE_VISIT(targets::x86::HashObj)
 
 private:
-  void visit_table(const targets::tofino::TableLookup *node, bool simple);
+  void visit_table(const ExecutionPlanNode *ep_node,
+                   const targets::tofino::TableLookup *node, bool simple);
 };
 } // namespace synapse
