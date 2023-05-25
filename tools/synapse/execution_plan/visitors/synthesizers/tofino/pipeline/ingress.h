@@ -32,16 +32,20 @@ public:
   CodeBuilder state_builder;
   CodeBuilder apply_block_builder;
   CodeBuilder user_metadata_builder;
+  CodeBuilder cpu_header_fields_builder;
 
   Parser parser;
 
   stack_t local_vars;
+  CpuHeader cpu_header;
   PendingIfs pending_ifs;
 
   Ingress(int headers_def_ind, int headers_decl_ind, int parser_ind,
-          int user_meta_ind, int state_ind, int apply_block_ind)
+          int user_meta_ind, int state_ind, int apply_block_ind,
+          int cpu_header_fields_ind)
       : state_builder(state_ind), apply_block_builder(apply_block_ind),
         user_metadata_builder(user_meta_ind),
+        cpu_header_fields_builder(cpu_header_fields_ind),
         parser(headers_def_ind, headers_decl_ind, parser_ind),
         pending_ifs(apply_block_builder) {
     intrinsic_metadata = std::vector<Variable>{
@@ -281,6 +285,42 @@ public:
     return var;
   }
 
+  void set_cpu_hdr_fields(const std::vector<BDD::symbols_t> &fields) {
+    for (auto field : fields) {
+      assert(field.size());
+      assert(!field.begin()->expr.isNull());
+
+      auto label = field.begin()->label;
+      auto size = field.begin()->expr->getWidth();
+
+      auto hdr_field = hdr_field_t(label, size);
+
+      for (auto symbol : field) {
+        hdr_field.add_expr(symbol.expr);
+        hdr_field.add_symbols({symbol.label});
+      }
+
+      cpu_header.add_field(hdr_field);
+
+      cpu_header_fields_builder.indent();
+      cpu_header_fields_builder.append(hdr_field.get_type());
+      cpu_header_fields_builder.append(" ");
+      cpu_header_fields_builder.append(hdr_field.get_label());
+      cpu_header_fields_builder.append(";");
+      cpu_header_fields_builder.append_new_line();
+    }
+  }
+
+  variable_query_t get_cpu_hdr_field(const BDD::symbol_t &symbol) {
+    auto varq = cpu_header.query_field(symbol.label);
+
+    if (varq.valid) {
+      return varq;
+    }
+
+    return cpu_header.query_field(symbol.expr);
+  }
+
   void add_table(const table_t &table) { tables.insert(table); }
 
   const table_t &get_table(const std::string &label) const {
@@ -336,6 +376,10 @@ public:
   }
 
   void synthesize_parser(std::ostream &os) { parser.synthesize(os); }
+
+  void synthesize_cpu_header(std::ostream &os) {
+    cpu_header_fields_builder.dump(os);
+  }
 }; // namespace tofino
 
 } // namespace tofino

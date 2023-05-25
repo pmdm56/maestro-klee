@@ -5,6 +5,7 @@
 #include "execution_plan/visitors/graphviz/graphviz.h"
 
 namespace synapse {
+using targets::tofino::TofinoMemoryBank;
 using targets::x86_tofino::x86TofinoMemoryBank;
 
 bool all_x86_no_controller(const ExecutionPlan &execution_plan) {
@@ -278,7 +279,7 @@ CodeGenerator::fpga_extractor(const ExecutionPlan &execution_plan) const {
 
 struct x86_tofino_root_info_t {
   targets::tofino::cpu_code_path_t cpu_code_path;
-  std::vector<BDD::symbol_t> dataplane_state;
+  BDD::symbols_t dataplane_state;
 };
 
 typedef std::vector<std::pair<ExecutionPlanNode_ptr, x86_tofino_root_info_t>>
@@ -340,8 +341,6 @@ CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
   ExecutionPlanNode_ptr new_root;
   ExecutionPlanNode_ptr new_leaf;
 
-  std::vector<std::vector<BDD::symbol_t>> dataplane_states;
-
   for (auto i = 0u; i < roots.size(); i++) {
     auto root = roots[i];
 
@@ -375,8 +374,6 @@ CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
       new_root = if_ep_node;
     }
 
-    dataplane_states.push_back(root.second.dataplane_state);
-
     then_ep_node->set_next(root.first);
     root.first->set_prev(then_ep_node);
 
@@ -393,8 +390,11 @@ CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
     }
   }
 
-  auto parse_cpu_module = std::make_shared<targets::x86_tofino::PacketParseCPU>(
-      nullptr, dataplane_states);
+  auto tmb = execution_plan.get_memory_bank<TofinoMemoryBank>(Tofino);
+  auto dp_state = tmb->get_dataplane_state();
+
+  auto parse_cpu_module =
+      std::make_shared<targets::x86_tofino::PacketParseCPU>(dp_state);
   auto parse_cpu_ep_node = ExecutionPlanNode::build(parse_cpu_module);
 
   parse_cpu_ep_node->set_next(new_root);

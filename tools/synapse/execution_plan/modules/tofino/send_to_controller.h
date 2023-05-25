@@ -12,7 +12,7 @@ typedef uint16_t cpu_code_path_t;
 class SendToController : public TofinoModule {
 private:
   cpu_code_path_t cpu_code_path;
-  std::vector<BDD::symbol_t> dataplane_state;
+  BDD::symbols_t dataplane_state;
 
 public:
   SendToController()
@@ -21,7 +21,7 @@ public:
   }
 
   SendToController(BDD::Node_ptr node, cpu_code_path_t _cpu_code_path,
-                   const std::vector<BDD::symbol_t> &_dataplane_state)
+                   const BDD::symbols_t &_dataplane_state)
       : TofinoModule(ModuleType::Tofino_SendToController, "SendToController",
                      node),
         cpu_code_path(_cpu_code_path), dataplane_state(_dataplane_state) {
@@ -168,8 +168,8 @@ private:
     return false;
   }
 
-  std::vector<BDD::symbol_t> get_dataplane_state(const ExecutionPlan &ep,
-                                                 BDD::Node_ptr node) const {
+  BDD::symbols_t get_dataplane_state(const ExecutionPlan &ep,
+                                     BDD::Node_ptr node) const {
     auto symbols_to_ignore = std::vector<std::string>{
         symbex::TIME,
         symbex::EXPIRE_MAP_FREED_FLOWS,
@@ -188,17 +188,23 @@ private:
     };
 
     auto symbols = node->get_generated_symbols();
-    auto filtered = std::vector<BDD::symbol_t>();
+    auto filtered = BDD::symbols_t();
 
     for (const auto &symbol : symbols) {
       if (should_ignore(symbol)) {
         continue;
       }
 
-      filtered.push_back(symbol);
+      filtered.insert(symbol);
     }
 
     return filtered;
+  }
+
+  void remember_dataplane_state(const ExecutionPlan &ep,
+                                const BDD::symbols_t &symbols) const {
+    auto tmb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
+    tmb->add_dataplane_state(symbols);
   }
 
   processing_result_t process(const ExecutionPlan &ep,
@@ -214,6 +220,7 @@ private:
     }
 
     auto _dataplane_state = get_dataplane_state(ep, node);
+    remember_dataplane_state(ep, _dataplane_state);
 
     auto ep_cloned = ep.clone(true);
     auto &bdd = ep_cloned.get_bdd();
@@ -259,26 +266,11 @@ public:
       return false;
     }
 
-    auto other_dataplane_state = other_cast->get_dataplane_state();
-
-    if (dataplane_state.size() != other_dataplane_state.size()) {
-      return false;
-    }
-
-    for (auto i = 0u; i < dataplane_state.size(); i++) {
-      if (dataplane_state[i].label != other_dataplane_state[i].label) {
-        return false;
-      }
-    }
-
     return true;
   }
 
   cpu_code_path_t get_cpu_code_path() const { return cpu_code_path; }
-
-  const std::vector<BDD::symbol_t> &get_dataplane_state() const {
-    return dataplane_state;
-  }
+  const BDD::symbols_t &get_dataplane_state() const { return dataplane_state; }
 };
 } // namespace tofino
 } // namespace targets

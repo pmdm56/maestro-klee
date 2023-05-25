@@ -29,7 +29,8 @@ public:
                 get_indentation_level(MARKER_INGRESS_METADATA),
                 get_indentation_level(MARKER_INGRESS_PARSER),
                 get_indentation_level(MARKER_INGRESS_STATE),
-                get_indentation_level(MARKER_INGRESS_APPLY)),
+                get_indentation_level(MARKER_INGRESS_APPLY),
+                get_indentation_level(MARKER_CPU_HEADER_FIELDS)),
         transpiler(*this) {}
 
   virtual void generate(ExecutionPlan &target_ep) override { visit(target_ep); }
@@ -71,10 +72,12 @@ public:
 
   std::string transpile(klee::ref<klee::Expr> expr);
 
-  variable_query_t search_variable(std::string symbol) const;
+  variable_query_t search_variable(const BDD::symbol_t& symbol) const;
+  variable_query_t search_variable(const std::string& symbol) const;
   variable_query_t search_variable(klee::ref<klee::Expr> expr) const;
 
 private:
+  void build_cpu_header(const ExecutionPlan &ep);
   void allocate_state(const ExecutionPlan &ep);
   void allocate_table(const target::Table *table);
   void allocate_int_allocator(const target::IntegerAllocator *int_allocator);
