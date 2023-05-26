@@ -277,10 +277,6 @@ protected:
     counter_data_t() : valid(false) {}
   };
 
-  std::pair<bool, uint64_t>
-  get_max_value(const ExecutionPlan &ep, obj_addr_t obj,
-                const std::vector<BDD::Node_ptr> &writes) const;
-
   // Check if a given data structure is a counter. We expect counters to be
   // implemented with vectors, such that (1) the value it stores is <= 64 bits,
   // and (2) the only write operations performed on them increment the stored

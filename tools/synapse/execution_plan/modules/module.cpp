@@ -625,9 +625,8 @@ bool is_incrementing_op(klee::ref<klee::Expr> before,
   return eq_to_before;
 }
 
-std::pair<bool, uint64_t>
-get_max_value_helper(klee::ref<klee::Expr> original_value,
-                     klee::ref<klee::Expr> condition) {
+std::pair<bool, uint64_t> get_max_value(klee::ref<klee::Expr> original_value,
+                                        klee::ref<klee::Expr> condition) {
   auto max_value = std::pair<bool, uint64_t>{false, 0};
 
   auto original_symbol = kutil::get_symbol(original_value);
@@ -696,117 +695,169 @@ get_max_value_helper(klee::ref<klee::Expr> original_value,
   return max_value;
 }
 
-std::pair<bool, uint64_t>
-get_max_value_helper(BDD::Node_ptr write_under_analysis,
-                     klee::ref<klee::Expr> original_value) {
-  auto max_value = std::pair<bool, uint64_t>{false, 0};
-  auto node = write_under_analysis;
+bool is_counter_inc_op(BDD::Node_ptr vector_borrow,
+                       std::pair<bool, uint64_t> &max_value) {
+  auto branch = vector_borrow->get_next();
+  auto branch_node = BDD::cast_node<BDD::Branch>(branch);
 
-  // FIXME: this assumes the first branch condition we encounter is the one we
-  // are looking for. That may not be the case.
-  while (node && node->get_type() != BDD::Node::NodeType::BRANCH) {
-    node = node->get_prev();
+  if (!branch_node) {
+    return false;
   }
-
-  if (!node) {
-    return max_value;
-  }
-
-  auto branch_node = BDD::cast_node<BDD::Branch>(node);
-  assert(branch_node);
 
   auto condition = branch_node->get_condition();
-  return get_max_value_helper(original_value, condition);
-}
+  auto on_true = branch_node->get_on_true();
+  auto on_false = branch_node->get_on_false();
 
-// Check if writes only happen if there is some condition being met before
-// checking if the current value is less than some specific constant.
-std::pair<bool, uint64_t>
-Module::get_max_value(const ExecutionPlan &ep, obj_addr_t obj,
-                      const std::vector<BDD::Node_ptr> &writes) const {
-  auto max_value = std::pair<bool, uint64_t>{false, 0};
+  auto borrow_node = BDD::cast_node<BDD::Call>(vector_borrow);
+  auto on_true_node = BDD::cast_node<BDD::Call>(on_true);
+  auto on_false_node = BDD::cast_node<BDD::Call>(on_false);
 
-  for (auto write : writes) {
-    auto original_value = get_original_vector_value(ep, write, obj);
-    auto local_max_value = get_max_value_helper(write, original_value);
-
-    if (!max_value.first) {
-      max_value = local_max_value;
-    } else if (!local_max_value.first ||
-               local_max_value.second != max_value.second) {
-      return {false, 0};
-    }
+  if (!on_true_node || !on_false_node) {
+    return false;
   }
 
-  return max_value;
+  auto borrow_call = borrow_node->get_call();
+  auto on_true_call = on_true_node->get_call();
+  auto on_false_call = on_false_node->get_call();
+
+  if (on_true_call.function_name != symbex::FN_VECTOR_RETURN ||
+      on_false_call.function_name != symbex::FN_VECTOR_RETURN) {
+    return false;
+  }
+
+  assert(!borrow_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+  assert(!borrow_call.extra_vars[symbex::FN_VECTOR_EXTRA].second.isNull());
+
+  assert(!on_true_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+  assert(!on_true_call.args[symbex::FN_VECTOR_ARG_VALUE].in.isNull());
+
+  assert(!on_false_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+  assert(!on_false_call.args[symbex::FN_VECTOR_ARG_VALUE].in.isNull());
+
+  auto borrow_vector = borrow_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+  auto on_true_vector = on_true_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+  auto on_false_vector = on_false_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+
+  auto borrow_vector_addr = kutil::expr_addr_to_obj_addr(borrow_vector);
+  auto on_true_vector_addr = kutil::expr_addr_to_obj_addr(on_true_vector);
+  auto on_false_vector_addr = kutil::expr_addr_to_obj_addr(on_false_vector);
+
+  if (borrow_vector_addr != on_true_vector_addr ||
+      borrow_vector_addr != on_false_vector_addr) {
+    return false;
+  }
+
+  auto borrow_value = borrow_call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
+  auto on_true_value = on_true_call.args[symbex::FN_VECTOR_ARG_VALUE].in;
+  auto on_false_value = on_false_call.args[symbex::FN_VECTOR_ARG_VALUE].in;
+
+  auto on_true_inc_op = is_incrementing_op(borrow_value, on_true_value);
+
+  if (!on_true_inc_op) {
+    return false;
+  }
+
+  auto on_false_eq = kutil::solver_toolbox.are_exprs_always_equal(
+      borrow_value, on_false_value);
+
+  if (!on_false_eq) {
+    return false;
+  }
+
+  auto local_max_value = get_max_value(borrow_value, condition);
+
+  if (!max_value.first) {
+    max_value = local_max_value;
+  } else if (max_value.second != local_max_value.second) {
+    return false;
+  }
+
+  return true;
+}
+
+bool is_counter_read_op(BDD::Node_ptr vector_borrow) {
+  auto vector_return = vector_borrow->get_next();
+
+  auto borrow_node = BDD::cast_node<BDD::Call>(vector_borrow);
+  auto return_node = BDD::cast_node<BDD::Call>(vector_return);
+
+  if (!return_node) {
+    return false;
+  }
+
+  auto borrow_call = borrow_node->get_call();
+  auto return_call = return_node->get_call();
+
+  if (return_call.function_name != symbex::FN_VECTOR_RETURN) {
+    return false;
+  }
+
+  assert(!borrow_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+  assert(!borrow_call.extra_vars[symbex::FN_VECTOR_EXTRA].second.isNull());
+
+  assert(!return_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+  assert(!return_call.args[symbex::FN_VECTOR_ARG_VALUE].in.isNull());
+
+  auto borrow_vector = borrow_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+  auto return_vector = return_call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+
+  auto borrow_vector_addr = kutil::expr_addr_to_obj_addr(borrow_vector);
+  auto return_vector_addr = kutil::expr_addr_to_obj_addr(return_vector);
+
+  if (borrow_vector_addr != return_vector_addr) {
+    return false;
+  }
+
+  auto borrow_value = borrow_call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
+  auto return_value = return_call.args[symbex::FN_VECTOR_ARG_VALUE].in;
+
+  auto equal_values =
+      kutil::solver_toolbox.are_exprs_always_equal(borrow_value, return_value);
+
+  return equal_values;
 }
 
 Module::counter_data_t Module::is_counter(const ExecutionPlan &ep,
                                           obj_addr_t obj) const {
-  static std::unordered_map<obj_addr_t, counter_data_t> cache;
-
-  if (cache.find(obj) != cache.end()) {
-    return cache[obj];
-  }
-
   Module::counter_data_t data;
-  std::vector<BDD::Node_ptr> vector_return_writes;
 
   auto bdd = ep.get_bdd();
   auto cfg = symbex::get_vector_config(ep.get_bdd(), obj);
 
   if (cfg.elem_size > 64) {
-    cache[obj] = data;
     return data;
   }
 
   auto root = bdd.get_process();
-  auto vector_returns =
-      get_all_functions_after_node(root, {symbex::FN_VECTOR_RETURN});
+  auto vector_borrows =
+      get_all_functions_after_node(root, {symbex::FN_VECTOR_BORROW});
 
-  for (auto vector_return : vector_returns) {
-    auto call_node = BDD::cast_node<BDD::Call>(vector_return);
+  for (auto vector_borrow : vector_borrows) {
+    auto call_node = BDD::cast_node<BDD::Call>(vector_borrow);
     auto call = call_node->get_call();
 
     assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
-    assert(!call.args[symbex::FN_VECTOR_ARG_VALUE].in.isNull());
-
     auto _vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
-    auto _value = call.args[symbex::FN_VECTOR_ARG_VALUE].in;
-
     auto _vector_addr = kutil::expr_addr_to_obj_addr(_vector);
 
     if (_vector_addr != obj) {
-      cache[obj] = data;
       continue;
     }
 
-    BDD::Node_ptr vector_borrow;
-    auto _original = get_original_vector_value(ep, vector_return, _vector_addr,
-                                               vector_borrow);
-    assert(vector_borrow);
-
-    auto no_changes =
-        kutil::solver_toolbox.are_exprs_always_equal(_original, _value);
-
-    if (no_changes) {
+    if (is_counter_read_op(vector_borrow)) {
       data.reads.push_back(vector_borrow);
       continue;
     }
 
-    if (!is_incrementing_op(_original, _value)) {
-      cache[obj] = data;
-      return data;
+    if (is_counter_inc_op(vector_borrow, data.max_value)) {
+      data.writes.push_back(vector_borrow);
+      continue;
     }
 
-    data.writes.push_back(vector_borrow);
-    vector_return_writes.push_back(vector_return);
+    return data;
   }
 
   data.valid = true;
-  data.max_value = get_max_value(ep, obj, vector_return_writes);
-
-  cache[obj] = data;
   return data;
 }
 

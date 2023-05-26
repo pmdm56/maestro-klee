@@ -48,7 +48,7 @@ private:
   CounterRef get_or_build_counter(const ExecutionPlan &ep, BDD::Node_ptr node,
                                   obj_addr_t obj,
                                   std::pair<bool, uint64_t> max_value,
-                                  klee::ref<klee::Expr> value) {
+                                  klee::ref<klee::Expr> value) const {
     auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
     auto impls = mb->get_implementations(obj);
 

@@ -16,7 +16,7 @@ struct MaximizeSwitchNodesComparator : public HeuristicConfiguration {
             {Score::Category::NumberOfCounters, Score::MAX},
             {Score::Category::NumberOfSwitchNodes, Score::MAX},
             {Score::Category::NumberOfSwitchLeaves, Score::MAX},
-            {Score::Category::HasNextStatefulOperationInSwitch, Score::MAX},
+            // {Score::Category::HasNextStatefulOperationInSwitch, Score::MAX},
             {Score::Category::ConsecutiveObjectOperationsInSwitch, Score::MAX},
 
             // Let's add this one to just speed up the process when we are
