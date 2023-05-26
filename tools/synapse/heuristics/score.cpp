@@ -82,6 +82,13 @@ Score::get_nr_merged_tables(const ExecutionPlan &ep) const {
   return num_merged_tables;
 }
 
+Score::score_value_t Score::get_nr_counters(const ExecutionPlan &ep) const {
+  auto nodes =
+      get_nodes_with_type(ep, {Module::ModuleType::Tofino_CounterRead,
+                               Module::ModuleType::Tofino_CounterIncrement});
+  return nodes.size();
+}
+
 Score::score_value_t
 Score::get_nr_simple_tables(const ExecutionPlan &ep) const {
   auto nodes =

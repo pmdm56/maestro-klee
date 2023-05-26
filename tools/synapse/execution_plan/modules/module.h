@@ -96,6 +96,8 @@ public:
     Tofino_IntegerAllocatorAllocate,
     Tofino_IntegerAllocatorRejuvenate,
     Tofino_IntegerAllocatorQuery,
+    Tofino_CounterRead,
+    Tofino_CounterIncrement,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
     x86_Tofino_SendToTofino,
@@ -248,7 +250,7 @@ protected:
 
   std::vector<BDD::Node_ptr>
   get_all_functions_after_node(BDD::Node_ptr root,
-                               const std::string &function_name,
+                               const std::vector<std::string> &functions,
                                bool stop_on_branches = false) const;
 
   bool is_parser_drop(BDD::Node_ptr root) const;
@@ -265,6 +267,36 @@ protected:
       const std::vector<modification_t> &modifications) const;
 
   bool is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) const;
+
+  struct counter_data_t {
+    bool valid;
+    std::vector<BDD::Node_ptr> reads;
+    std::vector<BDD::Node_ptr> writes;
+    std::pair<bool, uint64_t> max_value;
+
+    counter_data_t() : valid(false) {}
+  };
+
+  std::pair<bool, uint64_t>
+  get_max_value(const ExecutionPlan &ep, obj_addr_t obj,
+                const std::vector<BDD::Node_ptr> &writes) const;
+
+  // Check if a given data structure is a counter. We expect counters to be
+  // implemented with vectors, such that (1) the value it stores is <= 64 bits,
+  // and (2) the only write operations performed on them increment the stored
+  // value.
+  counter_data_t is_counter(const ExecutionPlan &ep, obj_addr_t obj) const;
+
+  // When we encounter a vector_return operation and want to retrieve its
+  // vector_borrow value counterpart. This is useful to compare changes to the
+  // value expression and retrieve the performed modifications (if any).
+  klee::ref<klee::Expr> get_original_vector_value(const ExecutionPlan &ep,
+                                                  BDD::Node_ptr node,
+                                                  obj_addr_t target_addr) const;
+  klee::ref<klee::Expr> get_original_vector_value(const ExecutionPlan &ep,
+                                                  BDD::Node_ptr node,
+                                                  obj_addr_t target_addr,
+                                                  BDD::Node_ptr &source) const;
 
   struct coalesced_data_t {
     bool can_coalesce;

@@ -3,6 +3,8 @@
 #include "../../target.h"
 #include "../module.h"
 
+#include "counter_increment.h"
+#include "counter_read.h"
 #include "drop.h"
 #include "else.h"
 #include "forward.h"
@@ -49,6 +51,8 @@ public:
                    MODULE(IntegerAllocatorAllocate),
                    MODULE(IntegerAllocatorRejuvenate),
                    MODULE(IntegerAllocatorQuery),
+                   MODULE(CounterRead),
+                   MODULE(CounterIncrement),
                },
                MemoryBank_ptr(new TofinoMemoryBank())) {}
 

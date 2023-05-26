@@ -161,6 +161,8 @@ public:
   DECLARE_VISIT(targets::tofino::Drop)
   DECLARE_VISIT(targets::tofino::SendToController)
   DECLARE_VISIT(targets::tofino::SetupExpirationNotifications)
+  DECLARE_VISIT(targets::tofino::CounterRead)
+  DECLARE_VISIT(targets::tofino::CounterIncrement)
 
   /********************************************
    *

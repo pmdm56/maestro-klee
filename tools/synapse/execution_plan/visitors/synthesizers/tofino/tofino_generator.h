@@ -69,11 +69,15 @@ public:
              const target::IntegerAllocatorRejuvenate *node) override;
   void visit(const ExecutionPlanNode *ep_node,
              const target::IntegerAllocatorQuery *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const target::CounterRead *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const target::CounterIncrement *node) override;
 
   std::string transpile(klee::ref<klee::Expr> expr);
 
-  variable_query_t search_variable(const BDD::symbol_t& symbol) const;
-  variable_query_t search_variable(const std::string& symbol) const;
+  variable_query_t search_variable(const BDD::symbol_t &symbol) const;
+  variable_query_t search_variable(const std::string &symbol) const;
   variable_query_t search_variable(klee::ref<klee::Expr> expr) const;
 
 private:
@@ -81,6 +85,7 @@ private:
   void allocate_state(const ExecutionPlan &ep);
   void allocate_table(const target::Table *table);
   void allocate_int_allocator(const target::IntegerAllocator *int_allocator);
+  void allocate_counter(const target::Counter *counter);
   void
   visit_if_multiple_conditions(std::vector<klee::ref<klee::Expr>> conditions);
   void visit_if_simple_condition(klee::ref<klee::Expr> condition);

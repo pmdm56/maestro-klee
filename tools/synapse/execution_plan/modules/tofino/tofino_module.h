@@ -49,7 +49,7 @@ protected:
     }
 
     auto future_borrows =
-        get_all_functions_after_node(node, symbex::FN_BORROW_CHUNK);
+        get_all_functions_after_node(node, {symbex::FN_BORROW_CHUNK});
 
     if (future_borrows.size() == 0) {
       return false;

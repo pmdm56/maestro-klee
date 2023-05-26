@@ -162,9 +162,12 @@ private:
                    << "\n";
       }
     } else {
-      Log::wrn() << "No module can handle this BDD node"
+      Log::dbg() << "\n";
+      Log::dbg() << "\n";
+      Log::dbg() << "**DEAD END**: No module can handle this BDD node"
                     " in the current context.\n";
-      Log::wrn() << "Deleting solution from search space.\n";
+      Log::dbg() << "Deleting solution from search space.\n";
+      Log::dbg() << "\n";
     }
 
     Log::dbg() << "=======================================================\n";

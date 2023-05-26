@@ -111,6 +111,21 @@ void TofinoGenerator::allocate_table(const target::Table *_table) {
   ingress.add_table(table);
 }
 
+void TofinoGenerator::allocate_counter(const target::Counter *_counter) {
+  assert(_counter);
+
+  auto objs = _counter->get_objs();
+  assert(objs.size() == 1);
+
+  auto vector = *objs.begin();
+  auto capacity = _counter->get_capacity();
+  auto value_size = _counter->get_value_size();
+  auto max_value = _counter->get_max_value();
+
+  auto counter = counter_t(vector, capacity, value_size, max_value);
+  ingress.add_counter(counter);
+}
+
 void TofinoGenerator::allocate_int_allocator(
     const target::IntegerAllocator *_int_allocator) {
   assert(_int_allocator);
@@ -173,6 +188,10 @@ void TofinoGenerator::allocate_state(const ExecutionPlan &ep) {
     case target::DataStructure::INTEGER_ALLOCATOR: {
       auto int_allocator = static_cast<target::IntegerAllocator *>(impl.get());
       allocate_int_allocator(int_allocator);
+    } break;
+    case target::DataStructure::COUNTER: {
+      auto counter = static_cast<target::Counter *>(impl.get());
+      allocate_counter(counter);
     } break;
     }
   }
@@ -690,6 +709,52 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
       ingress.apply_block_builder.append_new_line();
     }
   }
+}
+
+void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                            const target::CounterRead *node) {
+  assert(node);
+
+  auto _counter = node->get_counter();
+  auto index = node->get_index();
+  auto value = node->get_value();
+
+  auto objs = _counter->get_objs();
+  assert(objs.size() == 1);
+
+  auto vector = *objs.begin();
+
+  auto value_label = counter_t::get_value_label(vector);
+  auto value_var = ingress.allocate_local_auxiliary(
+      value_label, _counter->get_value_size(), {value}, {});
+
+  const auto &counter = ingress.get_counter(vector);
+  auto transpiled_integer = transpile(index);
+
+  counter.synthesize_read(ingress.apply_block_builder, transpiled_integer, value_var);
+}
+
+void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                            const target::CounterIncrement *node) {
+  assert(node);
+
+  auto _counter = node->get_counter();
+  auto index = node->get_index();
+  auto value = node->get_value();
+
+  auto objs = _counter->get_objs();
+  assert(objs.size() == 1);
+
+  auto vector = *objs.begin();
+
+  auto value_label = counter_t::get_value_label(vector);
+  auto value_var = ingress.allocate_local_auxiliary(
+      value_label, _counter->get_value_size(), {value}, {});
+
+  const auto &counter = ingress.get_counter(vector);
+  auto transpiled_integer = transpile(index);
+
+  counter.synthesize_inc(ingress.apply_block_builder, transpiled_integer, value_var);
 }
 
 } // namespace tofino

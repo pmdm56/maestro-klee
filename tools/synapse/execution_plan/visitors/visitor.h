@@ -80,6 +80,8 @@ class RegisterRead;
 class IntegerAllocatorAllocate;
 class IntegerAllocatorRejuvenate;
 class IntegerAllocatorQuery;
+class CounterRead;
+class CounterIncrement;
 } // namespace tofino
 
 namespace x86_tofino {
@@ -226,6 +228,8 @@ public:
   VISIT(targets::tofino::IntegerAllocatorAllocate)
   VISIT(targets::tofino::IntegerAllocatorRejuvenate)
   VISIT(targets::tofino::IntegerAllocatorQuery)
+  VISIT(targets::tofino::CounterRead)
+  VISIT(targets::tofino::CounterIncrement)
 
   /*************************************
    *

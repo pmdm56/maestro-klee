@@ -49,23 +49,11 @@ bool TofinoMemoryBank::check_implementation_compatibility(
 
 void TofinoMemoryBank::add_dataplane_state(const BDD::symbols_t &symbols) {
   for (const auto &symbol : symbols) {
-    auto same_base_finder = [&](const BDD::symbols_t &dps) {
-      return dps.size() && dps.begin()->label_base == symbol.label_base;
-    };
-
-    auto same_base_it =
-        std::find_if(dp_state.begin(), dp_state.end(), same_base_finder);
-
-    if (same_base_it != dp_state.end()) {
-      same_base_it->insert(symbol);
-    } else {
-      dp_state.emplace_back();
-      dp_state.back().insert(symbol);
-    }
+    dp_state.insert(symbol);
   }
 }
 
-const dataplane_state_t &TofinoMemoryBank::get_dataplane_state() const {
+const BDD::symbols_t &TofinoMemoryBank::get_dataplane_state() const {
   return dp_state;
 }
 

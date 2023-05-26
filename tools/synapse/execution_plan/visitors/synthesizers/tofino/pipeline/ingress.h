@@ -10,6 +10,7 @@
 #include "domain/table.h"
 #include "domain/variable.h"
 
+#include "data_structures/counter.h"
 #include "data_structures/int_allocator.h"
 
 #include "headers.h"
@@ -27,6 +28,7 @@ private:
 
   tables_t tables;
   integer_allocators_t int_allocators;
+  counters_t counters;
 
 public:
   CodeBuilder state_builder;
@@ -285,20 +287,14 @@ public:
     return var;
   }
 
-  void set_cpu_hdr_fields(const std::vector<BDD::symbols_t> &fields) {
+  void set_cpu_hdr_fields(const BDD::symbols_t &fields) {
     for (auto field : fields) {
-      assert(field.size());
-      assert(!field.begin()->expr.isNull());
-
-      auto label = field.begin()->label;
-      auto size = field.begin()->expr->getWidth();
+      auto label = field.label;
+      auto size = field.expr->getWidth();
 
       auto hdr_field = hdr_field_t(label, size);
-
-      for (auto symbol : field) {
-        hdr_field.add_expr(symbol.expr);
-        hdr_field.add_symbols({symbol.label});
-      }
+      hdr_field.add_expr(field.expr);
+      hdr_field.add_symbols({field.label});
 
       cpu_header.add_field(hdr_field);
 
@@ -337,6 +333,8 @@ public:
     int_allocators.insert(int_allocator);
   }
 
+  void add_counter(const counter_t &counter) { counters.insert(counter); }
+
   const integer_allocator_t &get_int_allocator(obj_addr_t obj) const {
     auto it = std::find_if(int_allocators.begin(), int_allocators.end(),
                            [&](const integer_allocator_t &int_allocator) {
@@ -347,6 +345,15 @@ public:
     return *it;
   }
 
+  const counter_t &get_counter(obj_addr_t obj) const {
+    auto it = std::find_if(
+        counters.begin(), counters.end(),
+        [&](const counter_t &counter) { return counter.vector == obj; });
+
+    assert(it != counters.end());
+    return *it;
+  }
+
   void synthesize_state(std::ostream &os) {
     for (const auto &table : tables) {
       table.synthesize_declaration(state_builder);
@@ -354,6 +361,10 @@ public:
 
     for (const auto &int_allocator : int_allocators) {
       int_allocator.synthesize_declaration(state_builder);
+    }
+
+    for (const auto &counter : counters) {
+      counter.synthesize_declaration(state_builder);
     }
 
     state_builder.dump(os);

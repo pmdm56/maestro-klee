@@ -396,10 +396,8 @@ bool Module::is_expr_only_packet_dependent(klee::ref<klee::Expr> expr) const {
 
 std::vector<BDD::Node_ptr>
 Module::get_all_functions_after_node(BDD::Node_ptr root,
-                                     const std::string &function_name,
+                                     const std::vector<std::string> &wanted,
                                      bool stop_on_branches) const {
-  assert(root);
-
   std::vector<BDD::Node_ptr> functions;
   std::vector<BDD::Node_ptr> nodes{root};
 
@@ -417,7 +415,10 @@ Module::get_all_functions_after_node(BDD::Node_ptr root,
       auto call_node = static_cast<const BDD::Call *>(node.get());
       auto call = call_node->get_call();
 
-      if (call.function_name == function_name) {
+      auto found_it =
+          std::find(wanted.begin(), wanted.end(), call.function_name);
+
+      if (found_it != wanted.end()) {
         functions.push_back(node);
       }
 
@@ -525,8 +526,8 @@ Module::coalesced_data_t Module::get_coalescing_data(const ExecutionPlan &ep,
   auto root = ep.get_bdd_root(node);
   assert(root);
 
-  auto index_allocators =
-      get_all_functions_after_node(root, symbex::FN_DCHAIN_ALLOCATE_NEW_INDEX);
+  auto index_allocators = get_all_functions_after_node(
+      root, {symbex::FN_DCHAIN_ALLOCATE_NEW_INDEX});
 
   if (index_allocators.size() == 0) {
     return coalesced_data;
@@ -553,6 +554,260 @@ Module::coalesced_data_t Module::get_coalescing_data(const ExecutionPlan &ep,
   coalesced_data.vector_borrows = incoming_maps_and_vectors.vectors;
 
   return coalesced_data;
+}
+
+klee::ref<klee::Expr>
+Module::get_original_vector_value(const ExecutionPlan &ep, BDD::Node_ptr node,
+                                  obj_addr_t target_addr) const {
+  BDD::Node_ptr source;
+  return get_original_vector_value(ep, node, target_addr, source);
+}
+
+klee::ref<klee::Expr>
+Module::get_original_vector_value(const ExecutionPlan &ep, BDD::Node_ptr node,
+                                  obj_addr_t target_addr,
+                                  BDD::Node_ptr &source) const {
+  auto all_prev_vector_borrow = get_prev_fn(ep, node, symbex::FN_VECTOR_BORROW);
+
+  for (auto prev_vector_borrow : all_prev_vector_borrow) {
+    auto call_node = BDD::cast_node<BDD::Call>(prev_vector_borrow);
+    assert(call_node);
+
+    auto call = call_node->get_call();
+
+    assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+    assert(!call.extra_vars[symbex::FN_VECTOR_EXTRA].second.isNull());
+
+    auto _vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+    auto _borrowed_cell = call.extra_vars[symbex::FN_VECTOR_EXTRA].second;
+
+    auto _vector_addr = kutil::expr_addr_to_obj_addr(_vector);
+
+    if (_vector_addr != target_addr) {
+      continue;
+    }
+
+    source = prev_vector_borrow;
+    return _borrowed_cell;
+  }
+
+  assert(false && "Expecting a previous vector borrow but not found.");
+  Log::err() << "Expecting a previous vector borrow but not found. Run with "
+                "debug.\n";
+  exit(1);
+}
+
+bool is_incrementing_op(klee::ref<klee::Expr> before,
+                        klee::ref<klee::Expr> after) {
+  if (after->getKind() != klee::Expr::Add) {
+    return false;
+  }
+
+  auto lhs = after->getKid(0);
+  auto rhs = after->getKid(1);
+
+  auto lhs_is_const = lhs->getKind() == klee::Expr::Constant;
+  auto rhs_is_const = rhs->getKind() == klee::Expr::Constant;
+
+  if (!lhs_is_const && !rhs_is_const) {
+    return false;
+  }
+
+  auto const_expr = lhs_is_const ? lhs : rhs;
+  auto not_const_expr = lhs_is_const ? rhs : lhs;
+
+  // We only support increment of one, for now...
+  assert(kutil::solver_toolbox.value_from_expr(const_expr) == 1);
+
+  auto eq_to_before =
+      kutil::solver_toolbox.are_exprs_always_equal(not_const_expr, before);
+
+  return eq_to_before;
+}
+
+std::pair<bool, uint64_t>
+get_max_value_helper(klee::ref<klee::Expr> original_value,
+                     klee::ref<klee::Expr> condition) {
+  auto max_value = std::pair<bool, uint64_t>{false, 0};
+
+  auto original_symbol = kutil::get_symbol(original_value);
+  assert(original_symbol.first);
+
+  auto symbol = kutil::get_symbol(condition);
+
+  if (!symbol.first) {
+    return max_value;
+  }
+
+  // We are looking for expression that look like this:
+  // !(65536 <= vector_data_reset)
+  // We should be more careful with this and be compatible with more
+  // expressions.
+
+  while (condition->getKind() == klee::Expr::Not) {
+    condition = condition->getKid(0);
+  }
+
+  if (condition->getKind() == klee::Expr::Eq) {
+    auto lhs = condition->getKid(0);
+    auto rhs = condition->getKid(1);
+    auto lhs_is_const = lhs->getKind() == klee::Expr::Constant;
+
+    if (!lhs_is_const) {
+      return max_value;
+    }
+
+    auto const_value = kutil::solver_toolbox.value_from_expr(lhs);
+
+    if (const_value != 0) {
+      return max_value;
+    }
+
+    condition = rhs;
+  }
+
+  if (condition->getKind() != klee::Expr::Ule) {
+    return max_value;
+  }
+
+  auto lhs = condition->getKid(0);
+  auto rhs = condition->getKid(1);
+
+  auto lhs_is_const = lhs->getKind() == klee::Expr::Constant;
+  auto rhs_is_const = rhs->getKind() == klee::Expr::Constant;
+
+  if (!lhs_is_const && !rhs_is_const) {
+    return max_value;
+  }
+
+  auto const_expr = lhs_is_const ? lhs : rhs;
+  auto not_const_expr = lhs_is_const ? rhs : lhs;
+
+  if (!kutil::solver_toolbox.are_exprs_always_equal(not_const_expr,
+                                                    original_value)) {
+    return max_value;
+  }
+
+  auto value = kutil::solver_toolbox.value_from_expr(const_expr);
+
+  max_value.first = true;
+  max_value.second = value;
+
+  return max_value;
+}
+
+std::pair<bool, uint64_t>
+get_max_value_helper(BDD::Node_ptr write_under_analysis,
+                     klee::ref<klee::Expr> original_value) {
+  auto max_value = std::pair<bool, uint64_t>{false, 0};
+  auto node = write_under_analysis;
+
+  // FIXME: this assumes the first branch condition we encounter is the one we
+  // are looking for. That may not be the case.
+  while (node && node->get_type() != BDD::Node::NodeType::BRANCH) {
+    node = node->get_prev();
+  }
+
+  if (!node) {
+    return max_value;
+  }
+
+  auto branch_node = BDD::cast_node<BDD::Branch>(node);
+  assert(branch_node);
+
+  auto condition = branch_node->get_condition();
+  return get_max_value_helper(original_value, condition);
+}
+
+// Check if writes only happen if there is some condition being met before
+// checking if the current value is less than some specific constant.
+std::pair<bool, uint64_t>
+Module::get_max_value(const ExecutionPlan &ep, obj_addr_t obj,
+                      const std::vector<BDD::Node_ptr> &writes) const {
+  auto max_value = std::pair<bool, uint64_t>{false, 0};
+
+  for (auto write : writes) {
+    auto original_value = get_original_vector_value(ep, write, obj);
+    auto local_max_value = get_max_value_helper(write, original_value);
+
+    if (!max_value.first) {
+      max_value = local_max_value;
+    } else if (!local_max_value.first ||
+               local_max_value.second != max_value.second) {
+      return {false, 0};
+    }
+  }
+
+  return max_value;
+}
+
+Module::counter_data_t Module::is_counter(const ExecutionPlan &ep,
+                                          obj_addr_t obj) const {
+  static std::unordered_map<obj_addr_t, counter_data_t> cache;
+
+  if (cache.find(obj) != cache.end()) {
+    return cache[obj];
+  }
+
+  Module::counter_data_t data;
+  std::vector<BDD::Node_ptr> vector_return_writes;
+
+  auto bdd = ep.get_bdd();
+  auto cfg = symbex::get_vector_config(ep.get_bdd(), obj);
+
+  if (cfg.elem_size > 64) {
+    cache[obj] = data;
+    return data;
+  }
+
+  auto root = bdd.get_process();
+  auto vector_returns =
+      get_all_functions_after_node(root, {symbex::FN_VECTOR_RETURN});
+
+  for (auto vector_return : vector_returns) {
+    auto call_node = BDD::cast_node<BDD::Call>(vector_return);
+    auto call = call_node->get_call();
+
+    assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
+    assert(!call.args[symbex::FN_VECTOR_ARG_VALUE].in.isNull());
+
+    auto _vector = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
+    auto _value = call.args[symbex::FN_VECTOR_ARG_VALUE].in;
+
+    auto _vector_addr = kutil::expr_addr_to_obj_addr(_vector);
+
+    if (_vector_addr != obj) {
+      cache[obj] = data;
+      continue;
+    }
+
+    BDD::Node_ptr vector_borrow;
+    auto _original = get_original_vector_value(ep, vector_return, _vector_addr,
+                                               vector_borrow);
+    assert(vector_borrow);
+
+    auto no_changes =
+        kutil::solver_toolbox.are_exprs_always_equal(_original, _value);
+
+    if (no_changes) {
+      data.reads.push_back(vector_borrow);
+      continue;
+    }
+
+    if (!is_incrementing_op(_original, _value)) {
+      cache[obj] = data;
+      return data;
+    }
+
+    data.writes.push_back(vector_borrow);
+    vector_return_writes.push_back(vector_return);
+  }
+
+  data.valid = true;
+  data.max_value = get_max_value(ep, obj, vector_return_writes);
+
+  cache[obj] = data;
+  return data;
 }
 
 } // namespace synapse

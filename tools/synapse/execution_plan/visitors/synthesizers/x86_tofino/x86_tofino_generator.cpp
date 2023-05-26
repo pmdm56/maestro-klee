@@ -260,31 +260,15 @@ void x86TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   fields.emplace_back(CPU_OUT_PORT, HDR_CPU_OUT_PORT_FIELD, 16);
 
   for (auto state : dataplane_state) {
-    std::string label;
-    std::vector<std::string> symbols_labels;
-    bits_t size;
-    std::vector<klee::ref<klee::Expr>> exprs;
-
-    for (auto it = state.begin(); it != state.end(); it++) {
-      if (it == state.begin()) {
-        assert(!it->expr.isNull());
-        label = it->label_base;
-        size = it->expr->getWidth();
-      }
-
-      symbols_labels.push_back(it->label);
-
-      auto hs = kutil::get_symbol(it->expr);
-      if (hs.first && hs.second == it->label) {
-        exprs.push_back(it->expr);
-      }
-    }
+    auto label = state.label;
+    auto expr = state.expr;
+    auto size = expr->getWidth();
 
     auto field = hdr_field_t(CPU_DATA_FIELD, label, size);
-    auto var = Variable(std::string(HDR_CPU_VARIABLE) + "->" + label, size,
-                        symbols_labels);
-
-    for (auto expr : exprs) {
+    auto var =
+        Variable(std::string(HDR_CPU_VARIABLE) + "->" + label, size, {label});
+    auto hs = kutil::get_symbol(expr);
+    if (hs.first && hs.second == label) {
       var.add_expr(expr);
     }
 

@@ -777,6 +777,8 @@ void Graphviz::visit(const ExecutionPlanNode *ep_node,
 }
 
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::CounterRead)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::CounterIncrement)
 
 /********************************************
  *
@@ -799,11 +801,9 @@ void Graphviz::visit(const ExecutionPlanNode *ep_node,
 
   label_builder << "Parse CPU Header\n";
   label_builder << "  Dataplane state:\n";
-  for (auto ss : state) {
+  for (auto s : state) {
     label_builder << "    [";
-    for (auto s : ss) {
-      label_builder << s.label << ",";
-    }
+    label_builder << s.label;
     label_builder << "]\n";
   }
 

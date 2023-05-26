@@ -18,13 +18,12 @@ namespace targets {
 namespace tofino {
 
 typedef std::pair<BDD::node_id_t, Module_ptr> postponed_t;
-typedef std::vector<BDD::symbols_t> dataplane_state_t;
 
 class TofinoMemoryBank : public MemoryBank {
 private:
   DataStructuresSet implementations;
   std::vector<postponed_t> postponed;
-  dataplane_state_t dp_state;
+  BDD::symbols_t dp_state;
 
 public:
   TofinoMemoryBank() : MemoryBank() {}
@@ -51,7 +50,7 @@ public:
   const std::vector<postponed_t> &get_postponed() const;
 
   void add_dataplane_state(const BDD::symbols_t &symbols);
-  const dataplane_state_t &get_dataplane_state() const;
+  const BDD::symbols_t &get_dataplane_state() const;
 
   virtual MemoryBank_ptr clone() const {
     auto clone = new TofinoMemoryBank(*this);
