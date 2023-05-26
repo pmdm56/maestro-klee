@@ -482,13 +482,13 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const target::TableLookupSimple *node) {
-  auto simple_table = static_cast<const target::TableLookup *>(node);
+                            const target::TableLookup *node) {
+  auto simple_table = static_cast<const target::MergeableTableLookup *>(node);
   visit(ep_node, simple_table);
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
-                            const target::TableLookup *node) {
+                            const target::MergeableTableLookup *node) {
   assert(node);
 
   auto _table = node->get_table();

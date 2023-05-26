@@ -127,6 +127,7 @@ private:
         auto call = call_node->get_call();
 
         if (call.function_name != symbex::FN_BORROW_CHUNK &&
+            call.function_name != symbex::FN_RETURN_CHUNK &&
             call.function_name != symbex::FN_CURRENT_TIME) {
           continue;
         }

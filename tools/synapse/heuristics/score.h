@@ -26,6 +26,7 @@ public:
     Depth,
     ConsecutiveObjectOperationsInSwitch,
     HasNextStatefulOperationInSwitch,
+    ProcessedBDDPercentage,
   };
 
   enum Objective { MIN, MAX };
@@ -67,6 +68,7 @@ public:
         {HasNextStatefulOperationInSwitch,
          &Score::next_op_is_stateful_in_switch},
         {NumberOfIntAllocatorOps, &Score::get_nr_int_allocator_ops},
+        {ProcessedBDDPercentage, &Score::get_percentage_of_processed_bdd},
     };
 
     for (const auto &category_objective : categories_objectives) {
@@ -175,6 +177,7 @@ private:
   score_value_t get_nr_switch_leaves(const ExecutionPlan &ep) const;
   score_value_t next_op_same_obj_in_switch(const ExecutionPlan &ep) const;
   score_value_t next_op_is_stateful_in_switch(const ExecutionPlan &ep) const;
+  score_value_t get_percentage_of_processed_bdd(const ExecutionPlan &ep) const;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Score &score) {

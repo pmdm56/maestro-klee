@@ -15,6 +15,7 @@
 #include "int_allocator_rejuvenate.h"
 #include "ipv4_tcpudp_checksums_update.h"
 #include "memory_bank.h"
+#include "mergeable_table_lookup.h"
 #include "modify_custom_header.h"
 #include "parse_custom_header.h"
 #include "parser_condition.h"
@@ -22,7 +23,6 @@
 #include "send_to_controller.h"
 #include "setup_expiration_notifications.h"
 #include "table_lookup.h"
-#include "table_lookup_simple.h"
 #include "then.h"
 
 namespace synapse {
@@ -45,8 +45,8 @@ public:
                    MODULE(Drop),
                    MODULE(SendToController),
                    MODULE(SetupExpirationNotifications),
+                   MODULE(MergeableTableLookup),
                    MODULE(TableLookup),
-                   MODULE(TableLookupSimple),
                    MODULE(RegisterRead),
                    MODULE(IntegerAllocatorAllocate),
                    MODULE(IntegerAllocatorRejuvenate),

@@ -655,7 +655,7 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::ModifyCustomHeader)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::IPv4TCPUDPChecksumsUpdate)
 
 void Graphviz::visit_table(const ExecutionPlanNode *ep_node,
-                           const targets::tofino::TableLookup *node,
+                           const targets::tofino::MergeableTableLookup *node,
                            bool simple) {
   std::stringstream label_builder;
 
@@ -739,12 +739,12 @@ void Graphviz::visit_table(const ExecutionPlanNode *ep_node,
 }
 
 void Graphviz::visit(const ExecutionPlanNode *ep_node,
-                     const targets::tofino::TableLookup *node) {
+                     const targets::tofino::MergeableTableLookup *node) {
   visit_table(ep_node, node, false);
 }
 
 void Graphviz::visit(const ExecutionPlanNode *ep_node,
-                     const targets::tofino::TableLookupSimple *node) {
+                     const targets::tofino::TableLookup *node) {
   visit_table(ep_node, node, true);
 }
 

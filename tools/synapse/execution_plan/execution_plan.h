@@ -129,7 +129,7 @@ public:
 
   void force_termination();
   
-  float get_percentage_of_processed_bdd_nodes() const;
+  float get_bdd_processing_progress() const;
   void remove_from_processed_bdd_nodes(BDD::node_id_t id);
   void add_processed_bdd_node(BDD::node_id_t id);
   void replace_current_target_starting_points(BDD::node_id_t _old,

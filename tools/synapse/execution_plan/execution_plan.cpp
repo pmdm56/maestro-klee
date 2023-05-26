@@ -488,7 +488,7 @@ void ExecutionPlan::replace_active_leaf_node(BDD::Node_ptr next,
   leaves[0].next = next;
 }
 
-float ExecutionPlan::get_percentage_of_processed_bdd_nodes() const {
+float ExecutionPlan::get_bdd_processing_progress() const {
   auto process = bdd.get_process();
   assert(process);
   auto total_nodes = process->count_children() + 1;

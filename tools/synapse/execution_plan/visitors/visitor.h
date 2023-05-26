@@ -74,8 +74,8 @@ class IPv4TCPUDPChecksumsUpdate;
 class Drop;
 class SendToController;
 class SetupExpirationNotifications;
+class MergeableTableLookup;
 class TableLookup;
-class TableLookupSimple;
 class RegisterRead;
 class IntegerAllocatorAllocate;
 class IntegerAllocatorRejuvenate;
@@ -222,8 +222,8 @@ public:
   VISIT(targets::tofino::SendToController)
   VISIT(targets::tofino::SetupExpirationNotifications)
   VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
+  VISIT(targets::tofino::MergeableTableLookup)
   VISIT(targets::tofino::TableLookup)
-  VISIT(targets::tofino::TableLookupSimple)
   VISIT(targets::tofino::RegisterRead)
   VISIT(targets::tofino::IntegerAllocatorAllocate)
   VISIT(targets::tofino::IntegerAllocatorRejuvenate)

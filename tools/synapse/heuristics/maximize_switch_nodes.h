@@ -23,7 +23,7 @@ struct MaximizeSwitchNodesComparator : public HeuristicConfiguration {
             // generating controller nodes. After all, we only get to this point
             // if all the metrics behind this one are the same, and by that
             // point who cares.
-            {Score::Category::NumberOfControllerNodes, Score::MAX},
+            {Score::Category::ProcessedBDDPercentage, Score::MAX},
         });
 
     return score;

@@ -60,9 +60,9 @@ public:
   void visit(const ExecutionPlanNode *ep_node,
              const target::SendToController *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const target::TableLookup *node) override;
+             const target::MergeableTableLookup *node) override;
   void visit(const ExecutionPlanNode *ep_node,
-             const target::TableLookupSimple *node) override;
+             const target::TableLookup *node) override;
   void visit(const ExecutionPlanNode *ep_node,
              const target::IntegerAllocatorAllocate *node) override;
   void visit(const ExecutionPlanNode *ep_node,

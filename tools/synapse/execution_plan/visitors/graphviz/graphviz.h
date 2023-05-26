@@ -152,8 +152,8 @@ public:
   DECLARE_VISIT(targets::tofino::ModifyCustomHeader)
   DECLARE_VISIT(targets::tofino::ParserCondition)
   DECLARE_VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
+  DECLARE_VISIT(targets::tofino::MergeableTableLookup)
   DECLARE_VISIT(targets::tofino::TableLookup)
-  DECLARE_VISIT(targets::tofino::TableLookupSimple)
   DECLARE_VISIT(targets::tofino::RegisterRead)
   DECLARE_VISIT(targets::tofino::IntegerAllocatorAllocate)
   DECLARE_VISIT(targets::tofino::IntegerAllocatorRejuvenate)
@@ -233,6 +233,6 @@ public:
 
 private:
   void visit_table(const ExecutionPlanNode *ep_node,
-                   const targets::tofino::TableLookup *node, bool simple);
+                   const targets::tofino::MergeableTableLookup *node, bool simple);
 };
 } // namespace synapse
