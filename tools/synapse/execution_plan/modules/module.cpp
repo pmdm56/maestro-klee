@@ -824,7 +824,7 @@ Module::counter_data_t Module::is_counter(const ExecutionPlan &ep,
   auto bdd = ep.get_bdd();
   auto cfg = symbex::get_vector_config(ep.get_bdd(), obj);
 
-  if (cfg.elem_size > 64) {
+  if (cfg.elem_size > 64 || cfg.capacity != 1) {
     return data;
   }
 
