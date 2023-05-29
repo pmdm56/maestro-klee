@@ -1,24 +1,24 @@
 #pragma once
 
-#include "x86_module.h"
+#include "tofino_module.h"
 
 namespace synapse {
 namespace targets {
-namespace x86 {
+namespace tofino {
 
-class HashObj : public x86Module {
+class HashObj : public TofinoModule {
 private:
-  addr_t obj_addr;
-  klee::ref<klee::Expr> size;
+  klee::ref<klee::Expr> input;
+  bits_t size;
   klee::ref<klee::Expr> hash;
 
 public:
-  HashObj() : x86Module(ModuleType::x86_HashObj, "HashObj") {}
+  HashObj() : TofinoModule(ModuleType::Tofino_HashObj, "HashObj") {}
 
-  HashObj(BDD::Node_ptr node, addr_t _obj_addr, klee::ref<klee::Expr> _size,
+  HashObj(BDD::Node_ptr node, klee::ref<klee::Expr> _input, bits_t _size,
           klee::ref<klee::Expr> _hash)
-      : x86Module(ModuleType::x86_HashObj, "HashObj", node),
-        obj_addr(_obj_addr), size(_size), hash(_hash) {}
+      : TofinoModule(ModuleType::Tofino_HashObj, "HashObj", node),
+        input(_input), size(_size), hash(_hash) {}
 
 private:
   processing_result_t process(const ExecutionPlan &ep,
@@ -35,17 +35,18 @@ private:
 
     if (call.function_name == symbex::FN_HASH_OBJ) {
       assert(!call.args[symbex::FN_HASH_OBJ_ARG_OBJ].expr.isNull());
+      assert(!call.args[symbex::FN_HASH_OBJ_ARG_OBJ].in.isNull());
       assert(!call.args[symbex::FN_HASH_OBJ_ARG_SIZE].expr.isNull());
       assert(!call.ret.isNull());
 
-      auto _obj = call.args[symbex::FN_HASH_OBJ_ARG_OBJ].expr;
+      auto _input = call.args[symbex::FN_HASH_OBJ_ARG_OBJ].in;
       auto _size = call.args[symbex::FN_HASH_OBJ_ARG_SIZE].expr;
       auto _hash = call.ret;
 
-      auto _obj_addr = kutil::expr_addr_to_obj_addr(_obj);
+      assert(kutil::is_constant(_size));
+      auto _size_value = kutil::solver_toolbox.value_from_expr(_size);
 
-      auto new_module =
-          std::make_shared<HashObj>(node, _obj_addr, _size, _hash);
+      auto new_module = std::make_shared<HashObj>(node, _input, _size_value, _hash);
       auto new_ep = ep.add_leaves(new_module, node->get_next());
 
       result.module = new_module;
@@ -62,7 +63,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new HashObj(node, obj_addr, size, hash);
+    auto cloned = new HashObj(node, input, size, hash);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -73,12 +74,12 @@ public:
 
     auto other_cast = static_cast<const HashObj *>(other);
 
-    if (obj_addr != other_cast->get_obj_addr()) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(
+            input, other_cast->get_input())) {
       return false;
     }
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(size,
-                                                      other_cast->get_size())) {
+    if (size != other_cast->get_size()) {
       return false;
     }
 
@@ -90,10 +91,10 @@ public:
     return true;
   }
 
-  addr_t get_obj_addr() const { return obj_addr; }
-  klee::ref<klee::Expr> get_size() const { return size; }
+  klee::ref<klee::Expr> get_input() const { return input; }
+  bits_t get_size() const { return size; }
   klee::ref<klee::Expr> get_hash() const { return hash; }
 };
-} // namespace x86
+} // namespace tofino
 } // namespace targets
 } // namespace synapse

@@ -98,6 +98,7 @@ public:
     Tofino_IntegerAllocatorQuery,
     Tofino_CounterRead,
     Tofino_CounterIncrement,
+    Tofino_HashObj,
     x86_Tofino_Ignore,
     x86_Tofino_PacketParseCPU,
     x86_Tofino_SendToTofino,
@@ -109,6 +110,10 @@ public:
     x86_Tofino_PacketModifyIPv4Options,
     x86_Tofino_PacketParseTCPUDP,
     x86_Tofino_PacketModifyTCPUDP,
+    x86_Tofino_PacketParseTCP,
+    x86_Tofino_PacketModifyTCP,
+    x86_Tofino_PacketParseUDP,
+    x86_Tofino_PacketModifyUDP,
     x86_Tofino_PacketModifyChecksums,
     x86_Tofino_If,
     x86_Tofino_Then,
@@ -121,6 +126,7 @@ public:
     x86_Tofino_DchainAllocateNewIndex,
     x86_Tofino_DchainIsIndexAllocated,
     x86_Tofino_DchainRejuvenateIndex,
+    x86_Tofino_HashObj,
     x86_CurrentTime,
     x86_If,
     x86_Then,
@@ -281,18 +287,22 @@ protected:
   // implemented with vectors, such that (1) the value it stores is <= 64 bits,
   // and (2) the only write operations performed on them increment the stored
   // value.
-  counter_data_t is_counter(const ExecutionPlan &ep, obj_addr_t obj) const;
+  counter_data_t is_counter(const ExecutionPlan &ep, addr_t obj) const;
 
   // When we encounter a vector_return operation and want to retrieve its
   // vector_borrow value counterpart. This is useful to compare changes to the
   // value expression and retrieve the performed modifications (if any).
   klee::ref<klee::Expr> get_original_vector_value(const ExecutionPlan &ep,
                                                   BDD::Node_ptr node,
-                                                  obj_addr_t target_addr) const;
+                                                  addr_t target_addr) const;
   klee::ref<klee::Expr> get_original_vector_value(const ExecutionPlan &ep,
                                                   BDD::Node_ptr node,
-                                                  obj_addr_t target_addr,
+                                                  addr_t target_addr,
                                                   BDD::Node_ptr &source) const;
+
+  // Get the data associated with this address.
+  klee::ref<klee::Expr> get_expr_from_addr(const ExecutionPlan &ep,
+                                           addr_t addr) const;
 
   struct coalesced_data_t {
     bool can_coalesce;
@@ -302,8 +312,8 @@ protected:
 
     coalesced_data_t() : can_coalesce(false) {}
 
-    std::unordered_set<obj_addr_t> get_objs() const {
-      std::unordered_set<obj_addr_t> objs;
+    std::unordered_set<addr_t> get_objs() const {
+      std::unordered_set<addr_t> objs;
 
       assert(map_get);
 

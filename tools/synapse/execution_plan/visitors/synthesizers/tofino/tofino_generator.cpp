@@ -731,7 +731,8 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   const auto &counter = ingress.get_counter(vector);
   auto transpiled_integer = transpile(index);
 
-  counter.synthesize_read(ingress.apply_block_builder, transpiled_integer, value_var);
+  counter.synthesize_read(ingress.apply_block_builder, transpiled_integer,
+                          value_var);
 }
 
 void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
@@ -754,7 +755,31 @@ void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
   const auto &counter = ingress.get_counter(vector);
   auto transpiled_integer = transpile(index);
 
-  counter.synthesize_inc(ingress.apply_block_builder, transpiled_integer, value_var);
+  counter.synthesize_inc(ingress.apply_block_builder, transpiled_integer,
+                         value_var);
+}
+
+void TofinoGenerator::visit(const ExecutionPlanNode *ep_node,
+                            const target::HashObj *node) {
+  auto input = node->get_input();
+  auto size = node->get_size();
+  auto hash_out = node->get_hash();
+
+  auto inputs = std::vector<std::string>();
+
+  for (auto offset = 0u; offset < input->getWidth(); offset += 8) {
+    auto byte = kutil::solver_toolbox.exprBuilder->Extract(input, offset, 8);
+    auto byte_transpiled = transpile(byte);
+    inputs.push_back(byte_transpiled);
+  }
+
+  const auto &hash = ingress.get_or_build_hash(size);
+
+  auto value_label = hash.get_value_label();
+  auto value_var =
+      ingress.allocate_local_auxiliary(value_label, size, {hash_out}, {});
+
+  hash.synthesize_apply(ingress.apply_block_builder, inputs, value_var);
 }
 
 } // namespace tofino

@@ -73,6 +73,8 @@ public:
              const target::CounterRead *node) override;
   void visit(const ExecutionPlanNode *ep_node,
              const target::CounterIncrement *node) override;
+  void visit(const ExecutionPlanNode *ep_node,
+             const target::HashObj *node) override;
 
   std::string transpile(klee::ref<klee::Expr> expr);
 

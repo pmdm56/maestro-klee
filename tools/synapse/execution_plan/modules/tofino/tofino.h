@@ -8,6 +8,7 @@
 #include "drop.h"
 #include "else.h"
 #include "forward.h"
+#include "hash_obj.h"
 #include "if.h"
 #include "ignore.h"
 #include "int_allocator_allocate.h"
@@ -53,6 +54,7 @@ public:
                    MODULE(IntegerAllocatorQuery),
                    MODULE(CounterRead),
                    MODULE(CounterIncrement),
+                   MODULE(HashObj),
                },
                MemoryBank_ptr(new TofinoMemoryBank())) {}
 

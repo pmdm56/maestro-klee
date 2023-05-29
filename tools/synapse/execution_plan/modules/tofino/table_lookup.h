@@ -55,7 +55,7 @@ private:
 
   virtual bool check_compatible_placements_decisions(
       const ExecutionPlan &ep,
-      const std::unordered_set<obj_addr_t> &objs) const override {
+      const std::unordered_set<addr_t> &objs) const override {
     auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
 
     for (auto obj : objs) {

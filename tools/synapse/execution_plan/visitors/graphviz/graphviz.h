@@ -163,6 +163,7 @@ public:
   DECLARE_VISIT(targets::tofino::SetupExpirationNotifications)
   DECLARE_VISIT(targets::tofino::CounterRead)
   DECLARE_VISIT(targets::tofino::CounterIncrement)
+  DECLARE_VISIT(targets::tofino::HashObj)
 
   /********************************************
    *
@@ -192,6 +193,11 @@ public:
   DECLARE_VISIT(targets::x86_tofino::DchainAllocateNewIndex)
   DECLARE_VISIT(targets::x86_tofino::DchainIsIndexAllocated)
   DECLARE_VISIT(targets::x86_tofino::DchainRejuvenateIndex)
+  DECLARE_VISIT(targets::x86_tofino::PacketParseTCP)
+  DECLARE_VISIT(targets::x86_tofino::PacketModifyTCP)
+  DECLARE_VISIT(targets::x86_tofino::PacketParseUDP)
+  DECLARE_VISIT(targets::x86_tofino::PacketModifyUDP)
+  DECLARE_VISIT(targets::x86_tofino::HashObj)
 
   /********************************************
    *
@@ -233,6 +239,7 @@ public:
 
 private:
   void visit_table(const ExecutionPlanNode *ep_node,
-                   const targets::tofino::MergeableTableLookup *node, bool simple);
+                   const targets::tofino::MergeableTableLookup *node,
+                   bool simple);
 };
 } // namespace synapse

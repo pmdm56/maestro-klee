@@ -779,6 +779,7 @@ void Graphviz::visit(const ExecutionPlanNode *ep_node,
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::SetupExpirationNotifications)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::CounterRead)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::CounterIncrement)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::tofino::HashObj)
 
 /********************************************
  *
@@ -830,6 +831,11 @@ DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::EtherAddrHash)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainAllocateNewIndex)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainIsIndexAllocated)
 DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::DchainRejuvenateIndex)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseTCP)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyTCP)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketParseUDP)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::PacketModifyUDP)
+DEFAULT_VISIT_PRINT_MODULE_NAME(targets::x86_tofino::HashObj)
 
 /********************************************
  *

@@ -29,7 +29,7 @@ public:
   }
 
 private:
-  bool get_dchain_rejuvenate_obj(BDD::Node_ptr node, obj_addr_t &obj) const {
+  bool get_dchain_rejuvenate_obj(BDD::Node_ptr node, addr_t &obj) const {
     if (node->get_type() != BDD::Node::NodeType::CALL) {
       return false;
     }
@@ -66,7 +66,7 @@ private:
       auto obj = *objs.begin();
 
       for (auto node : incoming) {
-        obj_addr_t dchain;
+        addr_t dchain;
 
         if (!get_dchain_rejuvenate_obj(node, dchain)) {
           continue;

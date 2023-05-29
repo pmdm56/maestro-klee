@@ -42,7 +42,7 @@ protected:
   struct extracted_data_t {
     bool valid;
     std::string fname;
-    obj_addr_t obj;
+    addr_t obj;
     std::vector<Table::key_t> keys;
     std::vector<Table::param_t> values;
     std::pair<bool, BDD::symbol_t> hit;
@@ -116,7 +116,7 @@ protected:
 
   virtual bool check_compatible_placements_decisions(
       const ExecutionPlan &ep,
-      const std::unordered_set<obj_addr_t> &objs) const {
+      const std::unordered_set<addr_t> &objs) const {
     auto mb = ep.get_memory_bank<TofinoMemoryBank>(Tofino);
 
     for (auto obj : objs) {

@@ -7,24 +7,24 @@ namespace synapse {
 namespace targets {
 namespace x86_tofino {
 
-class PacketModifyTCPUDP : public Module {
+class PacketModifyUDP : public Module {
 private:
-  klee::ref<klee::Expr> tcpudp_chunk;
+  klee::ref<klee::Expr> udp_chunk;
   std::vector<modification_t> modifications;
 
 public:
-  PacketModifyTCPUDP()
-      : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
-               TargetType::x86_Tofino, "PacketModifyTCPUDP") {}
+  PacketModifyUDP()
+      : Module(ModuleType::x86_Tofino_PacketModifyUDP, TargetType::x86_Tofino,
+               "PacketModifyUDP") {}
 
-  PacketModifyTCPUDP(BDD::Node_ptr node, klee::ref<klee::Expr> _tcpudp_chunk,
-                     const std::vector<modification_t> &_modifications)
-      : Module(ModuleType::x86_Tofino_PacketModifyTCPUDP,
-               TargetType::x86_Tofino, "PacketModifyTCPUDP", node),
-        tcpudp_chunk(_tcpudp_chunk), modifications(_modifications) {}
+  PacketModifyUDP(BDD::Node_ptr node, klee::ref<klee::Expr> _udp_chunk,
+                  const std::vector<modification_t> &_modifications)
+      : Module(ModuleType::x86_Tofino_PacketModifyUDP, TargetType::x86_Tofino,
+               "PacketModifyUDP", node),
+        udp_chunk(_udp_chunk), modifications(_modifications) {}
 
 private:
-  klee::ref<klee::Expr> get_tcpudp_chunk(const BDD::Node *node) const {
+  klee::ref<klee::Expr> get_udp_chunk(const BDD::Node *node) const {
     assert(node->get_type() == BDD::Node::NodeType::CALL);
 
     auto call_node = static_cast<const BDD::Call *>(node);
@@ -76,18 +76,17 @@ private:
       return result;
     }
 
-    auto borrow_tcpudp = all_prev_packet_borrow_next_chunk[0].get();
+    auto borrow_udp = all_prev_packet_borrow_next_chunk[0].get();
 
-    auto curr_tcpudp_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
-    auto prev_tcpudp_chunk = get_tcpudp_chunk(borrow_tcpudp);
+    auto curr_udp_chunk = call.args[symbex::FN_BORROW_CHUNK_EXTRA].in;
+    auto prev_udp_chunk = get_udp_chunk(borrow_udp);
 
-    if (curr_tcpudp_chunk->getWidth() != 4 * 8 ||
-        prev_tcpudp_chunk->getWidth() != 4 * 8) {
+    if (curr_udp_chunk->getWidth() != 8 * 8 ||
+        prev_udp_chunk->getWidth() != 8 * 8) {
       return result;
     }
 
-    auto _modifications =
-        build_modifications(prev_tcpudp_chunk, curr_tcpudp_chunk);
+    auto _modifications = build_modifications(prev_udp_chunk, curr_udp_chunk);
 
     if (_modifications.size() == 0) {
       auto new_module = std::make_shared<Ignore>(node);
@@ -99,8 +98,8 @@ private:
       return result;
     }
 
-    auto new_module = std::make_shared<PacketModifyTCPUDP>(
-        node, prev_tcpudp_chunk, _modifications);
+    auto new_module =
+        std::make_shared<PacketModifyUDP>(node, prev_udp_chunk, _modifications);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -116,7 +115,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new PacketModifyTCPUDP(node, tcpudp_chunk, modifications);
+    auto cloned = new PacketModifyUDP(node, udp_chunk, modifications);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -125,10 +124,10 @@ public:
       return false;
     }
 
-    auto other_cast = static_cast<const PacketModifyTCPUDP *>(other);
+    auto other_cast = static_cast<const PacketModifyUDP *>(other);
 
-    if (!kutil::solver_toolbox.are_exprs_always_equal(
-            tcpudp_chunk, other_cast->tcpudp_chunk)) {
+    if (!kutil::solver_toolbox.are_exprs_always_equal(udp_chunk,
+                                                      other_cast->udp_chunk)) {
       return false;
     }
 
@@ -155,7 +154,7 @@ public:
     return true;
   }
 
-  klee::ref<klee::Expr> get_tcpudp_chunk() const { return tcpudp_chunk; }
+  klee::ref<klee::Expr> get_udp_chunk() const { return udp_chunk; }
 
   const std::vector<modification_t> &get_modifications() const {
     return modifications;

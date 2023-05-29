@@ -40,10 +40,10 @@ public:
   std::vector<DataStructureRef>
   get_implementations(DataStructure::Type ds_type) const;
 
-  std::vector<DataStructureRef> get_implementations(obj_addr_t obj) const;
+  std::vector<DataStructureRef> get_implementations(addr_t obj) const;
 
   bool check_implementation_compatibility(
-      obj_addr_t obj,
+      addr_t obj,
       const std::vector<DataStructure::Type> &compatible_types) const;
 
   void postpone(BDD::node_id_t node_id, Module_ptr module);

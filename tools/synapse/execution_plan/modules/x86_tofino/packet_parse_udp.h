@@ -7,18 +7,18 @@ namespace synapse {
 namespace targets {
 namespace x86_tofino {
 
-class PacketParseTCPUDP : public Module {
+class PacketParseUDP : public Module {
 private:
   klee::ref<klee::Expr> chunk;
 
 public:
-  PacketParseTCPUDP()
-      : Module(ModuleType::x86_Tofino_PacketParseTCPUDP, TargetType::x86_Tofino,
-               "PacketParseTCPUDP") {}
+  PacketParseUDP()
+      : Module(ModuleType::x86_Tofino_PacketParseUDP, TargetType::x86_Tofino,
+               "PacketParseUDP") {}
 
-  PacketParseTCPUDP(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
-      : Module(ModuleType::x86_Tofino_PacketParseTCPUDP, TargetType::x86_Tofino,
-               "PacketParseTCPUDP", node),
+  PacketParseUDP(BDD::Node_ptr node, klee::ref<klee::Expr> _chunk)
+      : Module(ModuleType::x86_Tofino_PacketParseUDP, TargetType::x86_Tofino,
+               "PacketParseUDP", node),
         chunk(_chunk) {}
 
 private:
@@ -44,8 +44,8 @@ private:
     return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
-  bool is_valid_tcpudp(const BDD::Node *ipv4_node, klee::ref<klee::Expr> len,
-                       const klee::ConstraintManager &constraints) {
+  bool is_valid_udp(const BDD::Node *ipv4_node, klee::ref<klee::Expr> len,
+                    const klee::ConstraintManager &constraints) {
     assert(ipv4_node);
     assert(ipv4_node->get_type() == BDD::Node::NodeType::CALL);
 
@@ -78,26 +78,21 @@ private:
       return false;
     }
 
-    auto _4 = kutil::solver_toolbox.exprBuilder->Constant(4, 4 * 8);
-    auto len_eq_4 = kutil::solver_toolbox.exprBuilder->Eq(len, _4);
+    auto _8 = kutil::solver_toolbox.exprBuilder->Constant(8, 4 * 8);
+    auto len_eq_8 = kutil::solver_toolbox.exprBuilder->Eq(len, _8);
 
-    if (!kutil::solver_toolbox.is_expr_always_true(constraints, len_eq_4)) {
+    if (!kutil::solver_toolbox.is_expr_always_true(constraints, len_eq_8)) {
       return false;
     }
 
     auto next_proto_id_expr =
         kutil::solver_toolbox.exprBuilder->Extract(ipv4_chunk, 9 * 8, 8);
 
-    auto next_proto_id_expr_tcp =
-        kutil::solver_toolbox.exprBuilder->Constant(IPPROTO_TCP, 8);
     auto next_proto_id_expr_udp =
         kutil::solver_toolbox.exprBuilder->Constant(IPPROTO_UDP, 8);
 
-    auto eq = kutil::solver_toolbox.exprBuilder->Or(
-        kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
-                                              next_proto_id_expr_tcp),
-        kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
-                                              next_proto_id_expr_udp));
+    auto eq = kutil::solver_toolbox.exprBuilder->Eq(next_proto_id_expr,
+                                                    next_proto_id_expr_udp);
 
     return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
@@ -138,13 +133,13 @@ private:
     auto ipv4_chunk = all_prev_packet_borrow_next_chunk.rbegin()[1].get();
 
     valid &= is_valid_ipv4(ethernet_chunk, node->get_constraints());
-    valid &= is_valid_tcpudp(ipv4_chunk, _length, node->get_constraints());
+    valid &= is_valid_udp(ipv4_chunk, _length, node->get_constraints());
 
     if (!valid) {
       return result;
     }
 
-    auto new_module = std::make_shared<PacketParseTCPUDP>(node, _chunk);
+    auto new_module = std::make_shared<PacketParseUDP>(node, _chunk);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     result.module = new_module;
@@ -160,7 +155,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new PacketParseTCPUDP(node, chunk);
+    auto cloned = new PacketParseUDP(node, chunk);
     return std::shared_ptr<Module>(cloned);
   }
 

@@ -82,6 +82,7 @@ class IntegerAllocatorRejuvenate;
 class IntegerAllocatorQuery;
 class CounterRead;
 class CounterIncrement;
+class HashObj;
 } // namespace tofino
 
 namespace x86_tofino {
@@ -96,6 +97,10 @@ class PacketParseIPv4Options;
 class PacketModifyIPv4Options;
 class PacketParseTCPUDP;
 class PacketModifyTCPUDP;
+class PacketParseTCP;
+class PacketModifyTCP;
+class PacketParseUDP;
+class PacketModifyUDP;
 class PacketModifyChecksums;
 class ForwardThroughTofino;
 class If;
@@ -108,6 +113,7 @@ class EtherAddrHash;
 class DchainAllocateNewIndex;
 class DchainIsIndexAllocated;
 class DchainRejuvenateIndex;
+class HashObj;
 } // namespace x86_tofino
 
 namespace x86 {
@@ -230,6 +236,7 @@ public:
   VISIT(targets::tofino::IntegerAllocatorQuery)
   VISIT(targets::tofino::CounterRead)
   VISIT(targets::tofino::CounterIncrement)
+  VISIT(targets::tofino::HashObj)
 
   /*************************************
    *
@@ -248,6 +255,10 @@ public:
   VISIT(targets::x86_tofino::PacketModifyIPv4Options)
   VISIT(targets::x86_tofino::PacketParseTCPUDP)
   VISIT(targets::x86_tofino::PacketModifyTCPUDP)
+  VISIT(targets::x86_tofino::PacketParseTCP)
+  VISIT(targets::x86_tofino::PacketModifyTCP)
+  VISIT(targets::x86_tofino::PacketParseUDP)
+  VISIT(targets::x86_tofino::PacketModifyUDP)
   VISIT(targets::x86_tofino::PacketModifyChecksums)
   VISIT(targets::x86_tofino::ForwardThroughTofino)
   VISIT(targets::x86_tofino::If)
@@ -260,6 +271,7 @@ public:
   VISIT(targets::x86_tofino::DchainAllocateNewIndex)
   VISIT(targets::x86_tofino::DchainIsIndexAllocated)
   VISIT(targets::x86_tofino::DchainRejuvenateIndex)
+  VISIT(targets::x86_tofino::HashObj)
 
   /*************************************
    *

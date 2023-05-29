@@ -272,10 +272,10 @@ std::vector<Module::modification_t> Module::ignore_checksum_modifications(
 
 struct next_t {
   std::vector<BDD::Node_ptr> maps;
-  std::vector<obj_addr_t> maps_addrs;
+  std::vector<addr_t> maps_addrs;
 
   std::vector<BDD::Node_ptr> vectors;
-  std::vector<obj_addr_t> vectors_addrs;
+  std::vector<addr_t> vectors_addrs;
 
   int size() const { return maps_addrs.size() + vectors_addrs.size(); }
 
@@ -312,7 +312,7 @@ struct next_t {
   }
 };
 
-next_t get_next_maps_and_vectors_ops(BDD::Node_ptr root, obj_addr_t map_addr,
+next_t get_next_maps_and_vectors_ops(BDD::Node_ptr root, addr_t map_addr,
                                      klee::ref<klee::Expr> index) {
   assert(root);
 
@@ -466,7 +466,7 @@ bool Module::is_parser_drop(BDD::Node_ptr root) const {
 }
 
 next_t get_allowed_coalescing_objs(std::vector<BDD::Node_ptr> index_allocators,
-                                   obj_addr_t map_addr) {
+                                   addr_t map_addr) {
   next_t candidates;
 
   for (auto allocator : index_allocators) {
@@ -558,14 +558,14 @@ Module::coalesced_data_t Module::get_coalescing_data(const ExecutionPlan &ep,
 
 klee::ref<klee::Expr>
 Module::get_original_vector_value(const ExecutionPlan &ep, BDD::Node_ptr node,
-                                  obj_addr_t target_addr) const {
+                                  addr_t target_addr) const {
   BDD::Node_ptr source;
   return get_original_vector_value(ep, node, target_addr, source);
 }
 
 klee::ref<klee::Expr>
 Module::get_original_vector_value(const ExecutionPlan &ep, BDD::Node_ptr node,
-                                  obj_addr_t target_addr,
+                                  addr_t target_addr,
                                   BDD::Node_ptr &source) const {
   auto all_prev_vector_borrow = get_prev_fn(ep, node, symbex::FN_VECTOR_BORROW);
 
@@ -818,7 +818,7 @@ bool is_counter_read_op(BDD::Node_ptr vector_borrow) {
 }
 
 Module::counter_data_t Module::is_counter(const ExecutionPlan &ep,
-                                          obj_addr_t obj) const {
+                                          addr_t obj) const {
   Module::counter_data_t data;
 
   auto bdd = ep.get_bdd();
@@ -859,6 +859,41 @@ Module::counter_data_t Module::is_counter(const ExecutionPlan &ep,
 
   data.valid = true;
   return data;
+}
+
+klee::ref<klee::Expr> Module::get_expr_from_addr(const ExecutionPlan &ep,
+                                                 addr_t addr) const {
+  auto bdd = ep.get_bdd();
+  auto root = bdd.get_process();
+  auto nodes = get_all_functions_after_node(root, {
+                                                      symbex::FN_MAP_GET,
+                                                  });
+
+  for (auto node : nodes) {
+    auto call_node = BDD::cast_node<BDD::Call>(node);
+    assert(call_node);
+
+    auto call = call_node->get_call();
+
+    if (call.function_name == symbex::FN_MAP_GET) {
+      assert(!call.args[symbex::FN_MAP_ARG_KEY].expr.isNull());
+      assert(!call.args[symbex::FN_MAP_ARG_KEY].in.isNull());
+
+      auto _key_addr = call.args[symbex::FN_MAP_ARG_KEY].expr;
+      auto _key = call.args[symbex::FN_MAP_ARG_KEY].in;
+      auto _key_addr_value = kutil::expr_addr_to_obj_addr(_key_addr);
+
+      if (_key_addr_value != addr) {
+        continue;
+      }
+
+      return _key;
+    } else {
+      assert(false);
+    }
+  }
+
+  return nullptr;
 }
 
 } // namespace synapse

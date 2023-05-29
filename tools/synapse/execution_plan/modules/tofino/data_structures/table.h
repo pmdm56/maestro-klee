@@ -28,10 +28,10 @@ public:
   };
 
   struct param_t {
-    std::unordered_set<obj_addr_t> objs;
+    std::unordered_set<addr_t> objs;
     std::vector<klee::ref<klee::Expr>> exprs;
 
-    param_t(obj_addr_t obj, klee::ref<klee::Expr> expr) {
+    param_t(addr_t obj, klee::ref<klee::Expr> expr) {
       objs.insert(obj);
       exprs.push_back(expr);
     }
@@ -49,7 +49,7 @@ public:
   Table(const std::string &_base_name, const std::vector<key_t> &_keys,
         const std::vector<param_t> &_params,
         const std::vector<BDD::symbol_t> &_hit,
-        const std::unordered_set<obj_addr_t> &_objs,
+        const std::unordered_set<addr_t> &_objs,
         const std::unordered_set<BDD::node_id_t> &_nodes)
       : DataStructure(Type::TABLE, _objs, _nodes), base_name(_base_name),
         keys(_keys), params(_params), hit(_hit), manage_expirations(false) {
@@ -58,7 +58,7 @@ public:
 
   Table(const std::vector<key_t> &_keys, const std::vector<param_t> &_params,
         const std::vector<BDD::symbol_t> &_hit,
-        const std::unordered_set<obj_addr_t> &_objs,
+        const std::unordered_set<addr_t> &_objs,
         const std::unordered_set<BDD::node_id_t> &_nodes)
       : Table("table", _keys, _params, _hit, _objs, _nodes) {}
 
@@ -118,7 +118,7 @@ public:
   static TableRef build(const std::vector<key_t> &_keys,
                         const std::vector<param_t> &_params,
                         const std::vector<BDD::symbol_t> &_hit,
-                        const std::unordered_set<obj_addr_t> &_objs,
+                        const std::unordered_set<addr_t> &_objs,
                         const std::unordered_set<BDD::node_id_t> &_nodes) {
     return TableRef(new Table(_keys, _params, _hit, _objs, _nodes));
   }

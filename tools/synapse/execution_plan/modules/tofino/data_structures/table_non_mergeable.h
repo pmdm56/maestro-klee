@@ -20,7 +20,7 @@ public:
   TableNonMergeable(const std::vector<Table::key_t> &_keys,
                     const std::vector<Table::param_t> &_params,
                     const std::vector<BDD::symbol_t> &_hit,
-                    const std::unordered_set<obj_addr_t> &_objs,
+                    const std::unordered_set<addr_t> &_objs,
                     const std::unordered_set<BDD::node_id_t> &_nodes)
       : Table("non_mergeable_table", _keys, _params, _hit, _objs, _nodes) {
     type = TABLE_NON_MERGEABLE;
@@ -32,7 +32,7 @@ public:
   static TableRef build(const std::vector<key_t> &_keys,
                         const std::vector<param_t> &_params,
                         const std::vector<BDD::symbol_t> &_hit,
-                        const std::unordered_set<obj_addr_t> &_objs,
+                        const std::unordered_set<addr_t> &_objs,
                         const std::unordered_set<BDD::node_id_t> &_nodes) {
     return TableRef(new TableNonMergeable(_keys, _params, _hit, _objs, _nodes));
   }
