@@ -6,20 +6,20 @@ namespace synapse {
 namespace targets {
 namespace tofino {
 
-class TableLookup : public TableModule {
+class TableIsAllocated : public TableModule {
 public:
-  TableLookup() : TableModule(ModuleType::Tofino_TableLookup, "TableLookup") {}
+  TableIsAllocated()
+      : TableModule(ModuleType::Tofino_TableRejuvenation, "TableIsAllocated") {}
 
-  TableLookup(BDD::Node_ptr node, TableRef _table)
-      : TableModule(ModuleType::Tofino_TableLookup, "TableLookup", node,
-                    _table) {}
+  TableIsAllocated(BDD::Node_ptr node, TableRef _table)
+      : TableModule(ModuleType::Tofino_TableRejuvenation, "TableIsAllocated",
+                    node, _table) {}
 
 protected:
   extracted_data_t extract_data(const ExecutionPlan &ep,
                                 BDD::Node_ptr node) const {
     auto extractors = {
-        &TableLookup::extract_from_map_get,
-        &TableLookup::extract_from_vector_borrow,
+        &TableIsAllocated::extract_from_dchain_is_index_allocated,
     };
 
     extracted_data_t data;
@@ -38,22 +38,11 @@ protected:
       }
     }
 
-    auto coalescing_data = get_map_coalescing_data_t(ep, data.obj);
-
-    if (coalescing_data.valid && can_coalesce(ep, coalescing_data)) {
-      if (casted->get_call().function_name != symbex::FN_MAP_GET) {
-        Graphviz::visualize(ep);
-      }
-
-      assert(casted->get_call().function_name == symbex::FN_MAP_GET);
-      coalesce_with_incoming_vector_nodes(casted, coalescing_data, data);
-    }
-
     return data;
   }
 
   TableRef build_table(const extracted_data_t &data) const {
-    auto table = Table::build("map", data.keys, data.values, data.hit,
+    auto table = Table::build("is_allocated", data.keys, data.values, data.hit,
                               {data.obj}, data.nodes);
     return table;
   }
@@ -62,13 +51,14 @@ protected:
                               BDD::Node_ptr node) override {
     processing_result_t result;
 
-    if (already_coalesced(ep, DataStructure::Type::TABLE, node)) {
-      return ignore(ep, node);
-    }
-
     auto data = extract_data(ep, node);
 
     if (!data.valid) {
+      return result;
+    }
+
+    if (!check_compatible_placements_decisions(ep, {data.obj},
+                                               DataStructure::Type::TABLE)) {
       return result;
     }
 
@@ -78,12 +68,7 @@ protected:
       return result;
     }
 
-    if (!check_compatible_placements_decisions(ep, table->get_objs(),
-                                               DataStructure::Type::TABLE)) {
-      return result;
-    }
-
-    auto new_module = std::make_shared<TableLookup>(node, table);
+    auto new_module = std::make_shared<TableIsAllocated>(node, table);
     auto new_ep = ep.add_leaves(new_module, node->get_next());
 
     save_decision(new_ep, table);
@@ -101,7 +86,7 @@ public:
   }
 
   virtual Module_ptr clone() const override {
-    auto cloned = new TableLookup(node, table);
+    auto cloned = new TableIsAllocated(node, table);
     return std::shared_ptr<Module>(cloned);
   }
 
@@ -110,7 +95,7 @@ public:
       return false;
     }
 
-    auto other_cast = static_cast<const TableLookup *>(other);
+    auto other_cast = static_cast<const TableIsAllocated *>(other);
 
     if (!table->equals(other_cast->get_table().get())) {
       return false;

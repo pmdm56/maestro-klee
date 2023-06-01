@@ -74,9 +74,10 @@ class IPv4TCPUDPChecksumsUpdate;
 class Drop;
 class SendToController;
 class SetupExpirationNotifications;
-class MergeableTableLookup;
+class TableModule;
 class TableLookup;
-class RegisterRead;
+class TableRejuvenation;
+class TableIsAllocated;
 class IntegerAllocatorAllocate;
 class IntegerAllocatorRejuvenate;
 class IntegerAllocatorQuery;
@@ -109,10 +110,12 @@ class Else;
 class Drop;
 class MapGet;
 class MapPut;
+class MapErase;
 class EtherAddrHash;
 class DchainAllocateNewIndex;
 class DchainIsIndexAllocated;
 class DchainRejuvenateIndex;
+class DchainFreeIndex;
 class HashObj;
 } // namespace x86_tofino
 
@@ -228,9 +231,10 @@ public:
   VISIT(targets::tofino::SendToController)
   VISIT(targets::tofino::SetupExpirationNotifications)
   VISIT(targets::tofino::IPv4TCPUDPChecksumsUpdate)
-  VISIT(targets::tofino::MergeableTableLookup)
+  VISIT(targets::tofino::TableModule)
   VISIT(targets::tofino::TableLookup)
-  VISIT(targets::tofino::RegisterRead)
+  VISIT(targets::tofino::TableRejuvenation)
+  VISIT(targets::tofino::TableIsAllocated)
   VISIT(targets::tofino::IntegerAllocatorAllocate)
   VISIT(targets::tofino::IntegerAllocatorRejuvenate)
   VISIT(targets::tofino::IntegerAllocatorQuery)
@@ -271,7 +275,9 @@ public:
   VISIT(targets::x86_tofino::DchainAllocateNewIndex)
   VISIT(targets::x86_tofino::DchainIsIndexAllocated)
   VISIT(targets::x86_tofino::DchainRejuvenateIndex)
+  VISIT(targets::x86_tofino::DchainFreeIndex)
   VISIT(targets::x86_tofino::HashObj)
+  VISIT(targets::x86_tofino::MapErase)
 
   /*************************************
    *

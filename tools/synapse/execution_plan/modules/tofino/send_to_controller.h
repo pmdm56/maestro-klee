@@ -188,7 +188,13 @@ private:
       return false;
     };
 
-    auto symbols = node->get_generated_symbols();
+    auto prev = node->get_prev();
+
+    if (!prev) {
+      return BDD::symbols_t();
+    }
+
+    auto symbols = prev->get_generated_symbols();
     auto filtered = BDD::symbols_t();
 
     for (const auto &symbol : symbols) {

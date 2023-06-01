@@ -87,12 +87,12 @@ public:
     Tofino_TCPUDPConsume,
     Tofino_TCPUDPModify,
     Tofino_IPv4TCPUDPChecksumsUpdate,
-    Tofino_MergeableTableLookup,
     Tofino_TableLookup,
+    Tofino_TableRejuvenation,
+    Tofino_TableIsAllocated,
     Tofino_Drop,
     Tofino_SendToController,
     Tofino_SetupExpirationNotifications,
-    Tofino_RegisterRead,
     Tofino_IntegerAllocatorAllocate,
     Tofino_IntegerAllocatorRejuvenate,
     Tofino_IntegerAllocatorQuery,
@@ -122,10 +122,12 @@ public:
     x86_Tofino_ForwardThroughTofino,
     x86_Tofino_MapGet,
     x86_Tofino_MapPut,
+    x86_Tofino_MapErase,
     x86_Tofino_EtherAddrHash,
     x86_Tofino_DchainAllocateNewIndex,
     x86_Tofino_DchainIsIndexAllocated,
     x86_Tofino_DchainRejuvenateIndex,
+    x86_Tofino_DchainFreeIndex,
     x86_Tofino_HashObj,
     x86_CurrentTime,
     x86_If,
@@ -304,43 +306,17 @@ protected:
   klee::ref<klee::Expr> get_expr_from_addr(const ExecutionPlan &ep,
                                            addr_t addr) const;
 
-  struct coalesced_data_t {
-    bool can_coalesce;
+  struct map_coalescing_data_t {
+    bool valid;
+    addr_t map;
+    addr_t dchain;
+    std::unordered_set<addr_t> vectors;
 
-    BDD::Node_ptr map_get;
-    std::vector<BDD::Node_ptr> vector_borrows;
-
-    coalesced_data_t() : can_coalesce(false) {}
-
-    std::unordered_set<addr_t> get_objs() const {
-      std::unordered_set<addr_t> objs;
-
-      assert(map_get);
-
-      auto node = static_cast<const BDD::Call *>(map_get.get());
-      auto call = node->get_call();
-      auto obj = call.args[symbex::FN_MAP_ARG_MAP].expr;
-      auto addr = kutil::expr_addr_to_obj_addr(obj);
-
-      objs.insert(addr);
-
-      for (auto vector_borrow : vector_borrows) {
-        assert(vector_borrow);
-
-        node = static_cast<const BDD::Call *>(vector_borrow.get());
-        call = node->get_call();
-        obj = call.args[symbex::FN_VECTOR_ARG_VECTOR].expr;
-        addr = kutil::expr_addr_to_obj_addr(obj);
-
-        objs.insert(addr);
-      }
-
-      return objs;
-    }
+    map_coalescing_data_t() : valid(false) {}
   };
 
-  coalesced_data_t get_coalescing_data(const ExecutionPlan &ep,
-                                       BDD::Node_ptr node) const;
+  map_coalescing_data_t get_map_coalescing_data_t(const ExecutionPlan &ep,
+                                                  addr_t map_addr) const;
 };
 
 } // namespace synapse

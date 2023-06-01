@@ -5,12 +5,15 @@
 
 #include <unordered_map>
 
-typedef uint64_t time_ns_t;
+#include "../generic.h"
 
 namespace synapse {
 
 class MemoryBank;
+class TargetMemoryBank;
+
 typedef std::shared_ptr<MemoryBank> MemoryBank_ptr;
+typedef std::shared_ptr<TargetMemoryBank> TargetMemoryBank_ptr;
 
 struct reorder_data_t {
   bool valid;
@@ -50,7 +53,7 @@ struct expiration_data_t {
 };
 
 class MemoryBank {
-private:
+protected:
   std::vector<reorder_data_t> reorder_data;
   std::unordered_map<addr_t, PlacementDecision> placement_decisions;
   std::unordered_set<BDD::node_id_t> can_be_ignored_bdd_nodes;
@@ -87,8 +90,7 @@ public:
     reorder_data.emplace_back(node_candidate_id, cond);
   }
 
-  void save_placement_decision(addr_t obj_addr,
-                               PlacementDecision decision) {
+  void save_placement_decision(addr_t obj_addr, PlacementDecision decision) {
     placement_decisions[obj_addr] = decision;
   }
 
@@ -128,6 +130,11 @@ public:
   }
 
   static MemoryBank_ptr build() { return MemoryBank_ptr(new MemoryBank()); }
+};
+
+class TargetMemoryBank {
+public:
+  virtual TargetMemoryBank_ptr clone() const = 0;
 };
 
 } // namespace synapse

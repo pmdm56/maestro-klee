@@ -6,6 +6,8 @@
 #include "call-paths-to-bdd.h"
 #include "klee-util.h"
 
+#include "../../../../generic.h"
+
 namespace synapse {
 namespace targets {
 namespace tofino {
@@ -17,7 +19,6 @@ class DataStructure {
 public:
   enum Type {
     TABLE,
-    TABLE_NON_MERGEABLE,
     INTEGER_ALLOCATOR,
     COUNTER,
   };

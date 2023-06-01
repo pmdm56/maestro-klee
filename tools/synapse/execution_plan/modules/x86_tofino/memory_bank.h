@@ -7,7 +7,7 @@ namespace synapse {
 namespace targets {
 namespace x86_tofino {
 
-class x86TofinoMemoryBank : public MemoryBank {
+class x86TofinoMemoryBank : public TargetMemoryBank {
 public:
   struct expiration_t {
     bool set;
@@ -78,10 +78,10 @@ private:
   std::vector<std::shared_ptr<ds_t>> data_structures;
 
 public:
-  x86TofinoMemoryBank() : MemoryBank() {}
-  x86TofinoMemoryBank(const MemoryBank &mb) : MemoryBank(mb) {}
+  x86TofinoMemoryBank() {}
+
   x86TofinoMemoryBank(const x86TofinoMemoryBank &mb)
-      : MemoryBank(mb), time(mb.time), expiration(mb.expiration),
+      : time(mb.time), expiration(mb.expiration),
         vector_borrows(mb.vector_borrows), data_structures(mb.data_structures) {
   }
 
@@ -113,9 +113,9 @@ public:
     return data_structures;
   }
 
-  virtual MemoryBank_ptr clone() const {
+  virtual TargetMemoryBank_ptr clone() const override {
     auto clone = new x86TofinoMemoryBank(*this);
-    return MemoryBank_ptr(clone);
+    return TargetMemoryBank_ptr(clone);
   }
 };
 

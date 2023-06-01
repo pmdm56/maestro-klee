@@ -1,23 +1,26 @@
 #pragma once
 
-#include "x86_module.h"
+#include "../module.h"
+#include "memory_bank.h"
 
 namespace synapse {
 namespace targets {
-namespace x86 {
+namespace x86_tofino {
 
-class DchainFreeIndex : public x86Module {
+class DchainFreeIndex : public Module {
 private:
   addr_t dchain_addr;
   klee::ref<klee::Expr> index;
 
 public:
   DchainFreeIndex()
-      : x86Module(ModuleType::x86_DchainFreeIndex, "DchainFreeIndex") {}
+      : Module(ModuleType::x86_Tofino_DchainFreeIndex, TargetType::x86_Tofino,
+               "DchainFreeIndex") {}
 
   DchainFreeIndex(BDD::Node_ptr node, addr_t _dchain_addr,
                   klee::ref<klee::Expr> _index)
-      : x86Module(ModuleType::x86_DchainFreeIndex, "DchainFreeIndex", node),
+      : Module(ModuleType::x86_Tofino_DchainFreeIndex, TargetType::x86_Tofino,
+               "DchainFreeIndex", node),
         dchain_addr(_dchain_addr), index(_index) {}
 
 private:
@@ -41,7 +44,17 @@ private:
       auto _index = call.args[symbex::FN_DCHAIN_ARG_INDEX].expr;
 
       auto _dchain_addr = kutil::expr_addr_to_obj_addr(_dchain);
-      save_dchain(ep, _dchain_addr);
+      
+      auto mb = ep.get_memory_bank<x86TofinoMemoryBank>(x86_Tofino);
+      auto saved = mb->has_data_structure(_dchain_addr);
+
+      if (!saved) {
+        auto config = symbex::get_dchain_config(ep.get_bdd(), _dchain_addr);
+        auto dchain_ds = std::shared_ptr<x86TofinoMemoryBank::ds_t>(
+            new x86TofinoMemoryBank::dchain_t(_dchain_addr, node->get_id(),
+                                              config.index_range));
+        mb->add_data_structure(dchain_ds);
+      }
 
       auto new_module =
           std::make_shared<DchainFreeIndex>(node, _dchain_addr, _index);
@@ -87,6 +100,6 @@ public:
   const addr_t &get_dchain_addr() const { return dchain_addr; }
   const klee::ref<klee::Expr> &get_index() const { return index; }
 };
-} // namespace x86
+} // namespace x86_tofino
 } // namespace targets
 } // namespace synapse

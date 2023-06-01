@@ -90,8 +90,7 @@ bool get_dataplane_table_names(const ExecutionPlan &ep, addr_t obj,
   for (auto implementation : implementations) {
     auto type = implementation->get_type();
 
-    assert(type == targets::tofino::DataStructure::TABLE ||
-           type == targets::tofino::DataStructure::TABLE_NON_MERGEABLE);
+    assert(type == targets::tofino::DataStructure::TABLE);
 
     auto table =
         static_cast<const targets::tofino::Table *>(implementation.get());

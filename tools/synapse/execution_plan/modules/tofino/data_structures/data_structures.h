@@ -4,7 +4,6 @@
 
 #include "int_allocator.h"
 #include "table.h"
-#include "table_non_mergeable.h"
 #include "counter.h"
 
 namespace synapse {

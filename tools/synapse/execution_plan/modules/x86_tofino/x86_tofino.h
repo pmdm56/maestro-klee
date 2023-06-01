@@ -4,6 +4,7 @@
 #include "../module.h"
 
 #include "dchain_allocate_new_index.h"
+#include "dchain_free_index.h"
 #include "dchain_is_index_allocated.h"
 #include "dchain_rejuvenate_index.h"
 #include "drop.h"
@@ -13,6 +14,7 @@
 #include "hash_obj.h"
 #include "if.h"
 #include "ignore.h"
+#include "map_erase.h"
 #include "map_get.h"
 #include "map_put.h"
 #include "memory_bank.h"
@@ -63,13 +65,15 @@ public:
                    MODULE(ForwardThroughTofino),
                    MODULE(MapGet),
                    MODULE(MapPut),
+                   MODULE(MapErase),
                    MODULE(EtherAddrHash),
                    MODULE(DchainAllocateNewIndex),
                    MODULE(DchainIsIndexAllocated),
                    MODULE(DchainRejuvenateIndex),
+                   MODULE(DchainFreeIndex),
                    MODULE(HashObj),
                },
-               MemoryBank_ptr(new x86TofinoMemoryBank())) {}
+               TargetMemoryBank_ptr(new x86TofinoMemoryBank())) {}
 
   static Target_ptr build() { return Target_ptr(new x86TofinoTarget()); }
 };
