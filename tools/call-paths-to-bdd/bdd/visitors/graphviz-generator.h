@@ -83,7 +83,9 @@ public:
     file.close();
 
 #ifndef NDEBUG
-    std::cerr << "Opening " << random_fname << "\n";
+    std::cerr << "Visualizing BDD"
+              << " id=" << bdd.get_id() << " hash=" << bdd.hash()
+              << " file=" << random_fname << "\n";
 #endif
 
     open_graph(random_fname);
