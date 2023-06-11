@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "../../../../../symbex.h"
 #include "../../../../memory_bank.h"
 #include "../../code_builder.h"
 #include "../../util.h"

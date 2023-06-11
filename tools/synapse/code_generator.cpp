@@ -336,7 +336,7 @@ CodeGenerator::x86_tofino_extractor(const ExecutionPlan &execution_plan) const {
   }
 
   auto code_path = kutil::solver_toolbox.create_new_symbol(
-      symbex::CPU_CODE_PATH, sizeof(targets::tofino::cpu_code_path_t) * 8);
+      BDD::symbex::CPU_CODE_PATH, sizeof(targets::tofino::cpu_code_path_t) * 8);
 
   ExecutionPlanNode_ptr new_root;
   ExecutionPlanNode_ptr new_leaf;
