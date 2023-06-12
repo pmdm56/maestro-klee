@@ -9,7 +9,8 @@ namespace emulation {
 
 inline void __dchain_is_index_allocated(const Call *call_node, pkt_t &pkt,
                                         time_ns_t time, state_t &state,
-                                        context_t &ctx, const cfg_t &cfg) {
+                                        meta_t &meta, context_t &ctx,
+                                        const cfg_t &cfg) {
   auto call = call_node->get_call();
 
   assert(!call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr.isNull());

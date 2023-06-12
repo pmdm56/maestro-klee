@@ -27,7 +27,8 @@ inline time_ns_t get_expiration_time(klee::ref<klee::Expr> expr) {
 
 inline void __expire_items_single_map(const Call *call_node, pkt_t &pkt,
                                       time_ns_t time, state_t &state,
-                                      context_t &ctx, const cfg_t &cfg) {
+                                      meta_t &meta, context_t &ctx,
+                                      const cfg_t &cfg) {
   auto call = call_node->get_call();
 
   assert(!call.args[symbex::FN_EXPIRE_MAP_ARG_CHAIN].expr.isNull());
@@ -45,9 +46,10 @@ inline void __expire_items_single_map(const Call *call_node, pkt_t &pkt,
   auto dchain_addr = kutil::expr_addr_to_obj_addr(dchain_expr);
   auto vector_addr = kutil::expr_addr_to_obj_addr(vector_expr);
   auto map_addr = kutil::expr_addr_to_obj_addr(map_expr);
-  auto timeout =
-      cfg.timeout.set ? cfg.timeout.value : get_expiration_time(time_expr);
-  auto last_time = (time > timeout) ? time - timeout : 0;
+
+  auto timeout = cfg.timeout.first ? cfg.timeout.second * 1000
+                                   : get_expiration_time(time_expr);
+  auto last_time = (time >= timeout) ? time - timeout : 0;
 
   auto ds_dchain = state.get(dchain_addr);
   auto ds_vector = state.get(vector_addr);
@@ -66,6 +68,7 @@ inline void __expire_items_single_map(const Call *call_node, pkt_t &pkt,
     ++count;
   }
 
+  meta.flows_expired += count;
   concretize(ctx, number_of_freed_flows_expr, count);
 }
 

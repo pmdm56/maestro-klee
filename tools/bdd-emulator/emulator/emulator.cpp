@@ -39,13 +39,13 @@ bool Emulator::evaluate_condition(klee::ref<klee::Expr> condition,
                                   context_t &ctx) const {
   auto always_true = kutil::solver_toolbox.is_expr_always_true(ctx, condition);
 
-  // FIXME: remove this
   // {
   //   auto always_false =
   //       kutil::solver_toolbox.is_expr_always_false(ctx, condition);
-  //   auto maybe_true = kutil::solver_toolbox.is_expr_maybe_true(ctx, condition);
-  //   auto maybe_false = kutil::solver_toolbox.is_expr_maybe_true(ctx, condition);
-  //   std::cerr << "condition: " << kutil::expr_to_string(condition, true)
+  //   auto maybe_true = kutil::solver_toolbox.is_expr_maybe_true(ctx,
+  //   condition); auto maybe_false =
+  //   kutil::solver_toolbox.is_expr_maybe_true(ctx, condition); std::cerr <<
+  //   "condition: " << kutil::expr_to_string(condition, true)
   //             << "\n";
   //   std::cerr << "always true?  " << always_true << "\n";
   //   std::cerr << "always false? " << always_false << "\n";
@@ -74,10 +74,7 @@ void Emulator::run(pkt_t pkt, time_ns_t time, uint16_t device) {
     auto id = node->get_id();
     meta.hit_counter[id]++;
 
-    // {
-    //   std::cerr << "Node: " << id << "\n";
-    //   dump_context(ctx);
-    // }
+    // dump_context(ctx);
 
     switch (node->get_type()) {
     case Node::CALL: {
@@ -87,7 +84,7 @@ void Emulator::run(pkt_t pkt, time_ns_t time, uint16_t device) {
       auto call = call_node->get_call();
       auto operation = get_operation(call.function_name);
 
-      operation(call_node, pkt, time, state, ctx, cfg);
+      operation(call_node, pkt, time, state, meta, ctx, cfg);
 
       next_node = node->get_next();
     } break;
@@ -123,65 +120,111 @@ void Emulator::run(pkt_t pkt, time_ns_t time, uint16_t device) {
     }
     }
   }
+
+  // dump_context(ctx);
+  // {
+  //   char c;
+  //   std::cin >> c;
+  // }
 }
 
-void Emulator::run(const std::string &pcap_file, uint16_t device) {
+uint64_t get_number_of_packets_from_pcap(pcap_t *pcap) {
+  auto fpcap = pcap_file(pcap);
+  assert(fpcap);
+  auto pcap_start_pos = ftell(fpcap);
+
+  uint64_t counter = 0;
+  int status = 1;
+  pcap_pkthdr *header;
+  const u_char *data;
+
+  while ((status = pcap_next_ex(pcap, &header, &data)) >= 0) {
+    counter++;
+  }
+
+  // rewind pcap
+  fseek(fpcap, pcap_start_pos, SEEK_SET);
+
+  return counter;
+}
+
+void Emulator::run(const std::string &pcap_filename, uint16_t device) {
   char errbuff[PCAP_ERRBUF_SIZE];
-  pcap_t *pcap = pcap_open_offline(pcap_file.c_str(), errbuff);
+  auto pcap = pcap_open_offline(pcap_filename.c_str(), errbuff);
 
   if (pcap == nullptr) {
-    std::cerr << "Error opening pcap file " << pcap_file << ": " << errbuff
+    std::cerr << "Error opening pcap file " << pcap_filename << ": " << errbuff
               << "\n";
     exit(1);
   }
+
+  auto num_packets = get_number_of_packets_from_pcap(pcap);
+
+  auto fpcap = pcap_file(pcap);
+  assert(fpcap);
+  auto pcap_start_pos = ftell(fpcap);
 
   pcap_pkthdr *header;
   const u_char *data;
   int status = 1;
   time_ns_t time = 0;
 
-  while ((status = pcap_next_ex(pcap, &header, &data)) >= 0) {
-    pkt_t pkt;
+  auto loops = cfg.loop.first ? cfg.loop.second : 1;
 
-    pkt.data = static_cast<const uint8_t *>(data);
-    pkt.size = static_cast<uint32_t>(header->len);
+  for (auto i = 0; i < loops; i++) {
+    fseek(fpcap, pcap_start_pos, SEEK_SET);
+    uint64_t packet_counter = 0;
+    int last_report = -1;
 
-    if (cfg.rate.set) {
-      // To obtain the time in seconds:
-      // (pkt.size * 8) / (gbps * 1e9)
-      // We want in ns, not seconds, so we multiply by 1e9.
-      // This cancels with the 1e9 on the bottom side of the operation.
-      // So actually, result in ns = (pkt.size * 8) / gbps
-      time += (pkt.size * 8) / cfg.rate.value;
-    } else {
-      time = header->ts.tv_sec * 1e9 + header->ts.tv_usec * 1e6;
+    while ((status = pcap_next_ex(pcap, &header, &data)) >= 0) {
+      pkt_t pkt;
+
+      pkt.data = static_cast<const uint8_t *>(data);
+      pkt.size = static_cast<uint32_t>(header->len);
+
+      if (cfg.rate.first) {
+        // To obtain the time in seconds:
+        // (pkt.size * 8) / (gbps * 1e9)
+        // We want in ns, not seconds, so we multiply by 1e9.
+        // This cancels with the 1e9 on the bottom side of the operation.
+        // So actually, result in ns = (pkt.size * 8) / gbps
+        // Also, don't forget to take the inter packet gap, preamble, and CRC
+        // into consideration.
+        auto dt = (time_ns_t)(((pkt.size + 24) * 8) / cfg.rate.second);
+        time += dt;
+        meta.elapsed_time += dt;
+      } else {
+        auto last_time = time;
+        time = header->ts.tv_sec * 1e9 + header->ts.tv_usec * 1e6;
+
+        auto dt = time - last_time;
+        meta.elapsed_time += dt;
+      }
+
+      run(pkt, time, device);
+
+      meta.packet_counter++;
+      packet_counter++;
+
+      auto progress = (int)((100.0 * packet_counter) / num_packets);
+
+      if (progress > last_report) {
+        printf("Loop %d/%d Progress %3d%% Time %lu ns\r", i + 1, loops, progress,
+               time);
+        fflush(stdout);
+        last_report = progress;
+      }
     }
 
-    // std::cerr << "------------- NEW PACKET! -------------\n";
-    run(pkt, time, device);
+    // std::cerr << "\n" << meta << "\n\n";
 
-    meta.packet_counter++;
-    std::cerr << "Processed packets: " << meta.packet_counter << "\r";
-    // {
-    //   char c;
-    //   std::cin >> c;
-    // }
+    // The first iteration is the warmup iteration.
+    if (i == 0 && cfg.warmup) {
+      meta.reset();
+    }
   }
+
   std::cerr << "\n";
-}
-
-std::unordered_map<node_id_t, hit_rate_t> Emulator::get_hit_rate() const {
-  std::unordered_map<node_id_t, hit_rate_t> hit_rate;
-
-  for (auto it = meta.hit_counter.begin(); it != meta.hit_counter.end(); it++) {
-    if (meta.packet_counter > 0) {
-      hit_rate[it->first] = it->second / (float)(meta.packet_counter);
-    } else {
-      hit_rate[it->first] = 0;
-    }
-  }
-
-  return hit_rate;
 }
 
 operation_ptr Emulator::get_operation(const std::string &name) const {
@@ -210,7 +253,7 @@ void Emulator::setup() {
       pkt_t mock_pkt;
       context_t empty_ctx;
 
-      operation(call_node, mock_pkt, 0, state, empty_ctx, cfg);
+      operation(call_node, mock_pkt, 0, state, meta, empty_ctx, cfg);
 
       node = node->get_next();
     } else if (node->get_type() == Node::BRANCH) {

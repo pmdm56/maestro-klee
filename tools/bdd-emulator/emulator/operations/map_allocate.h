@@ -8,7 +8,8 @@ namespace BDD {
 namespace emulation {
 
 inline void __map_allocate(const Call *call_node, pkt_t &pkt, time_ns_t time,
-                           state_t &state, context_t &ctx, const cfg_t &cfg) {
+                           state_t &state, meta_t &meta, context_t &ctx,
+                           const cfg_t &cfg) {
   auto call = call_node->get_call();
 
   assert(!call.args[symbex::FN_MAP_ARG_CAPACITY].expr.isNull());

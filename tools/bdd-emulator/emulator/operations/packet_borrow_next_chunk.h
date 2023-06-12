@@ -7,7 +7,8 @@ namespace emulation {
 
 inline void __packet_borrow_next_chunk(const Call *call_node, pkt_t &pkt,
                                        time_ns_t time, state_t &state,
-                                       context_t &ctx, const cfg_t &cfg) {
+                                       meta_t &meta, context_t &ctx,
+                                       const cfg_t &cfg) {
   auto call = call_node->get_call();
 
   assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
@@ -19,13 +20,8 @@ inline void __packet_borrow_next_chunk(const Call *call_node, pkt_t &pkt,
   assert(length->getKind() == klee::Expr::Kind::Constant);
   auto chunk_size_bytes = kutil::solver_toolbox.value_from_expr(length);
 
-  for (auto byte = 0u; byte < chunk_size_bytes; byte++) {
-    auto chunk_byte =
-        kutil::solver_toolbox.exprBuilder->Extract(chunk_expr, byte * 8, 8);
-    auto actual_chunk_byte = *pkt.data;
-    concretize(ctx, chunk_byte, actual_chunk_byte);
-    pkt.data++;
-  }
+  concretize(ctx, chunk_expr, pkt.data);
+  pkt.data += chunk_size_bytes;
 }
 
 inline std::pair<std::string, operation_ptr> packet_borrow_next_chunk() {

@@ -35,6 +35,12 @@ struct bytes_t {
     }
   }
 
+  bytes_t(const bytes_t &key, uint32_t offset) : bytes_t(key.size - offset) {
+    for (auto i = offset; i - offset < size; i++) {
+      values[i - offset] = key.values[i];
+    }
+  }
+
   ~bytes_t() {
     if (values) {
       delete[] values;
@@ -60,14 +66,8 @@ struct bytes_t {
       return *this;
     }
 
-    if (size != other.size) {
-      this->~bytes_t();
-      values = new byte_t[other.size];
-      size = other.size;
-    }
-
-    std::copy(other.values, other.values + other.size, values);
-
+    auto size_to_copy = std::min(size, other.size);
+    std::copy(other.values, other.values + size_to_copy, values);
     return *this;
   }
 
@@ -103,7 +103,8 @@ inline std::ostream &operator<<(std::ostream &os, const bytes_t &bytes) {
   for (auto i = 0u; i < bytes.size; i++) {
     if (i > 0)
       os << ",";
-    os << "0x" << std::hex << (int)bytes[i] << std::dec;
+    os << "0x" << std::hex << std::setw(2) << std::setfill('0') << (int)bytes[i]
+       << std::dec;
   }
   os << "}";
   return os;

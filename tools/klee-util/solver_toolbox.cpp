@@ -391,6 +391,7 @@ solver_toolbox_t::contains(klee::ref<klee::Expr> expr1,
        offset_bits += 8) {
     auto expr1_extracted = kutil::solver_toolbox.exprBuilder->Extract(
         expr1, offset_bits, expr2_size_bits);
+    assert(expr1_extracted->getWidth() == expr2->getWidth());
 
     if (are_exprs_always_equal(expr1_extracted, expr2)) {
       return contains_result_t(offset_bits, expr1_extracted);

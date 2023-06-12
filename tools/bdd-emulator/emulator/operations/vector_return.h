@@ -2,13 +2,15 @@
 
 #include "../internals.h"
 
+#include "../data_structures/map.h" //FIXME: remove this
 #include "../data_structures/vector.h"
 
 namespace BDD {
 namespace emulation {
 
 inline void __vector_return(const Call *call_node, pkt_t &pkt, time_ns_t time,
-                            state_t &state, context_t &ctx, const cfg_t &cfg) {
+                            state_t &state, meta_t &meta, context_t &ctx,
+                            const cfg_t &cfg) {
   auto call = call_node->get_call();
 
   assert(!call.args[symbex::FN_VECTOR_ARG_VECTOR].expr.isNull());
@@ -21,20 +23,10 @@ inline void __vector_return(const Call *call_node, pkt_t &pkt, time_ns_t time,
 
   auto addr = kutil::expr_addr_to_obj_addr(addr_expr);
   auto index = kutil::solver_toolbox.value_from_expr(index_expr, ctx);
+  auto value = bytes_from_expr(value_expr, ctx);
 
   auto ds_vector = state.get(addr);
   auto vector = Vector::cast(ds_vector);
-
-  auto value_size = value_expr->getWidth();
-  auto value = bytes_t(value_size / 8);
-
-  for (auto byte = 0u; byte < value_size / 8; byte++) {
-    auto value_byte_expr =
-        kutil::solver_toolbox.exprBuilder->Extract(value_expr, byte * 8, 8);
-    auto value_byte =
-        kutil::solver_toolbox.value_from_expr(value_byte_expr, ctx);
-    value[byte] = value_byte;
-  }
 
   vector->put(index, value);
 }

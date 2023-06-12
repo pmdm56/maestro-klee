@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../common.h"
 #include "data_structures/data_structures.h"
 #include "internals.h"
 #include "operations/operations.h"
@@ -35,15 +36,14 @@ public:
   void run(pkt_t pkt, time_ns_t time, uint16_t device);
   void run(const std::string &pcap_file, uint16_t device);
 
-  std::unordered_map<node_id_t, hit_rate_t> get_hit_rate() const;
+  const meta_t &get_meta() { return meta; }
 
 private:
-  void dump_context(const context_t &additional_ctx) const;
+  void dump_context(const context_t &ctx) const;
   bool evaluate_condition(klee::ref<klee::Expr> condition,
-                          context_t &additional_ctx) const;
+                          context_t &ctx) const;
   operation_ptr get_operation(const std::string &name) const;
-  void process(Node_ptr node, pkt_t pkt, time_ns_t time,
-               context_t &additional_ctx);
+  void process(Node_ptr node, pkt_t pkt, time_ns_t time, context_t &ctx);
   void setup();
 };
 

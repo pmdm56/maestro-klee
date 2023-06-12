@@ -9,7 +9,8 @@ namespace emulation {
 
 inline void __dchain_allocate_new_index(const Call *call_node, pkt_t &pkt,
                                         time_ns_t time, state_t &state,
-                                        context_t &ctx, const cfg_t &cfg) {
+                                        meta_t &meta, context_t &ctx,
+                                        const cfg_t &cfg) {
   auto call = call_node->get_call();
 
   assert(!call.args[symbex::FN_DCHAIN_ARG_CHAIN].expr.isNull());
@@ -25,8 +26,8 @@ inline void __dchain_allocate_new_index(const Call *call_node, pkt_t &pkt,
   auto out_of_space_symbol =
       get_symbol(generated_symbols, symbex::DCHAIN_OUT_OF_SPACE);
 
-  auto out_of_space_expr = kutil::solver_toolbox.create_new_symbol(
-      out_of_space_symbol.label, 32);
+  auto out_of_space_expr =
+      kutil::solver_toolbox.create_new_symbol(out_of_space_symbol.label, 32);
 
   auto ds_dchain = state.get(addr);
   auto dchain = Dchain::cast(ds_dchain);
@@ -39,6 +40,8 @@ inline void __dchain_allocate_new_index(const Call *call_node, pkt_t &pkt,
   if (!out_of_space) {
     concretize(ctx, index_out_expr, index_out);
   }
+
+  meta.dchain_allocations++;
 }
 
 inline std::pair<std::string, operation_ptr> dchain_allocate_new_index() {

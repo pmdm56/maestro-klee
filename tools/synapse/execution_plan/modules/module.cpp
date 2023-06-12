@@ -205,8 +205,10 @@ Module::build_modifications(klee::ref<klee::Expr> before,
         kutil::solver_toolbox.exprBuilder->Extract(before, b, klee::Expr::Int8);
     auto after_byte =
         kutil::solver_toolbox.exprBuilder->Extract(after, b, klee::Expr::Int8);
+    auto eq =
+        kutil::solver_toolbox.are_exprs_always_equal(before_byte, after_byte);
 
-    if (kutil::solver_toolbox.are_exprs_always_equal(before_byte, after_byte)) {
+    if (eq) {
       continue;
     }
 

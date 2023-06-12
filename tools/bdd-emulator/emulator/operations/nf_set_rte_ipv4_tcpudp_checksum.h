@@ -7,7 +7,7 @@ namespace emulation {
 
 inline void __nf_set_rte_ipv4_tcpudp_checksum(const Call *call_node, pkt_t &pkt,
                                               time_ns_t time, state_t &state,
-                                              context_t &ctx,
+                                              meta_t &meta, context_t &ctx,
                                               const cfg_t &cfg) {
   // Nothing to do here.
 }
