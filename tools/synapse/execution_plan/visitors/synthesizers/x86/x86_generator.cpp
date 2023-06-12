@@ -328,29 +328,11 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
   auto success = node->get_success();
   auto map_has_this_key = node->get_map_has_this_key();
 
-  auto contains_label = vars.get_new_label(CONTAINS_BASE_LABEL);
-  auto contains_var = Variable(contains_label, map_has_this_key);
-  vars.append(contains_var);
-
-  auto value_label = vars.get_new_label(INDEX_BASE_LABEL);
-  auto value_var = Variable(value_label, value_out);
-  vars.append(value_var);
-
-  nf_process_builder.indent();
-  nf_process_builder.append(value_var.get_type());
-  nf_process_builder.append(" ");
-  nf_process_builder.append(value_var.get_label());
-  nf_process_builder.append(";");
-  nf_process_builder.append_new_line();
-
   auto map = vars.get(map_addr);
   assert(map.valid);
 
   auto key_label_base = map.var->get_label() + "_key";
   auto key_label = vars.get_new_label(key_label_base);
-  auto key_var = Variable(key_label, key);
-  key_var.set_addr(key_addr);
-  vars.append(key_var);
 
   assert(key->getWidth() > 0);
   assert(key->getWidth() % 8 == 0);
@@ -377,6 +359,26 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
     nf_process_builder.append(";");
     nf_process_builder.append_new_line();
   }
+
+  auto key_var = Variable(key_label, key);
+  key_var.set_addr(key_addr);
+  key_var.set_is_array();
+  vars.append(key_var);
+
+  auto value_label = vars.get_new_label(INDEX_BASE_LABEL);
+  auto value_var = Variable(value_label, value_out);
+  vars.append(value_var);
+
+  auto contains_label = vars.get_new_label(CONTAINS_BASE_LABEL);
+  auto contains_var = Variable(contains_label, map_has_this_key);
+  vars.append(contains_var);
+
+  nf_process_builder.indent();
+  nf_process_builder.append(value_var.get_type());
+  nf_process_builder.append(" ");
+  nf_process_builder.append(value_var.get_label());
+  nf_process_builder.append(";");
+  nf_process_builder.append_new_line();
 
   nf_process_builder.indent();
   nf_process_builder.append("int ");
@@ -672,6 +674,7 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
   auto value_out_label = vars.get_new_label(VALUE_OUT_BASE_LABEL);
   auto value_out_var = ByteArray(value_out_label, borrowed_cell, value_out);
   value_out_var.set_addr(value_out);
+  value_out_var.set_is_array();
   vars.append(value_out_var);
 
   nf_process_builder.indent();
