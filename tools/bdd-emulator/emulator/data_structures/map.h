@@ -60,8 +60,7 @@ public:
     assert(contains(key));
     assert(key.size == key_size || key_size == 0);
 
-    auto removed = data.erase(key);
-    assert(removed > 0);
+    data.erase(key);
   }
 
   static Map *cast(const DataStructureRef &ds) {
