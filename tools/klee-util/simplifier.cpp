@@ -481,17 +481,22 @@ klee::ref<klee::Expr> simplify(klee::ref<klee::Expr> expr) {
       simplify_cmp_zext_eq_size, simplify_not_eq,   simplify_cmp_ne_0,
   };
 
+  std::vector<klee::ref<klee::Expr>> prev_exprs{expr};
+
   while (true) {
-    auto simplified_expr = expr;
+    auto simplified = expr;
 
-    apply_simplifiers(simplifiers, expr, simplified_expr);
-    assert(!simplified_expr.isNull());
+    apply_simplifiers(simplifiers, expr, simplified);
+    assert(!simplified.isNull());
 
-    if (!simplified_expr->compare(*expr.get())) {
-      return expr;
+    for (auto prev : prev_exprs) {
+      if (!simplified->compare(*prev.get())) {
+        return expr;
+      }
     }
 
-    expr = simplified_expr;
+    prev_exprs.push_back(simplified);
+    expr = simplified;
   }
 
   return expr;
