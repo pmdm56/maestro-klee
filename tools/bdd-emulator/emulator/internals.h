@@ -128,6 +128,9 @@ struct cfg_t {
   std::pair<bool, gbps_t> rate;
   std::pair<bool, time_us_t> timeout;
   bool warmup;
+  bool report;
+
+  cfg_t() : warmup(false), report(false) {}
 };
 
 struct pkt_t {

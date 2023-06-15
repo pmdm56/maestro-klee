@@ -12,6 +12,8 @@
 #define VT100_UP_2_LINES "\33[2A"
 #define VT100_UP_3_LINES "\33[3A"
 
+#define REPORT_PACKET_PERIOD 1000
+
 namespace BDD {
 namespace emulation {
 
@@ -24,12 +26,12 @@ private:
   uint64_t packet_counter;
   time_ns_t time;
 
-  int last_report;
+  uint64_t next_report;
 
 public:
   Reporter(const meta_t &_meta, bool _warmup_mode)
       : meta(_meta), num_packets(0), warmup_mode(_warmup_mode),
-        packet_counter(0), time(0), last_report(-1) {
+        packet_counter(0), time(0), next_report(0) {
     struct termios term;
     tcgetattr(fileno(stdin), &term);
 
@@ -56,18 +58,19 @@ public:
     auto percent_accepted = 100.0 * meta.accepted / meta.packet_counter;
     auto percent_rejected = 100.0 * meta.rejected / meta.packet_counter;
 
-    if (progress <= last_report) {
+    if (packet_counter < next_report) {
       return;
     }
 
-    if (last_report >= 0) {
-      for (auto i = 0; i < 12; i++)
+    if (next_report > 0) {
+      for (auto i = 0; i < 13; i++)
         printf(VT100_UP_1_LINE);
     }
 
     printf(VT100_ERASE "Emulator data\n");
     printf(VT100_ERASE "  Progress      %d %%\n", progress);
-    printf(VT100_ERASE "  Packets       %lu %%\n", packet_counter);
+    printf(VT100_ERASE "  Packets       %lu\n", packet_counter);
+	printf(VT100_ERASE "  Total packets %lu\n", num_packets);
     printf(VT100_ERASE "  Time          %lu ns\n", time);
     printf(VT100_ERASE "  Warmup        %d\n", warmup_mode);
 
@@ -80,11 +83,11 @@ public:
     printf(VT100_ERASE "  Elapsed       %lu ns\n", meta.elapsed_time);
     printf(VT100_ERASE "  Expired       %lu (%f fpm)\n", meta.flows_expired,
            churn_fpm);
-    printf(VT100_ERASE "  Dchain allocs %lu ns\n", meta.dchain_allocations);
+    printf(VT100_ERASE "  Dchain allocs %lu\n", meta.dchain_allocations);
 
     fflush(stdout);
 
-    last_report = progress;
+    next_report = packet_counter + REPORT_PACKET_PERIOD;
   }
 };
 

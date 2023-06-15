@@ -148,7 +148,9 @@ void Emulator::run(const std::string &pcap_filename, uint16_t device) {
 
   auto loops = cfg.warmup ? 2 : 1;
 
-  reporter.set_num_packets(num_packets);
+  if (cfg.report) {
+    reporter.set_num_packets(num_packets);
+  }
 
   for (auto i = 0; i < loops; i++) {
     auto warmup_mode = (i == 0 && cfg.warmup);
@@ -186,9 +188,11 @@ void Emulator::run(const std::string &pcap_filename, uint16_t device) {
 
       meta.packet_counter++;
 
-      reporter.inc_packet_counter();
-      reporter.set_time(time);
-      reporter.show();
+      if (cfg.report) {
+        reporter.inc_packet_counter();
+        reporter.set_time(time);
+        reporter.show();
+      }
     }
 
     // The first iteration is the warmup iteration.

@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
   }
 
   cfg.warmup = Warmup;
+  cfg.report = true;
 
   auto meta = run(bdd, cfg, InputPcap, InputDevice);
   std::cerr << meta << "\n";
