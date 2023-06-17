@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../internals.h"
+#include "../internals/internals.h"
 
 namespace BDD {
 namespace emulation {

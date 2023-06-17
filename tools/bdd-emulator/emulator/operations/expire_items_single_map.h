@@ -1,10 +1,9 @@
 #pragma once
 
-#include "../internals.h"
-
 #include "../data_structures/dchain.h"
 #include "../data_structures/map.h"
 #include "../data_structures/vector.h"
+#include "../internals/internals.h"
 
 namespace BDD {
 namespace emulation {

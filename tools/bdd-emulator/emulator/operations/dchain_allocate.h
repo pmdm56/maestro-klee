@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../data_structures/dchain.h"
-#include "../internals.h"
+#include "../internals/internals.h"
 
 namespace BDD {
 namespace emulation {

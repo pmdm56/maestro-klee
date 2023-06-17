@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../internals.h"
-
 #include "../data_structures/map.h"
+#include "../internals/internals.h"
 
 namespace BDD {
 namespace emulation {

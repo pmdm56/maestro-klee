@@ -146,22 +146,29 @@ void Emulator::run(const std::string &pcap_filename, uint16_t device) {
   int status = 1;
   time_ns_t time = 0;
 
-  auto loops = cfg.warmup ? 2 : 1;
-
   if (cfg.report) {
     reporter.set_num_packets(num_packets);
   }
 
-  for (auto i = 0; i < loops; i++) {
-    auto warmup_mode = (i == 0 && cfg.warmup);
+  auto loops = cfg.loops;
+  auto warmup_mode = cfg.warmup;
+
+  while (true) {
+    if (!warmup_mode && cfg.loops > 0) {
+      loops--;
+
+      if (loops < 0) {
+        break;
+      }
+    }
 
     fseek(fpcap, pcap_start_pos, SEEK_SET);
 
     while ((status = pcap_next_ex(pcap, &header, &data)) >= 0) {
-      pkt_t pkt;
+      auto _data = static_cast<const uint8_t *>(data);
+      auto _size = static_cast<uint32_t>(header->len);
 
-      pkt.data = static_cast<const uint8_t *>(data);
-      pkt.size = static_cast<uint32_t>(header->len);
+      pkt_t pkt(_data, _size);
 
       if (cfg.rate.first) {
         // To obtain the time in seconds:
@@ -175,13 +182,13 @@ void Emulator::run(const std::string &pcap_filename, uint16_t device) {
         auto IPG = 20;
         auto dt = (time_ns_t)(((pkt.size + IPG + CRC) * 8) / cfg.rate.second);
         time += dt;
-        meta.elapsed_time += dt;
+        meta.elapsed += dt;
       } else {
         auto last_time = time;
         time = header->ts.tv_sec * 1e9 + header->ts.tv_usec * 1e6;
 
         auto dt = time - last_time;
-        meta.elapsed_time += dt;
+        meta.elapsed += dt;
       }
 
       run(pkt, time, device);
@@ -197,12 +204,18 @@ void Emulator::run(const std::string &pcap_filename, uint16_t device) {
 
     // The first iteration is the warmup iteration.
     if (warmup_mode) {
+      warmup_mode = false;
       meta.reset();
-      reporter.stop_warmup();
+
+      if (cfg.report)
+        reporter.stop_warmup();
     }
   }
 
-  std::cerr << "\n";
+  if (cfg.report) {
+    reporter.set_time(time);
+    reporter.show(true);
+  }
 }
 
 operation_ptr Emulator::get_operation(const std::string &name) const {
