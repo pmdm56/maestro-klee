@@ -1,6 +1,8 @@
 #include "internals.h"
 
 #include <assert.h>
+#include <iomanip>
+#include <locale>
 #include <termios.h>
 
 #define KEY_ESC 0x1b
@@ -37,6 +39,8 @@ public:
 
     term.c_lflag &= ~ECHO;
     tcsetattr(fileno(stdin), 0, &term);
+
+    set_thousands_separator();
   }
 
   void set_num_packets(uint64_t _num_packets) {
@@ -51,6 +55,17 @@ public:
   void inc_packet_counter() { packet_counter++; }
   void set_time(time_ns_t _time) { time = _time; }
 
+  void set_thousands_separator() {
+    struct my_numpunct : std::numpunct<char> {
+    protected:
+      virtual char do_thousands_sep() const override { return ','; }
+      virtual std::string do_grouping() const override { return "\03"; }
+    };
+
+    auto my_locale = std::locale(std::cout.getloc(), new my_numpunct);
+    std::cout.imbue(my_locale);
+  }
+
   void show() {
     auto progress = (int)((100.0 * packet_counter) / num_packets);
     auto churn_fpm =
@@ -62,32 +77,46 @@ public:
       return;
     }
 
-    if (next_report > 0) {
+    if (next_report > 1) {
       for (auto i = 0; i < 13; i++)
-        printf(VT100_UP_1_LINE);
+        std::cout << VT100_UP_1_LINE;
     }
 
-    printf(VT100_ERASE "Emulator data\n");
-    printf(VT100_ERASE "  Progress      %d %%\n", progress);
-    printf(VT100_ERASE "  Packets       %lu\n", packet_counter);
-	printf(VT100_ERASE "  Total packets %lu\n", num_packets);
-    printf(VT100_ERASE "  Time          %lu ns\n", time);
-    printf(VT100_ERASE "  Warmup        %d\n", warmup_mode);
+    std::cout << VT100_ERASE;
+    std::cout << "Emulator data\n";
 
-    printf(VT100_ERASE "Metadata\n");
-    printf(VT100_ERASE "  Packets       %lu\n", meta.packet_counter);
-    printf(VT100_ERASE "  Accepted      %lu (%.2f%%)\n", meta.accepted,
-           percent_accepted);
-    printf(VT100_ERASE "  Rejected      %lu (%.2f%%)\n", meta.rejected,
-           percent_rejected);
-    printf(VT100_ERASE "  Elapsed       %lu ns\n", meta.elapsed_time);
-    printf(VT100_ERASE "  Expired       %lu (%f fpm)\n", meta.flows_expired,
-           churn_fpm);
-    printf(VT100_ERASE "  Dchain allocs %lu\n", meta.dchain_allocations);
+    std::cout << VT100_ERASE;
+    std::cout << "  Progress      " << progress << " %\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Packets       " << packet_counter << "\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Total packets " << num_packets << "\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Time          " << time << " ns\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Warmup        " << warmup_mode << "\n";
+
+    std::cout << VT100_ERASE;
+    std::cout << "Metadata\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Packets       " << meta.packet_counter << "\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Accepted      " << meta.accepted;
+    std::cout << " (" << percent_accepted << " %)\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Rejected      " << meta.rejected;
+    std::cout << " (" << percent_rejected << "%)\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Elapsed       " << meta.elapsed_time << " ns\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Expired       " << meta.flows_expired;
+    std::cout << " (" << churn_fpm << " fpm)\n";
+    std::cout << VT100_ERASE;
+    std::cout << "  Dchain allocs " << meta.dchain_allocations << "\n";
 
     fflush(stdout);
 
-    next_report = packet_counter + REPORT_PACKET_PERIOD;
+    next_report += REPORT_PACKET_PERIOD;
   }
 };
 

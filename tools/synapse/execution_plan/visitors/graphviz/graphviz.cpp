@@ -205,7 +205,7 @@ std::string Graphviz::get_bdd_node_name(const BDD::Node *node) const {
   case BDD::Node::NodeType::BRANCH: {
     auto branch = static_cast<const BDD::Branch *>(node);
     ss << "if(";
-    ss << kutil::expr_to_string(branch->get_condition(), true);
+    ss << kutil::pretty_print_expr(branch->get_condition());
     ss << ")";
     break;
   }
@@ -309,7 +309,7 @@ std::string stringify_bdd_node(BDD::Node_ptr node) {
     auto branch_node = BDD_CAST_BRANCH(node);
     auto condition = branch_node->get_condition();
     node_builder << "if (";
-    node_builder << kutil::expr_to_string(condition);
+    node_builder << kutil::pretty_print_expr(condition);
     node_builder << ")";
   } break;
   case BDD::Node::NodeType::RETURN_PROCESS: {
@@ -601,7 +601,7 @@ void Graphviz::visit(const ExecutionPlanNode *ep_node,
       label_builder << "\n&& ";
     }
 
-    label_builder << kutil::expr_to_string(condition, true) << "\n";
+    label_builder << kutil::pretty_print_expr(condition) << "\n";
   }
 
   auto label = label_builder.str();
@@ -646,7 +646,7 @@ void Graphviz::visit(const ExecutionPlanNode *ep_node,
   label_builder << "Parser condition ";
   label_builder << " [apply: " << apply_is_valid << "]";
   label_builder << "\n";
-  label_builder << kutil::expr_to_string(condition);
+  label_builder << kutil::pretty_print_expr(condition);
 
   auto label = label_builder.str();
   find_and_replace(label, {{"\n", "\\n"}});
