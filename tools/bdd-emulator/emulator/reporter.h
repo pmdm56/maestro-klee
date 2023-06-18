@@ -15,7 +15,8 @@
 #define VT100_UP_2_LINES "\33[2A"
 #define VT100_UP_3_LINES "\33[3A"
 
-#define REPORT_PACKET_PERIOD 1000
+// #define REPORT_PACKET_PERIOD 1000
+#define REPORT_PACKET_PERIOD 100
 
 using std::chrono::_V2::steady_clock;
 
@@ -49,13 +50,7 @@ public:
     set_thousands_separator();
   }
 
-  void set_num_packets(uint64_t _num_packets) {
-    if (warmup_mode) {
-      num_packets = 2 * _num_packets;
-    } else {
-      num_packets = _num_packets;
-    }
-  }
+  void set_num_packets(uint64_t _num_packets) { num_packets = _num_packets; }
 
   void stop_warmup() { warmup_mode = false; }
   void inc_packet_counter() { packet_counter++; }

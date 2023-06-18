@@ -6,7 +6,7 @@
 namespace BDD {
 namespace emulation {
 
-inline void __vector_return(const Call *call_node, pkt_t &pkt, time_ns_t time,
+inline void __vector_return(const BDD& bdd, const Call *call_node, pkt_t &pkt, time_ns_t time,
                             state_t &state, meta_t &meta, context_t &ctx,
                             const cfg_t &cfg) {
   auto call = call_node->get_call();

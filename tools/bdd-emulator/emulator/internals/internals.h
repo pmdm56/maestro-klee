@@ -17,9 +17,9 @@
 namespace BDD {
 namespace emulation {
 
-typedef void (*operation_ptr)(const Call *call, pkt_t &pkt, time_ns_t time,
-                              state_t &state, meta_t &meta, context_t &ctx,
-                              const cfg_t &cfg);
+typedef void (*operation_ptr)(const BDD &bdd, const Call *call, pkt_t &pkt,
+                              time_ns_t time, state_t &state, meta_t &meta,
+                              context_t &ctx, const cfg_t &cfg);
 
 typedef std::map<std::string, operation_ptr> operations_t;
 

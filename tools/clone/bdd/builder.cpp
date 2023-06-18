@@ -107,7 +107,7 @@ namespace Clone {
 						cm.addConstraint(c);
 					}
 
-					call->set_constraints(cm);
+					call->set_node_constraints(cm);
 
 					Node_ptr next = call->get_next()->clone();
 					call->replace_next(next);
