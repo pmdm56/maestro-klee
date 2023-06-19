@@ -368,7 +368,7 @@ symbols_t SymbolFactory::map_get(call_t call, const Node *node, bool save) {
       1, map_has_this_key->getWidth());
 
   if (kutil::solver_toolbox.are_exprs_always_equal(map_has_this_key,
-                                                   has_this_key, true)) {
+                                                   has_this_key)) {
     auto value_out = call.args["value_out"].out;
     auto value_out_label = build_label(value_out, "allocated_index", save);
     symbols.emplace(value_out_label, "allocated_index", value_out);

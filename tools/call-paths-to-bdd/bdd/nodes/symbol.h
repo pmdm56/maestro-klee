@@ -47,11 +47,11 @@ inline bool operator==(const symbol_t &lhs, const symbol_t &rhs) {
     return false;
   }
 
-  if (!kutil::solver_toolbox.are_exprs_always_equal(lhs.expr, rhs.expr, true)) {
+  if (!kutil::solver_toolbox.are_exprs_always_equal(lhs.expr, rhs.expr)) {
     return false;
   }
 
-  if (!kutil::solver_toolbox.are_exprs_always_equal(lhs.addr, rhs.addr, true)) {
+  if (!kutil::solver_toolbox.are_exprs_always_equal(lhs.addr, rhs.addr)) {
     return false;
   }
 

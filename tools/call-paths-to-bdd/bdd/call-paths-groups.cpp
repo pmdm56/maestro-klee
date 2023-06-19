@@ -85,19 +85,19 @@ bool CallPathsGroup::are_calls_equal(call_t c1, call_t c2) {
     auto c1_arg = c1.args[arg_name];
     auto c2_arg = c2.args[arg_name];
 
-    if (!c1_arg.out.isNull() && !kutil::solver_toolbox.are_exprs_always_equal(
-                                    c1_arg.in, c1_arg.out, true)) {
+    if (!c1_arg.out.isNull() &&
+        !kutil::solver_toolbox.are_exprs_always_equal(c1_arg.in, c1_arg.out)) {
       continue;
     }
 
     // comparison between modifications to the received packet
-    if (!c1_arg.in.isNull() && !kutil::solver_toolbox.are_exprs_always_equal(
-                                   c1_arg.in, c2_arg.in, true)) {
+    if (!c1_arg.in.isNull() &&
+        !kutil::solver_toolbox.are_exprs_always_equal(c1_arg.in, c2_arg.in)) {
       return false;
     }
 
     if (c1_arg.in.isNull() && !kutil::solver_toolbox.are_exprs_always_equal(
-                                  c1_arg.expr, c2_arg.expr, true)) {
+                                  c1_arg.expr, c2_arg.expr)) {
       return false;
     }
   }
@@ -125,12 +125,10 @@ CallPathsGroup::get_possible_discriminating_constraints() const {
   std::vector<klee::ref<klee::Expr>> possible_discriminating_constraints;
   assert(on_true.size());
 
-  int i = 0;
   for (auto constraint : on_true.cp[0]->constraints) {
     if (satisfies_constraint(on_true.cp, constraint)) {
-      possible_discriminating_constraints.emplace_back(constraint);
+      possible_discriminating_constraints.push_back(constraint);
     }
-    i++;
   }
 
   return possible_discriminating_constraints;
@@ -151,7 +149,7 @@ bool CallPathsGroup::satisfies_constraint(
     call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
   auto not_constraint = kutil::solver_toolbox.exprBuilder->Not(constraint);
   return kutil::solver_toolbox.is_expr_always_false(call_path->constraints,
-                                                    not_constraint, true);
+                                                    not_constraint);
 }
 
 bool CallPathsGroup::satisfies_not_constraint(
@@ -168,8 +166,8 @@ bool CallPathsGroup::satisfies_not_constraint(
 bool CallPathsGroup::satisfies_not_constraint(
     call_path_t *call_path, klee::ref<klee::Expr> constraint) const {
   auto not_constraint = kutil::solver_toolbox.exprBuilder->Not(constraint);
-  return kutil::solver_toolbox.is_expr_always_true(
-      call_path->constraints, not_constraint, true);
+  return kutil::solver_toolbox.is_expr_always_true(call_path->constraints,
+                                                   not_constraint);
 }
 
 bool CallPathsGroup::check_discriminating_constraint(
