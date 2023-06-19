@@ -134,8 +134,8 @@ get_common_constraints(std::vector<call_path_t *> call_paths,
 
     for (auto cp : call_paths) {
       auto constraints = kutil::join_managers(cp->constraints, exclusion_list);
-      auto is_true =
-          kutil::solver_toolbox.is_expr_always_true(constraints, constraint, true);
+      auto is_true = kutil::solver_toolbox.is_expr_always_true(
+          constraints, constraint, true);
 
       if (!is_true) {
         is_common = false;
@@ -622,6 +622,7 @@ void BDD::merge_symbols() {
     auto constraints = node->get_node_constraints();
     auto new_constraints = merger.save_and_merge(constraints);
     node->set_node_constraints(new_constraints);
+    assert(new_constraints.size() == constraints.size());
 
     switch (node->get_type()) {
     case Node::NodeType::CALL: {
