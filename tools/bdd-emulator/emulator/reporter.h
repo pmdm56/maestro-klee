@@ -4,6 +4,7 @@
 #include <chrono>
 #include <iomanip>
 #include <locale>
+#include <ostream>
 #include <termios.h>
 
 #define KEY_ESC 0x1b
@@ -15,8 +16,7 @@
 #define VT100_UP_2_LINES "\33[2A"
 #define VT100_UP_3_LINES "\33[3A"
 
-// #define REPORT_PACKET_PERIOD 1000
-#define REPORT_PACKET_PERIOD 100
+#define REPORT_PACKET_PERIOD 1000
 
 using std::chrono::_V2::steady_clock;
 
@@ -50,19 +50,24 @@ public:
     set_thousands_separator();
   }
 
+  void dump_hit_rate_csv(std::ostream &os) const;
+  void dump_hit_rate_dot(std::ostream &os) const;
+  void render_hit_rate_dot(bool interrupt) const;
+
+private:
   void set_num_packets(uint64_t _num_packets) { num_packets = _num_packets; }
 
   void stop_warmup() { warmup_mode = false; }
   void inc_packet_counter() { packet_counter++; }
   void set_time(time_ns_t _time) { time = _time; }
 
-  void render_hit_rate() const;
   void show(bool force_update = false);
 
-private:
   void set_thousands_separator();
   std::string get_elapsed();
   std::string get_elapsed(time_ns_t _time);
+
+  friend class Emulator;
 };
 
 } // namespace emulation
