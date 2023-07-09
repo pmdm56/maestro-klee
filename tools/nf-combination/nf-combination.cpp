@@ -632,9 +632,8 @@ BDD::Node_ptr normalize_init_bdd(BDD::Node_ptr current){
   
 }
 
-void merge_inits(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2){
+void merge_inits(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, uint64_t &new_ids){
 
-  uint64_t new_ids = 0;
   bdd1.get_init()->recursive_update_ids(new_ids);
   bdd2.get_init()->recursive_update_ids(++new_ids);
 
@@ -664,9 +663,61 @@ void merge_inits(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2){
     }
 
   normalize_init_bdd(new_bdd.get_init());
+}
 
-  new_ids = 0;
-  new_root->recursive_update_ids(new_ids);
+void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combination_config conf, uint64_t &new_ids){
+
+  bdd1.get_process()->recursive_update_ids(new_ids);
+  bdd2.get_process()->recursive_update_ids(++new_ids);
+
+  BDD::PathExplorer explorer;
+
+  std::vector<BDD::bdd_path_t*> bdd1_paths;
+  std::vector<BDD::bdd_path_t*> bdd2_paths;
+  std::vector<std::vector<BDD::Node_ptr>> returns;
+
+  explorer.getPathsProcess(bdd1, bdd1_paths);
+  explorer.getPathsProcess(bdd2, bdd2_paths);
+
+  for(auto p1 : bdd1_paths){
+    for(auto p2 : bdd2_paths){
+      if(explorer.arePathsCompatible(p1, p2)){
+
+        resolveReturnProcessConflits(p1,p2,conf);
+
+        //alignment check & insertion order
+        std::vector<BDD::Node_ptr> new_path = mergePaths(p1,p2);
+
+        for(auto node : new_path){
+          if(isPacketReturn(node))
+            continue;
+          auto root = new_bdd.get_process(); 
+          if(!root)
+            new_bdd.add_process(node);
+          else addNode(root, node);
+        } 
+
+        auto ret = new_path.rbegin() + 1;
+        int current_return = 0;
+        while(isPacketReturn(*ret)){
+          if(current_return == returns.size()){
+            std::vector<BDD::Node_ptr> new_layer;
+            returns.push_back(new_layer);
+          }
+          returns[current_return].push_back(*ret);
+          current_return++;
+          ret++;
+        }
+
+      }
+    }
+  }
+
+  auto root = new_bdd.get_process();
+  for(auto ret_layer = returns.rbegin(); ret_layer != returns.rend(); ret_layer++)
+    for(auto ret : *ret_layer)
+      addNode(root, ret);
+
 }
 
 int main(int argc, char **argv) {
@@ -676,70 +727,20 @@ int main(int argc, char **argv) {
   std::cerr << conf;
 
   kutil::solver_toolbox.build();
-  BDD::PathExplorer explorer;
-
+  
   BDD::BDD bdd1(BDD1, 0);
   BDD::BDD bdd2(BDD2, 1);
   BDD::BDD new_bdd;
 
-  std::vector<BDD::bdd_path_t*> bdd1_paths;
-  std::vector<BDD::bdd_path_t*> bdd2_paths;
-  std::vector<std::vector<BDD::Node_ptr>> returns;
+  uint64_t new_ids = 0;
+  merge_inits(new_bdd, bdd1, bdd2, new_ids);
+  merge_process(new_bdd, bdd1, bdd2, conf, new_ids);
 
-  merge_inits(new_bdd, bdd1, bdd2);
+  new_ids = 0;
+  //Se if there is dependencies between init and process
+  new_bdd.get_init()->recursive_update_ids(new_ids);
+  new_bdd.get_process()->recursive_update_ids(++new_ids);
 
-  // explorer.getPathsProcess(bdd1, bdd1_paths);
-  // explorer.getPathsProcess(bdd2, bdd2_paths);
-
-  // for(auto p1 : bdd1_paths){
-  //   for(auto p2 : bdd2_paths){
-  //     if(explorer.arePathsCompatible(p1, p2)){
-
-  //       resolveReturnProcessConflits(p1,p2,conf);
-
-  //       //alignment check & insertion order
-  //       std::vector<BDD::Node_ptr> new_path = mergePaths(p1,p2);
-
-  //       for(auto node : new_path){
-  //         if(isPacketReturn(node))
-  //           continue;
-  //         auto root = new_bdd.get_process(); 
-  //         if(!root)
-  //           new_bdd.add_process(node);
-  //         else addNode(root, node);
-  //       } 
-
-  //       auto ret = new_path.rbegin() + 1;
-  //       int current_return = 0;
-  //       while(isPacketReturn(*ret)){
-  //         if(current_return == returns.size()){
-  //           std::vector<BDD::Node_ptr> new_layer;
-  //           returns.push_back(new_layer);
-  //         }
-  //         returns[current_return].push_back(*ret);
-  //         current_return++;
-  //         ret++;
-  //       }
-
-  //     }
-  //   }
-  // }
-
-  // auto root = new_bdd.get_process();
-  // for(auto ret_layer = returns.rbegin(); ret_layer != returns.rend(); ret_layer++)
-  //   for(auto ret : *ret_layer)
-  //     addNode(root, ret);
-
-
-  // merge_inits(new_bdd, bdd1, bdd2);
-
-  // uint64_t new_id = 0;
-  // new_bdd.get_process()->recursive_update_ids(new_id);
-  // new_id = 0;
-  //uint64_t new_id = 0;
-  //new_bdd.get_init()->recursive_update_ids(new_id);
-
-  //std::cerr << new_bdd.get_init().get()->dump();
 
   if(conf.enable_gviz)
     createGviz(new_bdd, conf);
