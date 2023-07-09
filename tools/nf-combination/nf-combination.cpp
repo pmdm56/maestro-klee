@@ -60,6 +60,13 @@ BDD::Node_ptr dupNode(BDD::Node_ptr node){
       clone->set_constraints(node->get_constraints());
       return clone;
     }
+    case BDD::Node::NodeType::RETURN_INIT:
+    {
+      auto original = static_cast<BDD::ReturnInit*>(node.get());
+      auto clone = std::make_shared<BDD::ReturnInit>(original->get_id(), original->get_return_value(), original->get_from_id(), original->get_from());
+      clone->set_constraints(node->get_constraints());
+      return clone;
+    }
     default:
       assert(false && "Cannot duplicate unkown type of node.");
       break;
@@ -145,6 +152,14 @@ bool node_equals(BDD::Node_ptr n1, BDD::Node_ptr n2){
       return true;
 
     }
+    case BDD::Node::NodeType::RETURN_INIT:
+    {
+      auto rp1 = static_cast<BDD::ReturnInit*>(n1.get());
+      auto rp2 = static_cast<BDD::ReturnInit*>(n2.get());
+
+      return rp1->get_return_value() == rp2->get_return_value();
+
+    }
     case BDD::Node::NodeType::BRANCH:
     {
 
@@ -176,7 +191,7 @@ bool node_equals(BDD::Node_ptr n1, BDD::Node_ptr n2){
       }
 
       return  kutil::solver_toolbox.are_calls_equal(c1->get_call(), c2->get_call()) &&
-              c1->get_from() == c2->get_from();
+              c1->get_from_id() == c2->get_from_id();
     }
     default:
       assert(false && "Cannot compare two nodes with unkown types.");
@@ -188,22 +203,21 @@ bool node_equals(BDD::Node_ptr n1, BDD::Node_ptr n2){
 
 //return process being added before another return process
 void addNode(BDD::Node_ptr& root, BDD::Node_ptr& new_node){
-  
-  if(node_equals(root, new_node))
+
+  if(node_equals(root, new_node)){
     return;
+  }
 
   //prevent duplicate return process
   if(root->get_next())
-    if(node_equals(root->get_next(), new_node))
+    if(node_equals(root->get_next(), new_node)){
       return;
+    }
 
   switch (root->get_type()) {
     case BDD::Node::NodeType::BRANCH: {
       
       auto branch = static_cast<BDD::Branch *>(root.get());
-      //std::cerr << "[Branch] prev->" << branch->get_prev() << " on_true->"
-                //<< branch->get_on_true() << " on_false->"
-                //<< branch->get_on_false() << std::endl;
       klee::ConstraintManager on_true_path_contrs;
       on_true_path_contrs.addConstraint(branch->get_condition());
       klee::ConstraintManager on_false_path_contrs;
@@ -212,10 +226,9 @@ void addNode(BDD::Node_ptr& root, BDD::Node_ptr& new_node){
 
       // on true
       if (new_node->get_constraints().empty() || kutil::solver_toolbox.are_constraints_compatible(on_true_path_contrs,
-                                                        new_node->get_constraints())) {
-
+                                                        new_node->get_constraints())) {                                                
         auto next_root = branch->get_on_true();
-        if(!next_root || (next_root->get_type() == BDD::Node::NodeType::RETURN_PROCESS)){                   
+        if(!next_root || (next_root->get_type() == BDD::Node::NodeType::RETURN_PROCESS) || (next_root->get_type() == BDD::Node::NodeType::RETURN_INIT)){                   
           insertAfter(root, new_node);
         } else {
           addNode(next_root, new_node);
@@ -224,10 +237,9 @@ void addNode(BDD::Node_ptr& root, BDD::Node_ptr& new_node){
 
       // on false
       if (new_node_clone->get_constraints().empty() || kutil::solver_toolbox.are_constraints_compatible(on_false_path_contrs,
-                                                        new_node_clone->get_constraints())) {
-                                                          
+                                                        new_node_clone->get_constraints())) {                                                      
         auto next_root = branch->get_on_false();
-        if(!next_root || (next_root->get_type() == BDD::Node::NodeType::RETURN_PROCESS)){
+        if(!next_root || (next_root->get_type() == BDD::Node::NodeType::RETURN_PROCESS) || (next_root->get_type() == BDD::Node::NodeType::RETURN_INIT)){
           insertAfter(root, new_node_clone, false);
         } else {
           addNode(next_root, new_node_clone);
@@ -238,9 +250,8 @@ void addNode(BDD::Node_ptr& root, BDD::Node_ptr& new_node){
     case BDD::Node::NodeType::CALL:
     {
       auto call = static_cast<BDD::Call *>(root.get());
-      //std::cerr << "[Call] prev->" << call->get_prev() << " next->" << call->get_next() << std::endl;
       auto next_root = call->get_next();
-      if(!next_root || (next_root->get_type() == BDD::Node::NodeType::RETURN_PROCESS)){
+      if(!next_root || (next_root->get_type() == BDD::Node::NodeType::RETURN_PROCESS) || (next_root->get_type() == BDD::Node::NodeType::RETURN_INIT)){
         insertAfter(root, new_node, false);
       } else {
         addNode(next_root, new_node);
@@ -249,6 +260,7 @@ void addNode(BDD::Node_ptr& root, BDD::Node_ptr& new_node){
       break;
     }
     case BDD::Node::NodeType::RETURN_PROCESS:
+    case BDD::Node::NodeType::RETURN_INIT:
     default:
       assert(false);
       break;
@@ -270,6 +282,24 @@ void resolveReturnProcessConflits(BDD::bdd_path_t* p1, BDD::bdd_path_t* p2, comb
   }
 }
 
+void resolveReturnInitConflits(BDD::bdd_path_t* p1, BDD::bdd_path_t* p2){
+
+  auto node =  p1->path.at(p1->path.size() - 1);
+  auto node2 = p2->path.at(p2->path.size() - 1);
+
+  if(node->get_type() != BDD::Node::NodeType::RETURN_INIT || node2->get_type() != BDD::Node::NodeType::RETURN_INIT)
+    return;
+
+  auto p1_ret = static_cast<BDD::ReturnInit*>(p1->path.at(p1->path.size() - 1).get());
+  auto p2_ret = static_cast<BDD::ReturnInit*>(p2->path.at(p2->path.size() - 1).get());
+
+  if (p2_ret->get_return_value() == BDD::ReturnInit::ReturnType::FAILURE) {
+    p1->path.pop_back();
+  } else { 
+    p2->path.pop_back();
+  }
+}
+
 bool isPacketBorrow(BDD::Node_ptr node){
 
   if(node->get_type() != BDD::Node::NodeType::CALL)
@@ -279,8 +309,6 @@ bool isPacketBorrow(BDD::Node_ptr node){
 
   return call->get_call().function_name == "packet_borrow_next_chunk";
 }
-
-
 
 bool isPacketReturn(BDD::Node_ptr node){
 
@@ -502,6 +530,10 @@ void dumpPath(std::vector<BDD::Node_ptr> p){
       auto rp = static_cast<BDD::ReturnProcess*>(n.get());
       std::cerr << rp->get_return_operation() << " from "  << n->get_from() << "[" << n->get_from_id() << "]\n";
     }
+    if(n->get_type() == BDD::Node::NodeType::RETURN_INIT){
+      auto rp = static_cast<BDD::ReturnInit*>(n.get());
+      std::cerr << rp->get_return_value() << " from "  << n->get_from() << "[" << n->get_from_id() << "]\n";
+    }
   }
 }
 
@@ -552,11 +584,89 @@ void createGviz(BDD::BDD bdd, combination_config conf){
   assert(file.is_open());
   
   BDD::GraphvizGenerator gv(file, conf.bdd1_color, conf.bdd2_color, BDD1, BDD2);
-  gv.set_show_init_graph(false);
+  gv.set_show_init_graph(true);
   gv.visit(bdd);
 
   file.close();
  
+}
+
+BDD::Node_ptr normalize_init_bdd(BDD::Node_ptr current){
+
+  if (current->get_type() == BDD::Node::NodeType::BRANCH) {
+    
+    auto branch_node = static_cast<BDD::Branch *>(current.get());
+    BDD::Node_ptr r1 = normalize_init_bdd(branch_node->get_on_true());
+    BDD::Node_ptr r2 = normalize_init_bdd(branch_node->get_on_false());
+    auto ri1 = static_cast<BDD::ReturnInit*>(r1.get());
+    auto ri2 = static_cast<BDD::ReturnInit*>(r2.get());
+
+    if(node_equals(r1,r2))
+      if(r1->get_type() == BDD::Node::NodeType::RETURN_INIT){
+        if(ri1->get_return_value() == BDD::ReturnInit::ReturnType::FAILURE){
+          auto previous = current->get_prev();
+          if(previous->get_type() == BDD::Node::NodeType::CALL)
+            previous->add_next(r1);
+          else if(previous->get_type() == BDD::Node::NodeType::BRANCH){
+            auto b = static_cast<BDD::Branch *>(previous.get());
+            if(node_equals(b->get_on_true(), current))
+              b->add_on_true(r1);
+            else b->add_on_false(r2);
+          }
+          return r1;
+        }
+      }
+
+    branch_node->add_on_false(r2);
+
+    return ri1->get_return_value() == BDD::ReturnInit::ReturnType::FAILURE ?
+      r2 : r1;
+    
+  }
+
+  if(current->get_type() == BDD::Node::NodeType::CALL)
+    return normalize_init_bdd(current->get_next());
+  
+  if(current->get_type() == BDD::Node::NodeType::RETURN_INIT)
+    return current;
+  
+}
+
+void merge_inits(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2){
+
+  uint64_t new_ids = 0;
+  bdd1.get_init()->recursive_update_ids(new_ids);
+  bdd2.get_init()->recursive_update_ids(++new_ids);
+
+  std::vector<BDD::bdd_path_t*> bdd1_init_paths;
+  std::vector<BDD::bdd_path_t*> bdd2_init_paths;
+  BDD::PathExplorer explorer;
+  auto new_root = new_bdd.get_init();
+
+  explorer.getPathsInit(bdd1, bdd1_init_paths);
+  explorer.getPathsInit(bdd2, bdd2_init_paths);
+
+  for(auto p: bdd1_init_paths)
+    for(auto p1: bdd2_init_paths){
+      resolveReturnInitConflits(p, p1);
+
+      for(auto n: p->path){
+        if(!new_root){
+          new_bdd.add_init(n);
+          new_root = new_bdd.get_init();
+        } else addNode(new_root, n);
+      }
+
+      for(auto n: p1->path){
+        addNode(new_root, n);
+      }
+
+    }
+
+  normalize_init_bdd(new_bdd.get_init());
+
+  new_ids = 0;
+  new_root->recursive_update_ids(new_ids);
 }
 
 int main(int argc, char **argv) {
@@ -571,63 +681,71 @@ int main(int argc, char **argv) {
   BDD::BDD bdd1(BDD1, 0);
   BDD::BDD bdd2(BDD2, 1);
   BDD::BDD new_bdd;
-  
+
   std::vector<BDD::bdd_path_t*> bdd1_paths;
   std::vector<BDD::bdd_path_t*> bdd2_paths;
   std::vector<std::vector<BDD::Node_ptr>> returns;
 
+  merge_inits(new_bdd, bdd1, bdd2);
 
-  explorer.getPathsProcess(bdd1, bdd1_paths);
-  explorer.getPathsProcess(bdd2, bdd2_paths);
+  // explorer.getPathsProcess(bdd1, bdd1_paths);
+  // explorer.getPathsProcess(bdd2, bdd2_paths);
 
-  for(auto p1 : bdd1_paths){
-    for(auto p2 : bdd2_paths){
-      if(explorer.arePathsCompatible(p1, p2)){
+  // for(auto p1 : bdd1_paths){
+  //   for(auto p2 : bdd2_paths){
+  //     if(explorer.arePathsCompatible(p1, p2)){
 
-        resolveReturnProcessConflits(p1,p2,conf);
+  //       resolveReturnProcessConflits(p1,p2,conf);
 
-        //alignment check & insertion order
-        std::vector<BDD::Node_ptr> new_path = mergePaths(p1,p2);
+  //       //alignment check & insertion order
+  //       std::vector<BDD::Node_ptr> new_path = mergePaths(p1,p2);
 
-        for(auto node : new_path){
-          if(isPacketReturn(node))
-            continue;
-          auto root = new_bdd.get_process(); 
-          if(!root)
-            new_bdd.add_process(node);
-          else {addNode(root, node);}
-        } 
+  //       for(auto node : new_path){
+  //         if(isPacketReturn(node))
+  //           continue;
+  //         auto root = new_bdd.get_process(); 
+  //         if(!root)
+  //           new_bdd.add_process(node);
+  //         else addNode(root, node);
+  //       } 
 
-        auto ret = new_path.rbegin() + 1;
-        int current_return = 0;
-        while(isPacketReturn(*ret)){
-          if(current_return == returns.size()){
-            std::vector<BDD::Node_ptr> new_layer;
-            returns.push_back(new_layer);
-          }
-          returns[current_return].push_back(*ret);
-          current_return++;
-          ret++;
-        }
+  //       auto ret = new_path.rbegin() + 1;
+  //       int current_return = 0;
+  //       while(isPacketReturn(*ret)){
+  //         if(current_return == returns.size()){
+  //           std::vector<BDD::Node_ptr> new_layer;
+  //           returns.push_back(new_layer);
+  //         }
+  //         returns[current_return].push_back(*ret);
+  //         current_return++;
+  //         ret++;
+  //       }
 
-      }
-    }
-  }
+  //     }
+  //   }
+  // }
 
-  auto root = new_bdd.get_process();
-  for(auto ret_layer = returns.rbegin(); ret_layer != returns.rend(); ret_layer++)
-    for(auto ret : *ret_layer)
-      addNode(root, ret);
+  // auto root = new_bdd.get_process();
+  // for(auto ret_layer = returns.rbegin(); ret_layer != returns.rend(); ret_layer++)
+  //   for(auto ret : *ret_layer)
+  //     addNode(root, ret);
 
-  //new_bdd.normalize();
-  uint64_t new_id = 0;
-  new_bdd.get_process()->recursive_update_ids(new_id);
+
+  // merge_inits(new_bdd, bdd1, bdd2);
+
+  // uint64_t new_id = 0;
+  // new_bdd.get_process()->recursive_update_ids(new_id);
+  // new_id = 0;
+  //uint64_t new_id = 0;
+  //new_bdd.get_init()->recursive_update_ids(new_id);
+
+  //std::cerr << new_bdd.get_init().get()->dump();
 
   if(conf.enable_gviz)
     createGviz(new_bdd, conf);
 
   //TODO nf_init serialize need call paths...
-  //new_bdd.serialize(OUT_FILE)
+  //new_bdd.serialize(OUT_FILE);
 
   return 0;
 }

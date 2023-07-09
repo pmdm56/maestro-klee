@@ -82,6 +82,7 @@ public:
   bool arePathsCompatible(bdd_path_t *p1, bdd_path_t *p2);
   bool is_process_res_type_conflict(bdd_path_t *p1, bdd_path_t *p2);
   bool explore(const Node_ptr &node, bdd_path_t *p, std::vector<bdd_path_t*>& paths);
+  void getPathsInit(BDD bdd, std::vector<bdd_path_t*>& paths);
   
 };
 } // namespace BDD

@@ -70,6 +70,7 @@ public:
   void set_init(const Node_ptr &_nf_init) { this->nf_init = _nf_init; }
   void set_process(const Node_ptr &_nf_process) { this->nf_process = _nf_process; }
   void add_process(const Node_ptr &_process) { nf_process = _process; }
+  void add_init(const Node_ptr &_init) { nf_init = _init; }
 
   void rename_symbols();
   void rename_symbols(Node_ptr node, SymbolFactory &factory);

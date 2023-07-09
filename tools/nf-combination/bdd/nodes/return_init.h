@@ -26,6 +26,9 @@ private:
   }
 
 public:
+  ReturnInit(uint64_t _id, ReturnType _value, int _bddid, std::string _bdd_name)
+      : Node(_id, Node::NodeType::RETURN_INIT, _bddid, _bdd_name), value(_value) {}
+
   ReturnInit(uint64_t _id)
       : Node(_id, Node::NodeType::RETURN_INIT), value(SUCCESS) {}
 
