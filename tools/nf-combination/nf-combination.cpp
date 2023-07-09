@@ -746,7 +746,7 @@ int main(int argc, char **argv) {
     createGviz(new_bdd, conf);
 
   //TODO nf_init serialize need call paths...
-  //new_bdd.serialize(OUT_FILE);
+  new_bdd.serialize(OUT_FILE);
 
   return 0;
 }
