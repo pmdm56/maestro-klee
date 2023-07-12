@@ -299,7 +299,7 @@ unsigned map_impl_size(int *busybits, unsigned capacity) {
     uint8_t *bo1 = (uint8_t *)obj1;                                            \
     uint8_t *bo2 = (uint8_t *)obj2;                                            \
     for (int i = 0; i < (KEY_SIZE_BYTES); i++)                                 \
-      if ((bo1[0] & 0xff) != (bo2[i] & 0xff))                                  \
+      if ((bo1[i] & 0xff) != (bo2[i] & 0xff))                                  \
         return false;                                                          \
     return true;                                                               \
   }
