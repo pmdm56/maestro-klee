@@ -21,35 +21,26 @@ llvm::cl::opt<int> PATHS("paths", llvm::cl::Required);
 
 BDD::Node_ptr normalize_init(BDD::Node_ptr current) {
 
-  if (current->get_type() == BDD::Node::NodeType::BRANCH) {
-
-    auto branch_node = static_cast<BDD::Branch *>(current.get());
-    BDD::Node_ptr r1 = normalize_init(branch_node->get_on_true());
-    BDD::Node_ptr r2 = normalize_init(branch_node->get_on_false());
-    auto ri1 = static_cast<BDD::ReturnInit *>(r1.get());
-    auto ri2 = static_cast<BDD::ReturnInit *>(r2.get());
-
-    if (node_equals(r1, r2))
-      if (r1->get_type() == BDD::Node::NodeType::RETURN_INIT) {
-        if (ri1->get_return_value() == BDD::ReturnInit::ReturnType::FAILURE) {
-          auto previous = current->get_prev();
-          if (previous->get_type() == BDD::Node::NodeType::CALL)
-            previous->add_next(r1);
-          else if (previous->get_type() == BDD::Node::NodeType::BRANCH) {
-            auto b = static_cast<BDD::Branch *>(previous.get());
-            if (node_equals(b->get_on_true(), current))
-              b->add_on_true(r1);
-            else
-              b->add_on_false(r2);
-          }
-          return r1;
-        }
-      }
-
-    branch_node->add_on_false(r2);
-
-    return ri1->get_return_value() == BDD::ReturnInit::ReturnType::FAILURE ? r2
-                                                                           : r1;
+  switch (current->get_type())
+  {
+  case Node::NodeType::RETURN_INIT:
+  {
+    return current;
+  }
+  case Node::NodeType::CALL:
+  {
+    return normalize_init(current->get_next());
+  }
+  case Node::NodeType::BRANCH:
+  {  
+    auto branch = static_cast<Branch*>(current.get());
+    normalize_init(branch->get_on_true());
+    auto fail_node = normalize_init(branch->get_on_false());
+    branch->add_on_false(fail_node);
+    return fail_node;
+  }
+  default:
+    break;
   }
 }
 
@@ -79,7 +70,7 @@ void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2) {
       }
     }
 
-  //normalize_init(new_bdd.get_init());
+  normalize_init(new_bdd.get_init());
 }
 
 int main(int argc, char **argv) {
