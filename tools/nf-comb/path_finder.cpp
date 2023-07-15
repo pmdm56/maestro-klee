@@ -126,28 +126,30 @@ bool PathFinder::explore(const Node_ptr &node, bdd_path_ptr p,
   };
 }
 
+void PathFinder::debug_path(bdd_path_ptr p) {
 
-void PathFinder::debug_path(bdd_path_ptr p){
-
-  for(auto n : p->path){
-    switch(n->get_type()){
-      case Node::NodeType::BRANCH:
-      {
-        if(((Branch*)n.get())->get_current_path_branch())
-          std::cerr << kutil::pretty_print_expr(((Branch*)n.get())->get_condition()) << "\n";
-        else std::cerr << "!" << kutil::pretty_print_expr(((Branch*)n.get())->get_condition()) << "\n";
-        break;
-      }    
-      case Node::NodeType::CALL:
-      {
-        std::cerr << ((Call*)n.get())->get_call().function_name << "\n";
-        break;
-      }
-      case Node::NodeType::RETURN_INIT:
-      {
-        std::cerr << n->dump() << "\n";
-        break;
-      }      
+  for (auto n : p->path) {
+    switch (n->get_type()) {
+    case Node::NodeType::BRANCH: {
+      if (((Branch *)n.get())->get_current_path_branch())
+        std::cerr << kutil::pretty_print_expr(
+                         ((Branch *)n.get())->get_condition())
+                  << "\n";
+      else
+        std::cerr << "!"
+                  << kutil::pretty_print_expr(
+                         ((Branch *)n.get())->get_condition())
+                  << "\n";
+      break;
+    }
+    case Node::NodeType::CALL: {
+      std::cerr << ((Call *)n.get())->get_call().function_name << "\n";
+      break;
+    }
+    case Node::NodeType::RETURN_INIT: {
+      std::cerr << n->dump() << "\n";
+      break;
+    }
     }
   }
 }
@@ -207,6 +209,106 @@ void bdd_path_t::build_constraint_layer(std::shared_ptr<bdd_path_t> p) {
     }
 }
 
+std::vector<std::vector<int>>
+PathFinder::check_chunks_alignment(std::vector<packet_chunk_t> p1,
+                                   std::vector<packet_chunk_t> p2) {
+
+  std::vector<std::vector<int>> insertion_order;
+  klee::ref<klee::Expr> current_align_size;
+  int index1 = 0;
+  int index2 = 0;
+
+  while (1) {
+
+    if (index1 == p1.size()) {
+      for (index2; index2 < p2.size(); index2++)
+        insertion_order.emplace_back((std::vector<int>){1});
+      return insertion_order;
+    }
+
+    if (index2 == p2.size()) {
+      for (index1; index1 < p1.size(); index1++)
+        insertion_order.emplace_back((std::vector<int>){0});
+      return insertion_order;
+    }
+
+    if (kutil::solver_toolbox.isEqual(p1[index1].size, p2[index2].size)) {
+      insertion_order.emplace_back((std::vector<int>){0});
+      index2++;
+      index1++;
+      continue;
+    }
+
+    if (kutil::solver_toolbox.isGreaterthan(p1[index1].size, p2[index2].size)) {
+
+      current_align_size = p2[index2].size;
+      auto align_set = std::vector<int>();
+      align_set.emplace_back(1);
+
+      while (
+          !kutil::solver_toolbox.isEqual(current_align_size, p1[index1].size)) {
+        index2++;
+        if (index2 == p2.size())
+          return std::vector<std::vector<int>>();
+        current_align_size = kutil::solver_toolbox.exprBuilder->Add(
+            current_align_size, p2[index2].size);
+        align_set.emplace_back(1);
+        if (kutil::solver_toolbox.isEqual(current_align_size, p1[index1].size))
+          break;
+        if (kutil::solver_toolbox.isGreaterthan(current_align_size,
+                                                p1[index1].size))
+          return std::vector<std::vector<int>>();
+      }
+      index1++;
+      index2++;
+      insertion_order.emplace_back(align_set);
+      continue;
+    }
+
+    if (kutil::solver_toolbox.isGreaterthan(p2[index2].size, p1[index1].size)) {
+
+      current_align_size = p1[index1].size;
+      auto align_set = std::vector<int>();
+      align_set.emplace_back(0);
+
+      while (
+          !kutil::solver_toolbox.isEqual(current_align_size, p2[index2].size)) {
+        index1++;
+        if (index1 == p1.size())
+          return std::vector<std::vector<int>>();
+        current_align_size = kutil::solver_toolbox.exprBuilder->Add(
+            current_align_size, p1[index1].size);
+        align_set.emplace_back(0);
+        if (kutil::solver_toolbox.isEqual(current_align_size, p2[index2].size))
+          break;
+        if (kutil::solver_toolbox.isGreaterthan(current_align_size,
+                                                p2[index2].size))
+          return std::vector<std::vector<int>>();
+      }
+      index2++;
+      index1++;
+      insertion_order.emplace_back(align_set);
+    }
+  }
+}
+
+
+std::string PathFinder::dumpVector(const std::vector<int>& vec) {
+    std::stringstream ss;
+    ss << "{";
+
+    if (!vec.empty()) {
+        ss << vec[0];
+
+        for (size_t i = 1; i < vec.size(); ++i) {
+            ss << "," << vec[i];
+        }
+    }
+
+    ss << "}";
+    return ss.str();
+}
+
 bdd_path_ptr PathFinder::merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
                                      PathType type = PathType::PROCESS) {
 
@@ -217,25 +319,35 @@ bdd_path_ptr PathFinder::merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
   if (kutil::solver_toolbox.are_constraints_compatible(p1_constraints,
                                                        p2_constraints)) {
 
-    // std::cerr << p1->path.back()->dump() << " and " <<
-    // p2->path.back()->dump() << std::endl;
+    // nf_init
+    if (type == PathType::INIT) {
+      for (auto n : p1->path)
+        if (n->get_type() == Node::RETURN_INIT)
+          continue;
+        else
+          new_path->path.emplace_back(n);
 
-    for (auto n : p1->path)
-      if (n->get_type() == Node::RETURN_INIT)
-        continue;
-      else
-        new_path->path.emplace_back(n);
+      for (auto n : p2->path)
+        if (n->get_type() == Node::RETURN_INIT)
+          continue;
+        else
+          new_path->path.emplace_back(n);
 
-    for (auto n : p2->path)
-      if (n->get_type() == Node::RETURN_INIT)
-        continue;
-      else
-        new_path->path.emplace_back(n);
+      if (choose_return_init(p1, p2)) {
+        new_path->path.emplace_back(p2->path.back());
+      } else
+        new_path->path.emplace_back(p1->path.back());
+    }
 
-    if (choose_return_init(p1, p2)) {
-      new_path->path.emplace_back(p2->path.back());
-    } else
-      new_path->path.emplace_back(p1->path.back());
+    // nf_process
+    if (type == PathType::PROCESS) {
+
+      // check packet chunks alignment and insertion order (TODO error if not
+      // aligned)
+      auto insert_chunk_order = check_chunks_alignment(p1->packet, p2->packet);
+
+      return new_path;
+    }
   }
 
   bdd_path_t::build_constraint_layer(new_path);

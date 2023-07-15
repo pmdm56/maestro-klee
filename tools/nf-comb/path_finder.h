@@ -29,7 +29,7 @@ typedef struct bdd_path_t {
   int condition_layer;
 
   bdd_path_t() : packet_layer(-1), condition_layer(0) {
-        klee::ConstraintManager c;
+    klee::ConstraintManager c;
     path_constraints.emplace_back(c);
   }
 
@@ -67,6 +67,9 @@ private:
   static bool explore(const Node_ptr &node, bdd_path_ptr p,
                       std::vector<bdd_path_ptr> &paths);
   static bool choose_return_init(bdd_path_ptr p1, bdd_path_ptr p2);
+  static std::vector<std::vector<int>>
+  check_chunks_alignment(std::vector<packet_chunk_t> p1,
+                         std::vector<packet_chunk_t> p2);
 
 public:
   enum PathType { INIT, PROCESS };
@@ -76,6 +79,7 @@ public:
   static bdd_path_ptr merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
                                   PathType type);
   void debug_path(bdd_path_ptr p);
+  static std::string dumpVector(const std::vector<int>& vec);
 };
 
 } // namespace nfcomb

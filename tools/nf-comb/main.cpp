@@ -73,6 +73,22 @@ void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2) {
   normalize_init(new_bdd.get_init());
 }
 
+void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2){
+
+  std::vector<bdd_path_ptr> bdd1_paths;
+  std::vector<bdd_path_ptr> bdd2_paths;
+  auto new_root = new_bdd.get_process();
+
+  PathFinder::get_paths_process(bdd1, bdd1_paths);
+  PathFinder::get_paths_process(bdd2, bdd2_paths);
+
+  for (auto p1 : bdd1_paths)
+    for (auto p2 : bdd2_paths) {
+      bdd_path_ptr new_path =
+          PathFinder::merge_paths(p1, p2, PathFinder::PathType::PROCESS);
+    }
+}
+
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
@@ -89,6 +105,7 @@ int main(int argc, char **argv) {
   bdd2.update_node_ids(++new_ids);
 
   merge_init(new_bdd, bdd1, bdd2);
+  merge_process(new_bdd, bdd1, bdd2);
 
   new_bdd.update_node_ids(new_bdd_ids);
 
