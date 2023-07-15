@@ -93,6 +93,8 @@ struct solver_toolbox_t {
 
   bool are_calls_equal(call_t c1, call_t c2) const;
   bool are_constraints_compatible(klee::ConstraintManager c1, klee::ConstraintManager c2) const;
+  bool isEqual(klee::ref<klee::Expr> len1, klee::ref<klee::Expr> len2);
+  bool isGreaterthan(klee::ref<klee::Expr> len1, klee::ref<klee::Expr> len2);
 };
 
 extern solver_toolbox_t solver_toolbox;

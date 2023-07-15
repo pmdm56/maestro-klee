@@ -173,7 +173,9 @@ void add_node(BDD::Node_ptr &root, BDD::Node_ptr &new_node,
         add_node(next_root, new_node, constraints);
       }
 
-    } else if (kutil::solver_toolbox.are_constraints_compatible(
+    }  
+    
+    if (kutil::solver_toolbox.are_constraints_compatible(
                    on_false_path_contrs, constraints)) {
       auto next_root = branch->get_on_false();
 
