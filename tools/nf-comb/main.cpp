@@ -44,7 +44,7 @@ BDD::Node_ptr normalize_init(BDD::Node_ptr current) {
   }
 }
 
-void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2) {
+void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combination_config conf) {
 
   std::vector<bdd_path_ptr> bdd1_paths;
   std::vector<bdd_path_ptr> bdd2_paths;
@@ -56,9 +56,9 @@ void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2) {
   for (auto p1 : bdd1_paths)
     for (auto p2 : bdd2_paths) {
       bdd_path_ptr new_path =
-          PathFinder::merge_paths(p1, p2, PathFinder::PathType::INIT);
-      auto constr_layer = 0;
+          PathFinder::merge_paths(p1, p2, PathFinder::PathType::INIT, conf);
       if (!new_path->path.empty()) {
+        auto constr_layer = 0;
         for(auto n: new_path->path){
           if(!new_root){
             new_bdd.set_init(n);
@@ -73,7 +73,7 @@ void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2) {
   normalize_init(new_bdd.get_init());
 }
 
-void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2){
+void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combination_config conf){
 
   std::vector<bdd_path_ptr> bdd1_paths;
   std::vector<bdd_path_ptr> bdd2_paths;
@@ -85,7 +85,18 @@ void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2){
   for (auto p1 : bdd1_paths)
     for (auto p2 : bdd2_paths) {
       bdd_path_ptr new_path =
-          PathFinder::merge_paths(p1, p2, PathFinder::PathType::PROCESS);
+          PathFinder::merge_paths(p1, p2, PathFinder::PathType::PROCESS, conf);
+      if (!new_path->path.empty()) {
+        auto constr_layer = 0;
+        for(auto n: new_path->path){
+          if(!new_root){
+            new_bdd.set_process(n);
+            new_root = new_bdd.get_process();
+          } else add_node(new_root, n, new_path->get_constraints_by_layer(constr_layer));
+          if(n->get_type() == Node::NodeType::BRANCH)
+            constr_layer++;
+        }
+      }
     }
 }
 
@@ -104,8 +115,8 @@ int main(int argc, char **argv) {
   bdd1.update_node_ids(new_ids);
   bdd2.update_node_ids(++new_ids);
 
-  merge_init(new_bdd, bdd1, bdd2);
-  merge_process(new_bdd, bdd1, bdd2);
+  merge_init(new_bdd, bdd1, bdd2, conf);
+  merge_process(new_bdd, bdd1, bdd2, conf);
 
   new_bdd.update_node_ids(new_bdd_ids);
 

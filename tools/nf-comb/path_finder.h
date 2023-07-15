@@ -3,9 +3,11 @@
 #include "assert.h"
 #include "bdd/bdd.h"
 #include "bdd/nodes/nodes.h"
+#include "comb_config.h"
 #include "node_utils.h"
 
 using namespace BDD;
+using namespace nfcomb;
 
 namespace nfcomb {
 
@@ -70,6 +72,14 @@ private:
   static std::vector<std::vector<int>>
   check_chunks_alignment(std::vector<packet_chunk_t> p1,
                          std::vector<packet_chunk_t> p2);
+  static std::vector<Node_ptr>
+  get_return_chunks(bdd_path_ptr p1, bdd_path_ptr p2,
+                    std::vector<std::vector<int>> order);
+  static Node_ptr get_return_process(bdd_path_ptr p1, bdd_path_ptr p2,
+                                     combination_config conf);
+  static void add_nodes_from_paths(bdd_path_ptr new_path,
+                                          bdd_path_ptr p1, bdd_path_ptr p2,
+                                          std::vector<std::vector<int>> order);
 
 public:
   enum PathType { INIT, PROCESS };
@@ -77,9 +87,9 @@ public:
                                 std::vector<bdd_path_ptr> &paths);
   static void get_paths_init(BDD::BDD &bdd, std::vector<bdd_path_ptr> &paths);
   static bdd_path_ptr merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
-                                  PathType type);
-  void debug_path(bdd_path_ptr p);
-  static std::string dumpVector(const std::vector<int>& vec);
+                                  PathType type, combination_config conf);
+  static void debug_path(bdd_path_ptr p);
+  static std::string dumpVector(const std::vector<int> &vec);
 };
 
 } // namespace nfcomb

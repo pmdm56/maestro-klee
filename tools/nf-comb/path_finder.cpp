@@ -150,6 +150,10 @@ void PathFinder::debug_path(bdd_path_ptr p) {
       std::cerr << n->dump() << "\n";
       break;
     }
+    case Node::NodeType::RETURN_PROCESS: {
+      std::cerr << n->dump() << "\n";
+      break;
+    }
     }
   }
 }
@@ -292,25 +296,119 @@ PathFinder::check_chunks_alignment(std::vector<packet_chunk_t> p1,
   }
 }
 
+std::string PathFinder::dumpVector(const std::vector<int> &vec) {
+  std::stringstream ss;
+  ss << "{";
 
-std::string PathFinder::dumpVector(const std::vector<int>& vec) {
-    std::stringstream ss;
-    ss << "{";
+  if (!vec.empty()) {
+    ss << vec[0];
 
-    if (!vec.empty()) {
-        ss << vec[0];
-
-        for (size_t i = 1; i < vec.size(); ++i) {
-            ss << "," << vec[i];
-        }
+    for (size_t i = 1; i < vec.size(); ++i) {
+      ss << "," << vec[i];
     }
+  }
 
-    ss << "}";
-    return ss.str();
+  ss << "}";
+  return ss.str();
+}
+
+std::vector<Node_ptr>
+PathFinder::get_return_chunks(bdd_path_ptr p1, bdd_path_ptr p2,
+                              std::vector<std::vector<int>> order) {
+
+  std::vector<BDD::Node_ptr> return_chunk_nodes;
+  auto current_p1_node = p1->path.rbegin() + 1;
+  auto current_p2_node = p2->path.rbegin() + 1;
+
+  for (auto layer : order) {
+    if (layer[0]) {
+      for (auto i = 0; i < layer.size(); i++) {
+        return_chunk_nodes.emplace_back(*current_p2_node);
+        current_p2_node++;
+      }
+      current_p1_node++;
+    } else {
+      for (auto i = 0; i < layer.size(); i++) {
+        return_chunk_nodes.emplace_back(*current_p1_node);
+        current_p1_node++;
+      }
+      current_p2_node++;
+    }
+  }
+
+  std::reverse(return_chunk_nodes.begin(), return_chunk_nodes.end());
+
+  return return_chunk_nodes;
+}
+
+Node_ptr PathFinder::get_return_process(bdd_path_ptr p1, bdd_path_ptr p2,
+                                        combination_config conf) {
+
+  auto p1_ret = static_cast<BDD::ReturnProcess *>(p1->path.back().get());
+  auto p2_ret = static_cast<BDD::ReturnProcess *>(p2->path.back().get());
+
+  auto new_ret_choice = conf.conflict_matrix[p1_ret->get_return_operation()]
+                                            [p2_ret->get_return_operation()];
+
+  auto new_ret = std::make_shared<ReturnProcess>(
+      0,
+      (new_ret_choice ? p2_ret->get_return_value()
+                      : p1_ret->get_return_value()),
+      (new_ret_choice ? p2_ret->get_return_operation()
+                      : p1_ret->get_return_operation()),
+      (new_ret_choice ? p2_ret->get_from_id() : p1_ret->get_from_id()));
+
+  return new_ret;
+}
+
+void add_nodes_until_borrow(std::vector<BDD::Node_ptr>::iterator &current,
+                            bdd_path_ptr &new_path, int &current_layer,
+                            int &actual_layer) {
+  for (current; !isPacketReturn(*current); current++) {
+    if (isPacketBorrow(*current)) {
+      if (current_layer == actual_layer) {
+        new_path->path.emplace_back(*current);
+        current++;
+        current_layer++;
+        break;
+      }
+      current_layer++;
+    } else{
+      new_path->path.emplace_back(*current);
+    }
+  }
+}
+
+void PathFinder::add_nodes_from_paths(bdd_path_ptr new_path, bdd_path_ptr p1,
+                                      bdd_path_ptr p2,
+                                      std::vector<std::vector<int>> order) {
+  auto current_p1_node = p1->path.begin();
+  auto current_p2_node = p2->path.begin();
+  auto p2_layer = 0;
+  auto p1_layer = 0;
+
+  for (auto layer = 0; layer < order.size(); layer++)
+    for (auto sub_layer = 0; sub_layer < order[layer].size(); sub_layer++)
+      if (order[layer][sub_layer])
+        add_nodes_until_borrow(current_p2_node, new_path, p2_layer, layer);
+      else
+        add_nodes_until_borrow(current_p1_node, new_path, p1_layer, layer);
+
+  for (current_p1_node; !isPacketReturn(*current_p1_node); current_p1_node++)
+    if(isPacketBorrow(*current_p1_node))
+      continue;
+    else 
+      new_path->path.emplace_back(*current_p1_node);
+
+  for (current_p2_node; !isPacketReturn(*current_p2_node); current_p2_node++)
+    if(isPacketBorrow(*current_p2_node))
+      continue;
+    else 
+    new_path->path.emplace_back(*current_p2_node);
 }
 
 bdd_path_ptr PathFinder::merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
-                                     PathType type = PathType::PROCESS) {
+                                     PathType type, combination_config conf) {
 
   bdd_path_ptr new_path = std::make_shared<bdd_path_t>();
   auto p1_constraints = p1->get_path_constraints();
@@ -346,12 +444,21 @@ bdd_path_ptr PathFinder::merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
       // aligned)
       auto insert_chunk_order = check_chunks_alignment(p1->packet, p2->packet);
 
-      return new_path;
+      // merge both path nodes until packet return layer appears (1/3)
+      PathFinder::add_nodes_from_paths(new_path, p1, p2, insert_chunk_order);
+
+      // get return_chunk nodes (in correct order to insert) (2/3)
+      auto new_return_chunks = get_return_chunks(p1, p2, insert_chunk_order);
+      new_path->path.insert(new_path->path.end(), new_return_chunks.begin(), new_return_chunks.end());
+
+      // get return_process node (3/3)
+      auto new_return_process = PathFinder::get_return_process(p1, p2, conf);
+      new_path->path.emplace_back(new_return_process);
+
     }
   }
 
   bdd_path_t::build_constraint_layer(new_path);
-
   return new_path;
 }
 

@@ -172,11 +172,10 @@ void add_node(BDD::Node_ptr &root, BDD::Node_ptr &new_node,
       } else {
         add_node(next_root, new_node, constraints);
       }
+    }
 
-    }  
-    
-    if (kutil::solver_toolbox.are_constraints_compatible(
-                   on_false_path_contrs, constraints)) {
+    if (kutil::solver_toolbox.are_constraints_compatible(on_false_path_contrs,
+                                                         constraints)) {
       auto next_root = branch->get_on_false();
 
       // prevent duplicate return process
@@ -220,6 +219,26 @@ void add_node(BDD::Node_ptr &root, BDD::Node_ptr &new_node,
     assert(false);
     break;
   };
+}
+
+bool isPacketBorrow(BDD::Node_ptr node) {
+
+  if (node->get_type() != BDD::Node::NodeType::CALL)
+    return false;
+
+  auto call = static_cast<BDD::Call *>(node.get());
+
+  return call->get_call().function_name == "packet_borrow_next_chunk";
+}
+
+bool isPacketReturn(BDD::Node_ptr node) {
+
+  if (node->get_type() != BDD::Node::NodeType::CALL)
+    return false;
+
+  auto call = static_cast<BDD::Call *>(node.get());
+
+  return call->get_call().function_name == "packet_return_chunk";
 }
 
 } // namespace nfcomb

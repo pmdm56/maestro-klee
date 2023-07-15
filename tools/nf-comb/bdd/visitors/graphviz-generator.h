@@ -104,7 +104,7 @@ public:
     }
 
     assert(bdd.get_process());
-    //visitProcessRoot(bdd.get_process().get());
+    visitProcessRoot(bdd.get_process().get());
 
     os << "}";
   }
