@@ -745,8 +745,8 @@ int main(int argc, char **argv) {
   if(conf.enable_gviz)
     createGviz(new_bdd, conf);
 
-  //TODO nf_init serialize need call paths...
-  new_bdd.serialize(OUT_FILE);
+  // //TODO nf_init serialize need call paths...
+  // new_bdd.serialize(OUT_FILE);
 
   return 0;
 }
