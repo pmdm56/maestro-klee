@@ -15,8 +15,6 @@ llvm::cl::opt<std::string> OUT_FILE("out", llvm::cl::Required,
 llvm::cl::opt<std::string> CONFIG("config", llvm::cl::Required,
                                   llvm::cl::desc("Configuration file"),
                                   llvm::cl::value_desc("<file>.json"));
-llvm::cl::opt<int> PATHS("paths", llvm::cl::Required);
-
 } // namespace
 
 BDD::Node_ptr normalize_init(BDD::Node_ptr current) {
@@ -122,6 +120,8 @@ int main(int argc, char **argv) {
 
   if (conf.enable_gviz)
     createGviz(new_bdd, conf, OUT_FILE);
+
+  new_bdd.serialize(OUT_FILE);
 
   return 0;
 }
