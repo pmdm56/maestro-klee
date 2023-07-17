@@ -5,6 +5,7 @@
 #include "bdd/nodes/nodes.h"
 #include "comb_config.h"
 #include "node_utils.h"
+#include "error_utils.h"
 
 using namespace BDD;
 using namespace nfcomb;

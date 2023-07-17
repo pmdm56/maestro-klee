@@ -3,3 +3,15 @@
 - encerrar o programa em caso de erro
 - alterar graphviz
 - verificar bdds iguais
+
+
+- adicionar casos de erro para a configuração
+- refactor no codigo para ser mais facil integrar borrow com valores simbolicos
+- verificar alinhamento com valores simbolicos (perguntar sobre isEqual e isGreaterthan)
+- resolução de conflitos de escrita com alinhamento perfeito apenas (perguntar sobre getWitdh no packet-modification detector)
+- falar sobre verificar se bdds iguais ( falar sobre a ideia de fazer caminho a caminho)
+
+- modificar a representação grafica
+- adicionar mais casos de erro (caso o utilizador nao passe config -> abortar ao primeiro conflito)
+- testar 
+- conflito escrita para alinhamento imperfeito

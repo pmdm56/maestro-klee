@@ -268,7 +268,7 @@ std::string serialize_call(const call_t &call, kQuery_t &kQuery) {
 }
 
 void BDD::serialize(std::string out_file) const {
-  std::ofstream out(out_file);
+  std::ofstream out(out_file + ".bdd");
 
   assert(out);
   assert(out.is_open());

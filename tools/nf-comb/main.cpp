@@ -12,26 +12,22 @@ llvm::cl::opt<std::string> BDD2("bdd2", llvm::cl::Required,
 llvm::cl::opt<std::string> OUT_FILE("out", llvm::cl::Required,
                                     llvm::cl::desc("Output file name"),
                                     llvm::cl::value_desc("name"));
-llvm::cl::opt<std::string> CONFIG("config", llvm::cl::Required,
+llvm::cl::opt<std::string> CONFIG("config", llvm::cl::Optional,
                                   llvm::cl::desc("Configuration file"),
                                   llvm::cl::value_desc("<file>.json"));
 } // namespace
 
 BDD::Node_ptr normalize_init(BDD::Node_ptr current) {
 
-  switch (current->get_type())
-  {
-  case Node::NodeType::RETURN_INIT:
-  {
+  switch (current->get_type()) {
+  case Node::NodeType::RETURN_INIT: {
     return current;
   }
-  case Node::NodeType::CALL:
-  {
+  case Node::NodeType::CALL: {
     return normalize_init(current->get_next());
   }
-  case Node::NodeType::BRANCH:
-  {  
-    auto branch = static_cast<Branch*>(current.get());
+  case Node::NodeType::BRANCH: {
+    auto branch = static_cast<Branch *>(current.get());
     normalize_init(branch->get_on_true());
     auto fail_node = normalize_init(branch->get_on_false());
     branch->add_on_false(fail_node);
@@ -42,7 +38,8 @@ BDD::Node_ptr normalize_init(BDD::Node_ptr current) {
   }
 }
 
-void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combination_config conf) {
+void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2,
+                combination_config conf) {
 
   std::vector<bdd_path_ptr> bdd1_paths;
   std::vector<bdd_path_ptr> bdd2_paths;
@@ -57,12 +54,14 @@ void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combination_c
           PathFinder::merge_paths(p1, p2, PathFinder::PathType::INIT, conf);
       if (!new_path->path.empty()) {
         auto constr_layer = 0;
-        for(auto n: new_path->path){
-          if(!new_root){
+        for (auto n : new_path->path) {
+          if (!new_root) {
             new_bdd.set_init(n);
             new_root = new_bdd.get_init();
-          } else add_node(new_root, n, new_path->get_constraints_by_layer(constr_layer));
-          if(n->get_type() == Node::NodeType::BRANCH)
+          } else
+            add_node(new_root, n,
+                     new_path->get_constraints_by_layer(constr_layer));
+          if (n->get_type() == Node::NodeType::BRANCH)
             constr_layer++;
         }
       }
@@ -71,7 +70,8 @@ void merge_init(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combination_c
   normalize_init(new_bdd.get_init());
 }
 
-void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combination_config conf){
+void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2,
+                   combination_config conf) {
 
   std::vector<bdd_path_ptr> bdd1_paths;
   std::vector<bdd_path_ptr> bdd2_paths;
@@ -86,12 +86,14 @@ void merge_process(BDD::BDD &new_bdd, BDD::BDD &bdd1, BDD::BDD &bdd2, combinatio
           PathFinder::merge_paths(p1, p2, PathFinder::PathType::PROCESS, conf);
       if (!new_path->path.empty()) {
         auto constr_layer = 0;
-        for(auto n: new_path->path){
-          if(!new_root){
+        for (auto n : new_path->path) {
+          if (!new_root) {
             new_bdd.set_process(n);
             new_root = new_bdd.get_process();
-          } else add_node(new_root, n, new_path->get_constraints_by_layer(constr_layer));
-          if(n->get_type() == Node::NodeType::BRANCH)
+          } else
+            add_node(new_root, n,
+                     new_path->get_constraints_by_layer(constr_layer));
+          if (n->get_type() == Node::NodeType::BRANCH)
             constr_layer++;
         }
       }
@@ -118,7 +120,7 @@ int main(int argc, char **argv) {
 
   new_bdd.update_node_ids(new_bdd_ids);
 
-  new_bdd.serialize(OUT_FILE + ".bdd");
+  new_bdd.serialize(OUT_FILE);
 
   std::cerr << "Merge complete. Check " << OUT_FILE << ".bdd ";
 
@@ -127,6 +129,6 @@ int main(int argc, char **argv) {
     std::cerr << "and " << OUT_FILE << ".gv ";
   }
   std::cerr << std::endl;
-  
+
   return 0;
 }

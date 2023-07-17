@@ -253,7 +253,7 @@ PathFinder::check_chunks_alignment(std::vector<packet_chunk_t> p1,
           !kutil::solver_toolbox.isEqual(current_align_size, p1[index1].size)) {
         index2++;
         if (index2 == p2.size())
-          return std::vector<std::vector<int>>();
+          ERROR_MSG("Packet chunks not aligned.");
         current_align_size = kutil::solver_toolbox.exprBuilder->Add(
             current_align_size, p2[index2].size);
         align_set.emplace_back(1);
@@ -261,7 +261,7 @@ PathFinder::check_chunks_alignment(std::vector<packet_chunk_t> p1,
           break;
         if (kutil::solver_toolbox.isGreaterthan(current_align_size,
                                                 p1[index1].size))
-          return std::vector<std::vector<int>>();
+          ERROR_MSG("Packet chunks not aligned.");
       }
       index1++;
       index2++;
@@ -279,7 +279,7 @@ PathFinder::check_chunks_alignment(std::vector<packet_chunk_t> p1,
           !kutil::solver_toolbox.isEqual(current_align_size, p2[index2].size)) {
         index1++;
         if (index1 == p1.size())
-          return std::vector<std::vector<int>>();
+          ERROR_MSG("Packet chunks not aligned.");
         current_align_size = kutil::solver_toolbox.exprBuilder->Add(
             current_align_size, p1[index1].size);
         align_set.emplace_back(0);
@@ -287,7 +287,7 @@ PathFinder::check_chunks_alignment(std::vector<packet_chunk_t> p1,
           break;
         if (kutil::solver_toolbox.isGreaterthan(current_align_size,
                                                 p2[index2].size))
-          return std::vector<std::vector<int>>();
+          ERROR_MSG("Packet chunks not aligned.");
       }
       index2++;
       index1++;
@@ -346,6 +346,10 @@ Node_ptr PathFinder::get_return_process(bdd_path_ptr p1, bdd_path_ptr p2,
 
   auto p1_ret = static_cast<BDD::ReturnProcess *>(p1->path.back().get());
   auto p2_ret = static_cast<BDD::ReturnProcess *>(p2->path.back().get());
+
+  if(!node_equals(p1->path.back(), p2->path.back()))
+    if(!conf.available)
+      ERROR_MSG("A conflict has been detected between return process nodes. Aborting...");
 
   auto new_ret_choice = conf.conflict_matrix[p1_ret->get_return_operation()]
                                             [p2_ret->get_return_operation()];

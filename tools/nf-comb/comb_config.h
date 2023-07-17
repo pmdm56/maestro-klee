@@ -10,6 +10,7 @@ using namespace nlohmann;
 namespace nfcomb {
 
 struct combination_config {
+  bool available;
   int conflict_matrix[3][3];
   int prior_changes;
   bool enable_gviz;
