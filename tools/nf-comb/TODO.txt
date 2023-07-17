@@ -1,0 +1,5 @@
+- conflitos escrita (alinhamento perfeito/ip options)
+- encerrar o programa caso haja algum conflito
+- encerrar o programa em caso de erro
+- alterar graphviz
+- verificar bdds iguais

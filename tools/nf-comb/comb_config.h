@@ -3,6 +3,9 @@
 #include "json.hpp"
 #include "bdd/visitors/graphviz-generator.h"
 #include <fstream>
+#include "error_utils.h"
+
+using namespace nlohmann;
 
 namespace nfcomb {
 

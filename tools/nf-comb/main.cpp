@@ -118,10 +118,15 @@ int main(int argc, char **argv) {
 
   new_bdd.update_node_ids(new_bdd_ids);
 
-  if (conf.enable_gviz)
+  new_bdd.serialize(OUT_FILE + ".bdd");
+
+  std::cerr << "Merge complete. Check " << OUT_FILE << ".bdd ";
+
+  if (conf.enable_gviz){
     createGviz(new_bdd, conf, OUT_FILE);
-
-  new_bdd.serialize(OUT_FILE);
-
+    std::cerr << "and " << OUT_FILE << ".gv ";
+  }
+  std::cerr << std::endl;
+  
   return 0;
 }
