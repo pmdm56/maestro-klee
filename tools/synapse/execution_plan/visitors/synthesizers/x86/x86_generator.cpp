@@ -323,7 +323,7 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
                          const target::MapGet *node) {
   auto map_addr = node->get_map_addr();
   auto key_addr = node->get_key_addr();
-  auto key = node->get_key();
+  auto key_expr = node->get_key();
   auto value_out = node->get_value_out();
   auto success = node->get_success();
   auto map_has_this_key = node->get_map_has_this_key();
@@ -331,39 +331,43 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
   auto map = vars.get(map_addr);
   assert(map.valid);
 
-  auto key_label_base = map.var->get_label() + "_key";
-  auto key_label = vars.get_new_label(key_label_base);
+  auto key = vars.get(key_addr);
+  auto key_label = std::string();
 
-  assert(key->getWidth() > 0);
-  assert(key->getWidth() % 8 == 0);
-
-  nf_process_builder.indent();
-  nf_process_builder.append("uint8_t ");
-  nf_process_builder.append(key_label);
-  nf_process_builder.append("[");
-  nf_process_builder.append(key->getWidth() / 8);
-  nf_process_builder.append("];");
-  nf_process_builder.append_new_line();
-
-  for (bits_t b = 0u; b < key->getWidth(); b += 8) {
-    auto byte = kutil::solver_toolbox.exprBuilder->Extract(key, b, 8);
-    auto byte_transpiled = transpile(byte);
+  if (!key.valid) {
+    auto key_label_base = map.var->get_label() + "_key";
+    key_label = vars.get_new_label(key_label_base);
 
     nf_process_builder.indent();
+    nf_process_builder.append("uint8_t ");
     nf_process_builder.append(key_label);
     nf_process_builder.append("[");
-    nf_process_builder.append(b / 8);
-    nf_process_builder.append("]");
-    nf_process_builder.append(" = ");
-    nf_process_builder.append(byte_transpiled);
-    nf_process_builder.append(";");
+    nf_process_builder.append(key_expr->getWidth() / 8);
+    nf_process_builder.append("];");
     nf_process_builder.append_new_line();
-  }
 
-  auto key_var = Variable(key_label, key);
-  key_var.set_addr(key_addr);
-  key_var.set_is_array();
-  vars.append(key_var);
+    for (bits_t b = 0u; b < key_expr->getWidth(); b += 8) {
+      auto byte = kutil::solver_toolbox.exprBuilder->Extract(key_expr, b, 8);
+      auto byte_transpiled = transpile(byte);
+
+      nf_process_builder.indent();
+      nf_process_builder.append(key_label);
+      nf_process_builder.append("[");
+      nf_process_builder.append(b / 8);
+      nf_process_builder.append("]");
+      nf_process_builder.append(" = ");
+      nf_process_builder.append(byte_transpiled);
+      nf_process_builder.append(";");
+      nf_process_builder.append_new_line();
+    }
+
+    auto key_var = Variable(key_label, key_expr);
+    key_var.set_addr(key_addr);
+    key_var.set_is_array();
+    vars.append(key_var);
+  } else {
+    key_label = key.var->get_label();
+  }
 
   auto value_label = vars.get_new_label(INDEX_BASE_LABEL);
   auto value_var = Variable(value_label, value_out);
@@ -786,28 +790,33 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
 void x86Generator::visit(const ExecutionPlanNode *ep_node,
                          const target::MapPut *node) {
   auto map_addr = node->get_map_addr();
-  auto key = node->get_key();
+  auto key_addr = node->get_key_addr();
+  auto key_expr = node->get_key();
   auto value = node->get_value();
 
   auto map = vars.get(map_addr);
   assert(map.valid);
 
-  auto key_label_base = map.var->get_label() + "_key";
-  auto key_label = vars.get_new_label(key_label_base);
+  auto key = vars.get(key_addr);
+  auto key_label = std::string();
 
-  assert(key->getWidth() > 0);
-  assert(key->getWidth() % 8 == 0);
+  if (!key.valid) {
+    auto key_label_base = map.var->get_label() + "_key";
+    key_label = vars.get_new_label(key_label_base);
 
-  nf_process_builder.indent();
-  nf_process_builder.append("uint8_t ");
-  nf_process_builder.append(key_label);
-  nf_process_builder.append("[");
-  nf_process_builder.append(key->getWidth() / 8);
-  nf_process_builder.append("];");
-  nf_process_builder.append_new_line();
+    nf_process_builder.indent();
+    nf_process_builder.append("uint8_t ");
+    nf_process_builder.append(key_label);
+    nf_process_builder.append("[");
+    nf_process_builder.append(key_expr->getWidth() / 8);
+    nf_process_builder.append("];");
+    nf_process_builder.append_new_line();
+  } else {
+    key_label = key.var->get_label();
+  }
 
-  for (bits_t b = 0u; b < key->getWidth(); b += 8) {
-    auto byte = kutil::solver_toolbox.exprBuilder->Extract(key, b, 8);
+  for (bits_t b = 0u; b < key_expr->getWidth(); b += 8) {
+    auto byte = kutil::solver_toolbox.exprBuilder->Extract(key_expr, b, 8);
     auto byte_transpiled = transpile(byte);
 
     nf_process_builder.indent();
@@ -819,6 +828,13 @@ void x86Generator::visit(const ExecutionPlanNode *ep_node,
     nf_process_builder.append(byte_transpiled);
     nf_process_builder.append(";");
     nf_process_builder.append_new_line();
+  }
+
+  if (!key.valid) {
+    auto key_var = Variable(key_label, key_expr);
+    key_var.set_addr(key_addr);
+    key_var.set_is_array();
+    vars.append(key_var);
   }
 
   auto value_transpiled = transpile(value);
