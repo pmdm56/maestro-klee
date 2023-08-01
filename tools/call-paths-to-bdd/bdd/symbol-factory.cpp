@@ -7,7 +7,7 @@ namespace BDD {
 
 std::vector<std::string> SymbolFactory::ignored_symbols{"VIGOR_DEVICE"};
 std::vector<std::string> SymbolFactory::symbols_without_translation{
-    "packet_chunks"};
+    "packet_chunks", "next_time"};
 
 bool SymbolFactory::should_ignore(std::string symbol) {
   auto found_it =

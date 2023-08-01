@@ -123,6 +123,12 @@ bool node_equals(BDD::Node_ptr n1, BDD::Node_ptr n2) {
         auto out_c2 = c2->get_call().args["the_chunk"].in;
         return out_c1->getWidth() == out_c2->getWidth();
       }
+
+          // global
+      if (c1->get_call().function_name == "current_time") {
+        return true;
+      }
+
     }
 
     return kutil::solver_toolbox.are_calls_equal(c1->get_call(),

@@ -12,22 +12,28 @@ using namespace nfcomb;
 
 namespace nfcomb {
 
-typedef struct packet_chunk_t {
+struct packet_chunk_t {
   klee::ref<klee::Expr> in;
   klee::ref<klee::Expr> out;
   klee::ref<klee::Expr> size;
 
   packet_chunk_t(klee::ref<klee::Expr> _in, klee::ref<klee::Expr> _size)
       : in(_in), size(_size) {}
+  
+  packet_chunk_t(klee::ref<klee::Expr> _in, klee::ref<klee::Expr> _size, klee::ref<klee::Expr> _out)
+      : in(_in), size(_size), out(_out) {}
+
+  packet_chunk_t(klee::ref<klee::Expr> _in)
+      : in(_in) {}
 
   bool isChanged(const klee::ConstraintManager &constraints);
 };
 
-typedef struct bdd_path_t {
+struct bdd_path_t {
   std::vector<Node_ptr> path;
   std::vector<packet_chunk_t> packet;
   std::vector<klee::ConstraintManager> path_constraints;
-  int from_id;
+  node_id_t from_id;
   int packet_layer;
   int condition_layer;
 
@@ -57,10 +63,14 @@ typedef struct bdd_path_t {
   }
 
   std::string dump();
-  bool was_packet_modified();
   klee::ConstraintManager get_path_constraints();
   klee::ConstraintManager get_constraints_by_layer(int layer);
   static void build_constraint_layer(std::shared_ptr<bdd_path_t> p);
+};
+
+struct chunk_order_ret {
+  std::vector<std::vector<int>> order;
+  std::vector<packet_chunk_t> new_packet;
 };
 
 typedef std::shared_ptr<bdd_path_t> bdd_path_ptr;
@@ -70,12 +80,12 @@ private:
   static bool explore(const Node_ptr &node, bdd_path_ptr p,
                       std::vector<bdd_path_ptr> &paths);
   static bool choose_return_init(bdd_path_ptr p1, bdd_path_ptr p2);
-  static std::vector<std::vector<int>>
+  static chunk_order_ret
   check_chunks_alignment(std::vector<packet_chunk_t> p1,
-                         std::vector<packet_chunk_t> p2);
+                         std::vector<packet_chunk_t> p2, klee::ConstraintManager &constraints, combination_config conf);
   static std::vector<Node_ptr>
   get_return_chunks(bdd_path_ptr p1, bdd_path_ptr p2,
-                    std::vector<std::vector<int>> order);
+                     chunk_order_ret chunk_conf);
   static Node_ptr get_return_process(bdd_path_ptr p1, bdd_path_ptr p2,
                                      combination_config conf);
   static void add_nodes_from_paths(bdd_path_ptr new_path,

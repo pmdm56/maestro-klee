@@ -10,18 +10,8 @@ bool packet_chunk_t::isChanged(const klee::ConstraintManager &constraints) {
 std::string bdd_path_t::dump() {
   std::stringstream ss;
   ss << "Path -> Len(" << path.size() << ") Constr(" << path_constraints.size()
-     << ") Layer(" << packet_layer << ") Packet(" << packet.size()
-     << ") Modified(" << (was_packet_modified() ? "yes" : "no") << ")"
-     << std::endl;
+     << ") Layer(" << packet_layer << ") Packet(" << packet.size() << std::endl;
   return ss.str();
-}
-
-bool bdd_path_t::was_packet_modified() {
-  // for (auto packet_chunk : packet) {
-  //   if (packet_chunk.isChanged(path_constraints))
-  //     return true;
-  // }
-  return false;
 }
 
 klee::ConstraintManager bdd_path_t::get_path_constraints() {
@@ -162,6 +152,7 @@ void PathFinder::get_paths_process(BDD::BDD &bdd,
                                    std::vector<bdd_path_ptr> &paths) {
   bdd_path_ptr first_path = std::make_shared<bdd_path_t>(bdd);
   auto root_process = bdd.get_process();
+
   explore(root_process, first_path, paths);
 }
 
@@ -213,87 +204,168 @@ void bdd_path_t::build_constraint_layer(std::shared_ptr<bdd_path_t> p) {
     }
 }
 
-std::vector<std::vector<int>>
-PathFinder::check_chunks_alignment(std::vector<packet_chunk_t> p1,
-                                   std::vector<packet_chunk_t> p2) {
+bool is_bit_byte_modified(packet_chunk_t &c, klee::Expr::Width bit,
+                          klee::ConstraintManager constrs) {
+  auto in_bit =
+      kutil::solver_toolbox.exprBuilder->Extract(c.in, bit, klee::Expr::Bool);
+  auto out_bit =
+      kutil::solver_toolbox.exprBuilder->Extract(c.out, bit, klee::Expr::Bool);
+  auto eq_bit = kutil::solver_toolbox.exprBuilder->Eq(in_bit, out_bit);
+  auto always_eq = kutil::solver_toolbox.is_expr_always_true(constrs, eq_bit);
 
-  std::vector<std::vector<int>> insertion_order;
-  klee::ref<klee::Expr> current_align_size;
+  return !always_eq;
+}
+
+// just for perfect alignment because they have the same size
+klee::ref<klee::Expr> resolve_write_conflicts(packet_chunk_t &p1, packet_chunk_t &p2,
+                             klee::ConstraintManager &constraints,
+                             combination_config conf) {
+
+  auto witdh = p1.out.get()->getWidth(); // bits (TODO precision bits / bytes)
+  klee::ref<klee::Expr> new_return_expr;
+  klee::ref<klee::Expr> choosen_bit;
+
+  for (auto bit = 0u; bit < witdh; bit++) {
+
+    if (is_bit_byte_modified(p1, bit, constraints) &&
+        is_bit_byte_modified(p2, bit, constraints)) {
+
+      if (!conf.available)
+        ERROR_MSG("A conflict has been detected between chunks. Aborting...");
+
+      choosen_bit = conf.prior_changes
+                        ? kutil::solver_toolbox.exprBuilder->Extract(
+                              p2.out, bit, klee::Expr::Bool)
+                        : kutil::solver_toolbox.exprBuilder->Extract(
+                              p1.out, bit, klee::Expr::Bool);
+    } else if (is_bit_byte_modified(p1, bit, constraints)) {
+      choosen_bit = kutil::solver_toolbox.exprBuilder->Extract(
+          p1.out, bit, klee::Expr::Bool);
+    } else {
+      choosen_bit = kutil::solver_toolbox.exprBuilder->Extract(
+          p2.out, bit, klee::Expr::Bool);
+    }
+
+    new_return_expr = new_return_expr.isNull()
+                          ? choosen_bit
+                          : kutil::solver_toolbox.exprBuilder->Concat(
+                                new_return_expr, choosen_bit);
+  }
+
+  return new_return_expr;
+}
+
+chunk_order_ret PathFinder::check_chunks_alignment(
+    std::vector<packet_chunk_t> p1, std::vector<packet_chunk_t> p2,
+    klee::ConstraintManager &constraints, combination_config conf) {
+  
+  chunk_order_ret ret;
   int index1 = 0;
   int index2 = 0;
+  klee::ref<klee::Expr> current_align_size;
 
   while (1) {
 
     if (index1 == p1.size()) {
-      for (index2; index2 < p2.size(); index2++)
-        insertion_order.emplace_back((std::vector<int>){1});
-      return insertion_order;
+      for (index2; index2 < p2.size(); index2++){
+        ret.order.emplace_back((std::vector<int>){1});
+        packet_chunk_t p(p2[index2].in, p2[index2].size, p2[index2].out);
+        ret.new_packet.emplace_back(p);
+      }
+      return ret;
     }
 
     if (index2 == p2.size()) {
-      for (index1; index1 < p1.size(); index1++)
-        insertion_order.emplace_back((std::vector<int>){0});
-      return insertion_order;
+      for (index1; index1 < p1.size(); index1++){
+        ret.order.emplace_back((std::vector<int>){0});
+        packet_chunk_t p(p1[index1].in, p1[index1].size, p1[index1].out);
+        ret.new_packet.emplace_back(p);
+      }
+      return ret;
     }
 
-    if (kutil::solver_toolbox.isEqual(p1[index1].size, p2[index2].size)) {
-      insertion_order.emplace_back((std::vector<int>){0});
+    if (kutil::solver_toolbox.isEqual(p1[index1].size, p2[index2].size,
+                                      constraints)) {
+      auto new_chunk = resolve_write_conflicts(p1[index1], p1[index2], constraints, conf);
+      ret.order.emplace_back((std::vector<int>){0});
+      packet_chunk_t p(p1[index1].in, p1[index1].size, new_chunk);
+      ret.new_packet.emplace_back(p);
       index2++;
       index1++;
       continue;
     }
 
-    if (kutil::solver_toolbox.isGreaterthan(p1[index1].size, p2[index2].size)) {
+    if (kutil::solver_toolbox.isGreaterthan(p1[index1].size, p2[index2].size, constraints)) {
 
       current_align_size = p2[index2].size;
       auto align_set = std::vector<int>();
       align_set.emplace_back(1);
+      auto temp_p1_offset = 0u;
 
       while (
-          !kutil::solver_toolbox.isEqual(current_align_size, p1[index1].size)) {
+          !kutil::solver_toolbox.isEqual(current_align_size, p1[index1].size, constraints)) {
         index2++;
         if (index2 == p2.size())
           ERROR_MSG("Packet chunks not aligned.");
+
         current_align_size = kutil::solver_toolbox.exprBuilder->Add(
             current_align_size, p2[index2].size);
         align_set.emplace_back(1);
-        if (kutil::solver_toolbox.isEqual(current_align_size, p1[index1].size))
+
+        packet_chunk_t temp_p1(p2[index2].in, p2[index2].size);
+        temp_p1.out = kutil::solver_toolbox.exprBuilder->Extract(p1[index1].out, temp_p1_offset, p2[index2].out.get()->getWidth());
+        temp_p1_offset += p2[index2].out.get()->getWidth();
+        auto new_chunk = resolve_write_conflicts(temp_p1, p2[index2], constraints, conf);
+        packet_chunk_t p(p2[index2].in, p2[index2].size, new_chunk);
+        ret.new_packet.emplace_back(p);
+
+        if (kutil::solver_toolbox.isEqual(current_align_size, p1[index1].size, constraints))
           break;
         if (kutil::solver_toolbox.isGreaterthan(current_align_size,
-                                                p1[index1].size))
+                                                p1[index1].size, constraints))
           ERROR_MSG("Packet chunks not aligned.");
       }
       index1++;
       index2++;
-      insertion_order.emplace_back(align_set);
+      ret.order.emplace_back(align_set);
       continue;
     }
 
-    if (kutil::solver_toolbox.isGreaterthan(p2[index2].size, p1[index1].size)) {
+    if (kutil::solver_toolbox.isGreaterthan(p2[index2].size, p1[index1].size, constraints)) {
 
       current_align_size = p1[index1].size;
       auto align_set = std::vector<int>();
       align_set.emplace_back(0);
+      auto temp_p2_offset = 0u;
 
       while (
-          !kutil::solver_toolbox.isEqual(current_align_size, p2[index2].size)) {
+          !kutil::solver_toolbox.isEqual(current_align_size, p2[index2].size, constraints)) {
         index1++;
         if (index1 == p1.size())
           ERROR_MSG("Packet chunks not aligned.");
         current_align_size = kutil::solver_toolbox.exprBuilder->Add(
             current_align_size, p1[index1].size);
         align_set.emplace_back(0);
-        if (kutil::solver_toolbox.isEqual(current_align_size, p2[index2].size))
+
+        packet_chunk_t temp_p2(p1[index1].in, p1[index1].size);
+        temp_p2.out = kutil::solver_toolbox.exprBuilder->Extract(p2[index2].out, temp_p2_offset, p1[index1].out.get()->getWidth());
+        temp_p2_offset += p1[index1].out.get()->getWidth();
+        auto new_chunk = resolve_write_conflicts(temp_p2, p1[index1], constraints, conf);
+        packet_chunk_t p(p1[index1].in, p1[index1].size, new_chunk);
+        ret.new_packet.emplace_back(p);
+
+        if (kutil::solver_toolbox.isEqual(current_align_size, p2[index2].size, constraints))
           break;
         if (kutil::solver_toolbox.isGreaterthan(current_align_size,
-                                                p2[index2].size))
+                                                p2[index2].size, constraints))
           ERROR_MSG("Packet chunks not aligned.");
       }
       index2++;
       index1++;
-      insertion_order.emplace_back(align_set);
+      ret.order.emplace_back(align_set);
     }
   }
+   
 }
 
 std::string PathFinder::dumpVector(const std::vector<int> &vec) {
@@ -314,23 +386,36 @@ std::string PathFinder::dumpVector(const std::vector<int> &vec) {
 
 std::vector<Node_ptr>
 PathFinder::get_return_chunks(bdd_path_ptr p1, bdd_path_ptr p2,
-                              std::vector<std::vector<int>> order) {
+                              chunk_order_ret chunk_conf) {
 
   std::vector<BDD::Node_ptr> return_chunk_nodes;
   auto current_p1_node = p1->path.rbegin() + 1;
   auto current_p2_node = p2->path.rbegin() + 1;
+  auto current_chunk_expr = 0;
 
-  for (auto layer : order) {
+  for (auto layer : chunk_conf.order) {
     if (layer[0]) {
       for (auto i = 0; i < layer.size(); i++) {
+        auto call_node = static_cast<Call *>((*current_p2_node).get());
+        auto call = call_node->get_call();
+        auto& arg_chunk = call.args["the_chunk"];
+        arg_chunk.in = chunk_conf.new_packet[current_chunk_expr].out;
+        call_node->set_call(call);
         return_chunk_nodes.emplace_back(*current_p2_node);
         current_p2_node++;
+        current_chunk_expr++;
       }
       current_p1_node++;
     } else {
       for (auto i = 0; i < layer.size(); i++) {
+        auto call_node = static_cast<Call *>((*current_p1_node).get());
+        auto call = call_node->get_call();
+        auto& arg_chunk = call.args["the_chunk"];
+        arg_chunk.in = chunk_conf.new_packet[current_chunk_expr].out;
+        call_node->set_call(call);
         return_chunk_nodes.emplace_back(*current_p1_node);
         current_p1_node++;
+        current_chunk_expr++;
       }
       current_p2_node++;
     }
@@ -347,9 +432,10 @@ Node_ptr PathFinder::get_return_process(bdd_path_ptr p1, bdd_path_ptr p2,
   auto p1_ret = static_cast<BDD::ReturnProcess *>(p1->path.back().get());
   auto p2_ret = static_cast<BDD::ReturnProcess *>(p2->path.back().get());
 
-  if(!node_equals(p1->path.back(), p2->path.back()))
-    if(!conf.available)
-      ERROR_MSG("A conflict has been detected between return process nodes. Aborting...");
+  if (!node_equals(p1->path.back(), p2->path.back()))
+    if (!conf.available)
+      ERROR_MSG("A conflict has been detected between return process nodes. "
+                "Aborting...");
 
   auto new_ret_choice = conf.conflict_matrix[p1_ret->get_return_operation()]
                                             [p2_ret->get_return_operation()];
@@ -377,7 +463,7 @@ void add_nodes_until_borrow(std::vector<BDD::Node_ptr>::iterator &current,
         break;
       }
       current_layer++;
-    } else{
+    } else {
       new_path->path.emplace_back(*current);
     }
   }
@@ -398,17 +484,23 @@ void PathFinder::add_nodes_from_paths(bdd_path_ptr new_path, bdd_path_ptr p1,
       else
         add_nodes_until_borrow(current_p1_node, new_path, p1_layer, layer);
 
-  for (current_p1_node; !isPacketReturn(*current_p1_node); current_p1_node++)
-    if(isPacketBorrow(*current_p1_node))
+  std::cerr << "--------------\n";
+
+  for (current_p1_node; current_p1_node != p1->path.end(); current_p1_node++)
+    if (isPacketBorrow(*current_p1_node))
       continue;
-    else 
+    else if(isPacketReturn(*current_p1_node))
+      break;
+    else
       new_path->path.emplace_back(*current_p1_node);
 
-  for (current_p2_node; !isPacketReturn(*current_p2_node); current_p2_node++)
-    if(isPacketBorrow(*current_p2_node))
+  for (current_p2_node; (current_p2_node != p2->path.end()); current_p2_node++)
+    if (isPacketBorrow(*current_p2_node))
       continue;
-    else 
-    new_path->path.emplace_back(*current_p2_node);
+    else if(isPacketReturn(*current_p2_node))
+      break;
+    else
+      new_path->path.emplace_back(*current_p2_node);
 }
 
 bdd_path_ptr PathFinder::merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
@@ -444,21 +536,28 @@ bdd_path_ptr PathFinder::merge_paths(bdd_path_ptr p1, bdd_path_ptr p2,
     // nf_process
     if (type == PathType::PROCESS) {
 
+      klee::ConstraintManager new_path_c;
+      for (auto c : p1->get_path_constraints())
+        new_path_c.addConstraint(c);
+      for (auto c : p2->get_path_constraints())
+        new_path_c.addConstraint(c);
+
       // check packet chunks alignment and insertion order (TODO error if not
       // aligned)
-      auto insert_chunk_order = check_chunks_alignment(p1->packet, p2->packet);
+      auto insert_chunk_order =
+          check_chunks_alignment(p1->packet, p2->packet, new_path_c, conf);
 
       // merge both path nodes until packet return layer appears (1/3)
-      PathFinder::add_nodes_from_paths(new_path, p1, p2, insert_chunk_order);
+      PathFinder::add_nodes_from_paths(new_path, p1, p2, insert_chunk_order.order);
 
       // get return_chunk nodes (in correct order to insert) (2/3)
       auto new_return_chunks = get_return_chunks(p1, p2, insert_chunk_order);
-      new_path->path.insert(new_path->path.end(), new_return_chunks.begin(), new_return_chunks.end());
+      new_path->path.insert(new_path->path.end(), new_return_chunks.begin(),
+                            new_return_chunks.end());
 
       // get return_process node (3/3)
       auto new_return_process = PathFinder::get_return_process(p1, p2, conf);
       new_path->path.emplace_back(new_return_process);
-
     }
   }
 

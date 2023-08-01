@@ -435,7 +435,7 @@ bool solver_toolbox_t::are_constraints_compatible(klee::ConstraintManager c1, kl
   return res1;
 }
 
-bool solver_toolbox_t::isGreaterthan(klee::ref<klee::Expr> len1, klee::ref<klee::Expr> len2){
+bool solver_toolbox_t::isGreaterthan(klee::ref<klee::Expr> len1, klee::ref<klee::Expr> len2, klee::ConstraintManager c){
 
   RetrieveSymbols symbol_retriever;
   symbol_retriever.visit(len1);
@@ -445,10 +445,10 @@ bool solver_toolbox_t::isGreaterthan(klee::ref<klee::Expr> len1, klee::ref<klee:
   klee::ref<klee::Expr> expr = solver_toolbox.exprBuilder->Ule(len1, symbol_replacer.visit(len2));
   klee::ref<klee::Expr> expr2 = solver_toolbox.exprBuilder->Not(expr);
 
-  return solver_toolbox.is_expr_always_true(expr2);
+  return solver_toolbox.is_expr_always_true(c, expr2);
 }
 
-bool solver_toolbox_t::isEqual(klee::ref<klee::Expr> len1, klee::ref<klee::Expr> len2){
+bool solver_toolbox_t::isEqual(klee::ref<klee::Expr> len1, klee::ref<klee::Expr> len2, klee::ConstraintManager c){
 
   RetrieveSymbols symbol_retriever;
   symbol_retriever.visit(len1);
@@ -457,7 +457,7 @@ bool solver_toolbox_t::isEqual(klee::ref<klee::Expr> len1, klee::ref<klee::Expr>
 
   klee::ref<klee::Expr> expr = solver_toolbox.exprBuilder->Eq(len1, symbol_replacer.visit(len2));
 
-  return solver_toolbox.is_expr_always_true(expr);
+  return solver_toolbox.is_expr_always_true(c, expr);
 
 }
 

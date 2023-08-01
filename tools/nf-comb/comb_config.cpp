@@ -121,15 +121,4 @@ combination_config parse_configuration(std::string CONFIG) {
   return ret;
 }
 
-void createGviz(BDD::BDD bdd, combination_config conf, std::string OUT_FILE) {
-  auto file = std::ofstream(OUT_FILE + ".gv");
-  assert(file.is_open());
-
-  BDD::GraphvizGenerator gv(file);
-  gv.set_show_init_graph(true);
-  gv.visit(bdd);
-
-  file.close();
-}
-
 } // namespace nfcomb

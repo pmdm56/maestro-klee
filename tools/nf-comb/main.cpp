@@ -108,6 +108,8 @@ int main(int argc, char **argv) {
 
   BDD::BDD bdd1(BDD1);
   BDD::BDD bdd2(BDD2);
+  bdd1.set_id(0);
+  bdd2.set_id(1);
   BDD::BDD new_bdd;
   node_id_t new_ids = 0;
   node_id_t new_bdd_ids = 0;
@@ -119,13 +121,18 @@ int main(int argc, char **argv) {
   merge_process(new_bdd, bdd1, bdd2, conf);
 
   new_bdd.update_node_ids(new_bdd_ids);
-
   new_bdd.serialize(OUT_FILE);
 
   std::cerr << "Merge complete. Check " << OUT_FILE << ".bdd ";
 
-  if (conf.enable_gviz){
-    createGviz(new_bdd, conf, OUT_FILE);
+  if (conf.enable_gviz) {
+    auto file = std::ofstream(OUT_FILE + ".gv");
+    assert(file.is_open());
+
+    BDD::GraphvizGenerator gv(file, conf);
+    gv.visit(new_bdd);
+
+    file.close();
     std::cerr << "and " << OUT_FILE << ".gv ";
   }
   std::cerr << std::endl;

@@ -11,6 +11,7 @@
 #include "../bdd.h"
 #include "../nodes/nodes.h"
 #include "../visitor.h"
+#include "../../comb_config.h"
 
 namespace BDD {
 
@@ -20,11 +21,15 @@ private:
   std::unordered_set<node_id_t> processed;
   const Node *next;
   bool show_init_graph;
+  nfcomb::combination_config bdd_config;
 
   const char *COLOR_PROCESSED = "gray";
   const char *COLOR_NEXT = "cyan";
 
 public:
+  GraphvizGenerator(std::ostream &_os, nfcomb::combination_config &_c)
+      : os(_os), next(nullptr), show_init_graph(true), bdd_config(_c) {}
+
   GraphvizGenerator(std::ostream &_os)
       : os(_os), next(nullptr), show_init_graph(true) {}
 
@@ -146,7 +151,8 @@ public:
     } else if (next && node->get_id() == next->get_id()) {
       os << ", color=" << COLOR_NEXT;
     } else {
-      os << ", color=yellow";
+      //os << ", color=yellow";
+      os << ", " << get_node_color(node->get_from_id());
     }
 
     os << "];\n";
@@ -165,6 +171,7 @@ public:
   }
 
   Action visitCall(const Call *node) override {
+
     if (node->get_next()) {
       if (!node->get_next()->get_prev()) {
         std::cerr << "ERROR IN " << node->dump(true) << "\n";
@@ -193,37 +200,39 @@ public:
         os << std::string(2, ' ');
       }
 
-      os << pair.first << ":";
+      //os << pair.first << ":";
+      os << pair.first;
       arg_t arg = pair.second;
 
-      if (arg.fn_ptr_name.first) {
-        os << arg.fn_ptr_name.second;
-      } else {
-        os << kutil::pretty_print_expr(arg.expr);
+      // if (arg.fn_ptr_name.first) {
+      //   os << arg.fn_ptr_name.second;
+      // } else {
+      //   os << kutil::pretty_print_expr(arg.expr);
 
-        if (!arg.in.isNull() || !arg.out.isNull()) {
-          os << "[";
+      //   if (!arg.in.isNull() || !arg.out.isNull()) {
+      //     os << "[";
 
-          if (!arg.in.isNull()) {
-            os << kutil::pretty_print_expr(arg.in);
-          }
+      //     if (!arg.in.isNull()) {
+      //       if(call.function_name == "packet_return_chunk"){
+      //         arg.in.get()->dump();
+      //         os <<  kutil::expr_to_string(arg.in.get());
+      //       } else os << kutil::pretty_print_expr(arg.in);
+      //     }
 
-          if (!arg.out.isNull() &&
-              (arg.in.isNull() || !kutil::solver_toolbox.are_exprs_always_equal(
-                                      arg.in, arg.out))) {
-            os << " -> ";
-            os << kutil::pretty_print_expr(arg.out);
-          }
+      //     if (!arg.out.isNull() &&
+      //         (arg.in.isNull() || !kutil::solver_toolbox.are_exprs_always_equal(
+      //                                 arg.in, arg.out))) {
+      //       os << " -> ";
+      //       os << kutil::pretty_print_expr(arg.out);
+      //     }
 
-          os << "]";
-        }
-      }
+      //     os << "]";
+      //   }
+      // }
 
       if (i != call.args.size() - 1) {
         os << ",";
       }
-
-      // os << kutil::pretty_print_expr(arg.expr);
 
       i++;
     }
@@ -261,7 +270,8 @@ public:
     } else if (next && node->get_id() == next->get_id()) {
       os << "color=" << COLOR_NEXT;
     } else {
-      os << "color=cornflowerblue";
+      //os << "color=cornflowerblue";
+      os << get_node_color(node->get_from_id());
     }
 
     os << "];\n";
@@ -416,6 +426,21 @@ public:
   }
 
 private:
+
+  std::string get_node_color(uint64_t node_id) const  {
+
+      std::stringstream stream;
+      stream << "color=";
+
+      if(node_id){
+        stream << "\"" << bdd_config.bdd2_color << "\"";
+      } else {
+        stream << "\"" << bdd_config.bdd1_color << "\"";
+      }
+
+      return stream.str();
+  }
+
   std::string get_gv_name(const Node *node) const {
     assert(node);
 

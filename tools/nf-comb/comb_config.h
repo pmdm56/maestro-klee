@@ -1,7 +1,6 @@
 #pragma once
 
 #include "json.hpp"
-#include "bdd/visitors/graphviz-generator.h"
 #include <fstream>
 #include "error_utils.h"
 
@@ -22,7 +21,5 @@ struct combination_config {
 std::ostream &operator<<(std::ostream &os, const combination_config &c);
 
 combination_config parse_configuration(std::string CONFIG);
-
-void createGviz(BDD::BDD bdd, combination_config conf, std::string OUT_FILE);
 
 } // namespace nfcomb

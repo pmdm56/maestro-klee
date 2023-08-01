@@ -38,6 +38,11 @@ public:
     deserialize(file_path);
   }
 
+   BDD(const std::string &file_path, node_id_t _id) : id(_id) {
+    kutil::solver_toolbox.build();
+    deserialize(file_path);
+  }
+
   BDD &operator=(const BDD &) = default;
 
   node_id_t get_id() const { return id; }

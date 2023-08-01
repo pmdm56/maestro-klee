@@ -72,6 +72,7 @@ public:
   const Node_ptr &get_next() { return next; }
 
   node_id_t get_from_id() { return from; }
+  node_id_t get_from_id() const { return from; }
   void set_from_id(uint64_t _id) { from = _id; }
 
   const Node_ptr &get_prev() const { return prev; }
