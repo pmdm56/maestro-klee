@@ -29,7 +29,8 @@ private:
     auto call_node = static_cast<const BDD::Call *>(ethernet_node);
     auto call = call_node->get_call();
 
-    auto ethernet_chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
+    auto ethernet_chunk =
+        call.extra_vars[BDD::symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     assert(!ethernet_chunk.isNull());
     assert(!len.isNull());
@@ -47,13 +48,7 @@ private:
     auto eq =
         kutil::solver_toolbox.exprBuilder->Eq(eth_type_expr, eth_type_ipv4);
 
-    kutil::RetrieveSymbols symbol_retriever;
-    symbol_retriever.visit(eq);
-    auto symbols = symbol_retriever.get_retrieved();
-    kutil::ReplaceSymbols symbol_replacer(symbols);
-
-    return kutil::solver_toolbox.is_expr_always_true(constraints, eq,
-                                                     symbol_replacer);
+    return kutil::solver_toolbox.is_expr_always_true(constraints, eq);
   }
 
   processing_result_t process(const ExecutionPlan &ep,
@@ -68,23 +63,24 @@ private:
 
     auto call = casted->get_call();
 
-    if (call.function_name != symbex::FN_BORROW_CHUNK) {
+    if (call.function_name != BDD::symbex::FN_BORROW_CHUNK) {
       return result;
     }
 
     // IPv4 should come after L2 Consume
     auto all_prev_packet_borrow_next_chunk =
-        get_prev_fn(ep, node, symbex::FN_BORROW_CHUNK);
+        get_prev_fn(ep, node, BDD::symbex::FN_BORROW_CHUNK);
 
     if (all_prev_packet_borrow_next_chunk.size() != 1) {
       return result;
     }
 
-    assert(!call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr.isNull());
-    assert(!call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
+    assert(!call.args[BDD::symbex::FN_BORROW_CHUNK_ARG_LEN].expr.isNull());
+    assert(
+        !call.extra_vars[BDD::symbex::FN_BORROW_CHUNK_EXTRA].second.isNull());
 
-    auto _length = call.args[symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
-    auto _chunk = call.extra_vars[symbex::FN_BORROW_CHUNK_EXTRA].second;
+    auto _length = call.args[BDD::symbex::FN_BORROW_CHUNK_ARG_LEN].expr;
+    auto _chunk = call.extra_vars[BDD::symbex::FN_BORROW_CHUNK_EXTRA].second;
 
     auto valid = is_valid_ipv4(all_prev_packet_borrow_next_chunk[0].get(),
                                _length, node->get_constraints());

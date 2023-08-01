@@ -13,16 +13,17 @@ typedef std::vector<ExecutionPlanNode_ptr> Branches;
 class Module;
 typedef std::shared_ptr<Module> Module_ptr;
 
+typedef uint64_t ep_node_id_t;
+
 class ExecutionPlanNode {
   friend class ExecutionPlan;
 
 private:
+  ep_node_id_t id;
+
   Module_ptr module;
   Branches next;
   ExecutionPlanNode_ptr prev;
-  int id;
-
-  static int counter;
 
 private:
   ExecutionPlanNode(Module_ptr _module);
@@ -39,8 +40,8 @@ public:
   const Branches &get_next() const;
   ExecutionPlanNode_ptr get_prev() const;
 
-  int get_id() const;
-  void set_id(int _id);
+  ep_node_id_t get_id() const;
+  void set_id(ep_node_id_t _id);
 
   bool is_terminal_node() const;
 
@@ -53,5 +54,8 @@ public:
 
   static ExecutionPlanNode_ptr build(Module_ptr _module);
   static ExecutionPlanNode_ptr build(const ExecutionPlanNode *ep_node);
+
+private:
+  static ep_node_id_t counter;
 };
 } // namespace synapse

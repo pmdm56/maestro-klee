@@ -80,11 +80,11 @@ public:
     return constraints;
   }
 
-  klee::ConstraintManager get_constraints() const;
-
-  void set_constraints(const klee::ConstraintManager &_constraints) {
+  void set_node_constraints(const klee::ConstraintManager &_constraints) {
     constraints = _constraints;
   }
+
+  klee::ConstraintManager get_constraints() const;
 
   symbols_t get_generated_symbols() const;
 
@@ -103,6 +103,8 @@ public:
   virtual void visit(BDDVisitor &visitor) const = 0;
   virtual std::string dump(bool one_liner = false) const = 0;
   virtual std::string dump_recursive(int lvl = 0) const;
+
+  std::string hash(bool recursive = false) const;
 
   static std::string process_call_path_filename(std::string call_path_filename);
 
