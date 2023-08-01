@@ -260,6 +260,9 @@ std::string SymbolFactory::build_label(klee::ref<klee::Expr> expr,
   std::cerr << "expr   " << kutil::expr_to_string(expr, true) << "\n";
   std::cerr << "symbol " << base << "\n";
   assert(false && "Symbol not found");
+
+  std::cerr << "Symbol not found\n";
+  exit(1);
 }
 
 symbols_t SymbolFactory::no_process(call_t call, const Node *node, bool save) {
@@ -654,7 +657,7 @@ void SymbolFactory::translate(Node *current, Node *translation_source,
     auto constraints = node->get_node_constraints();
     auto renamed_constraints = renamer.rename(constraints);
 
-    node->set_constraints(renamed_constraints);
+    node->set_node_constraints(renamed_constraints);
   }
 }
 

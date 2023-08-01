@@ -5,11 +5,13 @@
 
 namespace synapse {
 
+ep_node_id_t ExecutionPlanNode::counter = 0;
+
 ExecutionPlanNode::ExecutionPlanNode(Module_ptr _module)
-    : module(_module), id(counter++) {}
+    : id(counter++), module(_module) {}
 
 ExecutionPlanNode::ExecutionPlanNode(const ExecutionPlanNode *ep_node)
-    : module(ep_node->module), id(counter++) {}
+    : id(counter++), module(ep_node->module) {}
 
 void ExecutionPlanNode::set_next(Branches _next) { next = _next; }
 void ExecutionPlanNode::set_next(ExecutionPlanNode_ptr _next) {
@@ -23,8 +25,8 @@ void ExecutionPlanNode::replace_module(Module_ptr _module) { module = _module; }
 const Branches &ExecutionPlanNode::get_next() const { return next; }
 ExecutionPlanNode_ptr ExecutionPlanNode::get_prev() const { return prev; }
 
-int ExecutionPlanNode::get_id() const { return id; }
-void ExecutionPlanNode::set_id(int _id) { id = _id; }
+ep_node_id_t ExecutionPlanNode::get_id() const { return id; }
+void ExecutionPlanNode::set_id(ep_node_id_t _id) { id = _id; }
 
 bool ExecutionPlanNode::is_terminal_node() const { return next.size() == 0; }
 

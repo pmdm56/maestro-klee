@@ -42,15 +42,19 @@ void find_and_replace(
 }
 
 void sanitize_html_label(std::string &label) {
-  find_and_replace(label, {
-                              {"{", "&#123;"},
-                              {"}", "&#125;"},
-                              {"[", "&#91;"},
-                              {"]", "&#93;"},
-                              {"<", "&lt;"},
-                              {">", "&gt;"},
-                              {"\n", "<br/>"},
-                          });
+  find_and_replace(
+      label, {
+                 {"&", "&amp;"}, // Careful, this needs to be the first
+                                 // one, otherwise we mess everything up. Notice
+                                 // that all the others use ampersands.
+                 {"{", "&#123;"},
+                 {"}", "&#125;"},
+                 {"[", "&#91;"},
+                 {"]", "&#93;"},
+                 {"<", "&lt;"},
+                 {">", "&gt;"},
+                 {"\n", "<br/>"},
+             });
 }
 
 std::string Graphviz::get_rand_fname() const {
@@ -184,7 +188,10 @@ void Graphviz::dump_bdd(const BDD::BDD &bdd,
   // leaf_ofs << "margin=0;\n";
   leaf_ofs << "node [shape=box,style=filled];\n";
 
-  BDD::GraphvizGenerator bdd_graphviz(leaf_ofs, processed, next);
+  BDD::bdd_visualizer_opts_t opts;
+  opts.processed.nodes = processed;
+  opts.processed.next = next;
+  BDD::GraphvizGenerator bdd_graphviz(leaf_ofs, opts);
 
   assert(bdd.get_process());
   bdd.get_process()->visit(bdd_graphviz);
@@ -202,7 +209,7 @@ std::string Graphviz::get_bdd_node_name(const BDD::Node *node) const {
   case BDD::Node::NodeType::BRANCH: {
     auto branch = static_cast<const BDD::Branch *>(node);
     ss << "if(";
-    ss << kutil::expr_to_string(branch->get_condition(), true);
+    ss << kutil::pretty_print_expr(branch->get_condition());
     ss << ")";
     break;
   }
@@ -306,7 +313,7 @@ std::string stringify_bdd_node(BDD::Node_ptr node) {
     auto branch_node = BDD_CAST_BRANCH(node);
     auto condition = branch_node->get_condition();
     node_builder << "if (";
-    node_builder << kutil::expr_to_string(condition);
+    node_builder << kutil::pretty_print_expr(condition);
     node_builder << ")";
   } break;
   case BDD::Node::NodeType::RETURN_PROCESS: {
@@ -381,7 +388,7 @@ void visit_definitions(std::ofstream &ofs,
   ofs << "<td ";
   ofs << "bgcolor=\"" << target_color << "\"";
   ofs << ">";
-  ofs << "EP: " << data.execution_plan_id;
+  ofs << "EP: " << data.execution_plan;
   ofs << "</td>\n";
 
   indent(4);
@@ -493,7 +500,7 @@ void Graphviz::visit(ExecutionPlan ep) {
   ofs.flush();
 
   auto bdd = ep.get_bdd();
-  auto processed = ep.get_processed_bdd_nodes();
+  auto processed = ep.get_meta().processed_nodes;
   const BDD::Node *next_node = nullptr;
 
   if (ep.get_next_node()) {
@@ -598,7 +605,7 @@ void Graphviz::visit(const ExecutionPlanNode *ep_node,
       label_builder << "\n&& ";
     }
 
-    label_builder << kutil::expr_to_string(condition, true) << "\n";
+    label_builder << kutil::pretty_print_expr(condition) << "\n";
   }
 
   auto label = label_builder.str();
@@ -643,7 +650,7 @@ void Graphviz::visit(const ExecutionPlanNode *ep_node,
   label_builder << "Parser condition ";
   label_builder << " [apply: " << apply_is_valid << "]";
   label_builder << "\n";
-  label_builder << kutil::expr_to_string(condition);
+  label_builder << kutil::pretty_print_expr(condition);
 
   auto label = label_builder.str();
   find_and_replace(label, {{"\n", "\\n"}});
