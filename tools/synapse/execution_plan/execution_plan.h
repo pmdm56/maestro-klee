@@ -1,7 +1,6 @@
 #pragma once
 
 #include "call-paths-to-bdd.h"
-#include "meta.h"
 #include "target.h"
 
 #include <unordered_map>
@@ -20,8 +19,6 @@ typedef std::shared_ptr<ExecutionPlanNode> ExecutionPlanNode_ptr;
 
 class ExecutionPlanVisitor;
 
-typedef uint64_t ep_id_t;
-
 class ExecutionPlan {
   friend class ExecutionPlanNode;
 
@@ -39,19 +36,25 @@ public:
   };
 
 private:
-  ep_id_t id;
-
   ExecutionPlanNode_ptr root;
   std::vector<leaf_t> leaves;
   BDD::BDD bdd;
 
-  std::unordered_set<TargetType> targets;
-  TargetType initial_target;
-
   MemoryBank_ptr shared_memory_bank;
   std::unordered_map<TargetType, TargetMemoryBank_ptr> memory_banks;
+  std::unordered_set<BDD::node_id_t> processed_bdd_nodes;
 
-  ep_meta_t meta;
+  unsigned depth;
+  unsigned nodes;
+  TargetType initial_target;
+  std::unordered_set<TargetType> targets;
+  std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>>
+      targets_bdd_starting_points;
+  std::map<TargetType, unsigned> nodes_per_target;
+  unsigned reordered_nodes;
+  unsigned id;
+
+  static int counter;
 
 public:
   ExecutionPlan(const BDD::BDD &_bdd);
@@ -60,13 +63,24 @@ public:
 
   ExecutionPlan &operator=(const ExecutionPlan &) = default;
 
-  const ep_meta_t &get_meta() const;
+  unsigned get_depth() const;
+  unsigned get_nodes() const;
+
+  const std::unordered_map<TargetType, std::unordered_set<BDD::node_id_t>> &
+  get_targets_bdd_starting_points() const;
+
+  std::unordered_set<BDD::node_id_t>
+  get_current_target_bdd_starting_points() const;
+
   BDD::Node_ptr get_bdd_root(BDD::Node_ptr node) const;
 
-  ep_id_t get_id() const;
+  const std::map<TargetType, unsigned> &get_nodes_per_target() const;
+
+  unsigned get_id() const;
   const std::vector<leaf_t> &get_leaves() const;
   const BDD::BDD &get_bdd() const;
   BDD::BDD &get_bdd();
+  unsigned get_reordered_nodes() const;
 
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes() const;
   std::vector<ExecutionPlanNode_ptr> get_prev_nodes_of_current_target() const;
@@ -87,6 +101,8 @@ public:
     assert(memory_banks.find(type) != memory_banks.end());
     return static_cast<MB *>(memory_banks.at(type).get());
   }
+
+  const std::unordered_set<BDD::node_id_t> &get_processed_bdd_nodes() const;
 
   BDD::Node_ptr get_next_node() const;
   ExecutionPlanNode_ptr get_active_leaf() const;
@@ -116,7 +132,8 @@ public:
   float get_bdd_processing_progress() const;
   void remove_from_processed_bdd_nodes(BDD::node_id_t id);
   void add_processed_bdd_node(BDD::node_id_t id);
-  void replace_roots(BDD::node_id_t _old, BDD::node_id_t _new);
+  void replace_current_target_starting_points(BDD::node_id_t _old,
+                                              BDD::node_id_t _new);
 
   void visit(ExecutionPlanVisitor &visitor) const;
 
@@ -124,14 +141,12 @@ public:
   ExecutionPlan clone(bool deep = false) const;
 
 private:
-  void update_roots(const std::vector<leaf_t> &new_leaves);
-  void update_leaves(const std::vector<leaf_t> &_leaves, bool is_terminal);
+  void update_targets_starting_points(std::vector<leaf_t> new_leaves);
+  void update_leaves(std::vector<leaf_t> _leaves, bool is_terminal);
   void update_processed_nodes();
 
   ExecutionPlanNode_ptr clone_nodes(ExecutionPlan &ep,
                                     const ExecutionPlanNode *node) const;
-
-  static ep_id_t counter;
 };
 
 bool operator==(const ExecutionPlan &lhs, const ExecutionPlan &rhs);

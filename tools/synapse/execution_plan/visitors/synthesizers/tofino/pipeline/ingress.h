@@ -66,7 +66,7 @@ public:
         {
             INGRESS_INTRINSIC_META_INGRESS_PORT,
             INGRESS_INTRINSIC_META_INGRESS_PORT_SIZE_BITS,
-            {BDD::symbex::PORT, BDD::symbex::PORT2},
+            {symbex::PORT, symbex::PORT2},
         },
 
         {

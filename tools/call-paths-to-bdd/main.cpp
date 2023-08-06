@@ -20,10 +20,6 @@ llvm::cl::opt<std::string>
 llvm::cl::opt<std::string>
     OutputBDDFile("out", llvm::cl::desc("Output file for BDD serialization."),
                   llvm::cl::cat(BDDGeneratorCat));
-
-llvm::cl::opt<bool> Show("s", llvm::cl::desc("Render dot file."),
-                         llvm::cl::ValueDisallowed, llvm::cl::init(false),
-                         llvm::cl::cat(BDDGeneratorCat));
 } // namespace
 
 void assert_bdd(const BDD::BDD &bdd) {
@@ -80,7 +76,26 @@ void assert_bdd(const BDD::BDD &bdd) {
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
+  if (InputBDDFile.size()) {
+    auto bdd = BDD::BDD(InputBDDFile);
+
+    if (Gv.size()) {
+      auto file = std::ofstream(Gv);
+      assert(file.is_open());
+
+      BDD::GraphvizGenerator graphviz_generator(file);
+      bdd.visit(graphviz_generator);
+    }
+
+    return 0;
+  }
+
   std::vector<call_path_t *> call_paths;
+
+  if (InputCallPathFiles.size() == 0) {
+    assert(false &&
+           "Please provide either at least 1 call path file, or a bdd file");
+  }
 
   for (auto file : InputCallPathFiles) {
     std::cerr << "Loading: " << file << std::endl;
@@ -89,8 +104,7 @@ int main(int argc, char **argv) {
     call_paths.push_back(call_path);
   }
 
-  auto bdd =
-      InputBDDFile.size() ? BDD::BDD(InputBDDFile) : BDD::BDD(call_paths);
+  BDD::BDD bdd(call_paths);
 
 #ifndef NDEBUG
   std::cerr << "Asserting BDD...\n";
@@ -111,10 +125,6 @@ int main(int argc, char **argv) {
 
   if (OutputBDDFile.size()) {
     bdd.serialize(OutputBDDFile);
-  }
-
-  if (Show) {
-    BDD::GraphvizGenerator::visualize(bdd, true);
   }
 
   for (auto call_path : call_paths) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../../../symbex.h"
 #include "../../code_builder.h"
 #include "../constants.h"
 #include "domain/header.h"
@@ -40,7 +41,7 @@ public:
   variable_query_t get_field(klee::ref<klee::Expr> chunk) const {
     auto symbol = kutil::get_symbol(chunk);
 
-    if (!symbol.first || symbol.second != BDD::symbex::CHUNK) {
+    if (!symbol.first || symbol.second != symbex::CHUNK) {
       return variable_query_t();
     }
 

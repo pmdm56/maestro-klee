@@ -130,22 +130,21 @@ std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
     return const_result.second;
   }
 
-  auto simplified = kutil::simplify(expr);
-  auto variable_result = try_transpile_variable(simplified);
+  auto variable_result = try_transpile_variable(expr);
 
   if (variable_result.first) {
     return variable_result.second;
   }
 
   auto transpiler = InternalTranspiler(tg, *this);
-  transpiler.visit(simplified);
+  transpiler.visit(expr);
 
   auto code = transpiler.get();
 
   if (!code.size()) {
     Log::err() << "Unable to transpile expression: "
-               << kutil::expr_to_string(simplified, true) << "\n";
-    Log::err() << "Kind: " << simplified->getKind() << "\n";
+               << kutil::expr_to_string(expr, true) << "\n";
+    Log::err() << "Kind: " << expr->getKind() << "\n";
     exit(1);
   }
 

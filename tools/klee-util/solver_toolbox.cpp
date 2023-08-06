@@ -1,9 +1,8 @@
-#include <iostream>
-
-#include "printer.h"
-#include "replace_symbols.h"
-#include "retrieve_symbols.h"
 #include "solver_toolbox.h"
+#include "printer.h"
+#include "retrieve_symbols.h"
+
+#include <iostream>
 
 namespace kutil {
 
@@ -43,7 +42,18 @@ bool solver_toolbox_t::is_expr_always_true(klee::ref<klee::Expr> expr) const {
 
 bool solver_toolbox_t::is_expr_always_true(klee::ConstraintManager constraints,
                                            klee::ref<klee::Expr> expr) const {
-  klee::Query sat_query(constraints, expr);
+  RetrieveSymbols retriever;
+  retriever.visit(expr);
+  auto symbols = retriever.get_retrieved();
+
+  ReplaceSymbols replacer(symbols);
+
+  klee::ConstraintManager renamed_constraints;
+  for (auto c : constraints) {
+    renamed_constraints.addConstraint(replacer.visit(c));
+  }
+
+  klee::Query sat_query(renamed_constraints, expr);
 
   bool result;
   bool success = solver->mustBeTrue(sat_query, result);
@@ -52,24 +62,8 @@ bool solver_toolbox_t::is_expr_always_true(klee::ConstraintManager constraints,
   return result;
 }
 
-bool solver_toolbox_t::is_expr_always_true(klee::ConstraintManager constraints,
-                                           klee::ref<klee::Expr> expr,
-                                           bool force_symbol_merge) const {
-  if (!force_symbol_merge) {
-    return is_expr_always_true(constraints, expr);
-  }
-
-  auto new_constraints = merge_symbols(constraints, expr);
-  return is_expr_always_true(new_constraints, expr);
-}
-
-klee::ConstraintManager
-solver_toolbox_t::merge_symbols(const klee::ConstraintManager &constraints,
-                                klee::ref<klee::Expr> expr) const {
-  if (expr.isNull()) {
-    return constraints;
-  }
-
+bool solver_toolbox_t::is_expr_maybe_true(klee::ConstraintManager constraints,
+                                          klee::ref<klee::Expr> expr) const {
   RetrieveSymbols retriever;
   retriever.visit(expr);
   auto symbols = retriever.get_retrieved();
@@ -77,33 +71,11 @@ solver_toolbox_t::merge_symbols(const klee::ConstraintManager &constraints,
   ReplaceSymbols replacer(symbols);
 
   klee::ConstraintManager renamed_constraints;
-
   for (auto c : constraints) {
-    auto renamed_constraint = replacer.visit(c);
-    renamed_constraints.addConstraint(renamed_constraint);
+    renamed_constraints.addConstraint(replacer.visit(c));
   }
 
-  return renamed_constraints;
-}
-
-klee::ref<klee::Expr>
-solver_toolbox_t::merge_symbols(klee::ref<klee::Expr> expr1,
-                                klee::ref<klee::Expr> expr2) const {
-  if (expr2.isNull() || expr1.isNull()) {
-    return expr2;
-  }
-
-  RetrieveSymbols retriever;
-  retriever.visit(expr1);
-  auto updates = retriever.get_retrieved_roots_updates();
-
-  ReplaceSymbols replacer(updates);
-  return replacer.visit(expr2);
-}
-
-bool solver_toolbox_t::is_expr_maybe_true(klee::ConstraintManager constraints,
-                                          klee::ref<klee::Expr> expr) const {
-  klee::Query sat_query(constraints, expr);
+  klee::Query sat_query(renamed_constraints, expr);
 
   bool result;
   bool success = solver->mayBeTrue(sat_query, result);
@@ -114,7 +86,18 @@ bool solver_toolbox_t::is_expr_maybe_true(klee::ConstraintManager constraints,
 
 bool solver_toolbox_t::is_expr_maybe_false(klee::ConstraintManager constraints,
                                            klee::ref<klee::Expr> expr) const {
-  klee::Query sat_query(constraints, expr);
+  RetrieveSymbols retriever;
+  retriever.visit(expr);
+  auto symbols = retriever.get_retrieved();
+
+  ReplaceSymbols replacer(symbols);
+
+  klee::ConstraintManager renamed_constraints;
+  for (auto c : constraints) {
+    renamed_constraints.addConstraint(replacer.visit(c));
+  }
+
+  klee::Query sat_query(renamed_constraints, expr);
 
   bool result;
   bool success = solver->mayBeFalse(sat_query, result);
@@ -126,10 +109,23 @@ bool solver_toolbox_t::is_expr_maybe_false(klee::ConstraintManager constraints,
 bool solver_toolbox_t::are_exprs_always_equal(
     klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2,
     klee::ConstraintManager c1, klee::ConstraintManager c2) const {
-  auto eq_expr = exprBuilder->Eq(e1, e2);
+  RetrieveSymbols symbol_retriever1;
+  RetrieveSymbols symbol_retriever2;
 
-  auto eq_in_e1_ctx_sat_query = klee::Query(c1, eq_expr);
-  auto eq_in_e2_ctx_sat_query = klee::Query(c2, eq_expr);
+  symbol_retriever1.visit(e1);
+  symbol_retriever2.visit(e2);
+
+  auto symbols1 = symbol_retriever1.get_retrieved();
+  auto symbols2 = symbol_retriever2.get_retrieved();
+
+  ReplaceSymbols symbol_replacer1(symbols1);
+  ReplaceSymbols symbol_replacer2(symbols2);
+
+  auto eq_in_e1_ctx_expr = exprBuilder->Eq(e1, symbol_replacer1.visit(e2));
+  auto eq_in_e2_ctx_expr = exprBuilder->Eq(symbol_replacer2.visit(e1), e2);
+
+  auto eq_in_e1_ctx_sat_query = klee::Query(c1, eq_in_e1_ctx_expr);
+  auto eq_in_e2_ctx_sat_query = klee::Query(c2, eq_in_e2_ctx_expr);
 
   bool eq_in_e1_ctx;
   bool eq_in_e2_ctx;
@@ -148,10 +144,23 @@ bool solver_toolbox_t::are_exprs_always_equal(
 bool solver_toolbox_t::are_exprs_always_not_equal(
     klee::ref<klee::Expr> e1, klee::ref<klee::Expr> e2,
     klee::ConstraintManager c1, klee::ConstraintManager c2) const {
-  auto eq_expr = exprBuilder->Eq(e1, e2);
+  RetrieveSymbols symbol_retriever1;
+  RetrieveSymbols symbol_retriever2;
 
-  auto eq_in_e1_ctx_sat_query = klee::Query(c1, eq_expr);
-  auto eq_in_e2_ctx_sat_query = klee::Query(c2, eq_expr);
+  symbol_retriever1.visit(e1);
+  symbol_retriever2.visit(e2);
+
+  auto symbols1 = symbol_retriever1.get_retrieved();
+  auto symbols2 = symbol_retriever2.get_retrieved();
+
+  ReplaceSymbols symbol_replacer1(symbols1);
+  ReplaceSymbols symbol_replacer2(symbols2);
+
+  auto eq_in_e1_ctx_expr = exprBuilder->Eq(e1, symbol_replacer1.visit(e2));
+  auto eq_in_e2_ctx_expr = exprBuilder->Eq(symbol_replacer2.visit(e1), e2);
+
+  auto eq_in_e1_ctx_sat_query = klee::Query(c1, eq_in_e1_ctx_expr);
+  auto eq_in_e2_ctx_sat_query = klee::Query(c2, eq_in_e2_ctx_expr);
 
   bool not_eq_in_e1_ctx;
   bool not_eq_in_e2_ctx;
@@ -165,6 +174,18 @@ bool solver_toolbox_t::are_exprs_always_not_equal(
   assert(not_eq_in_e2_ctx_success);
 
   return not_eq_in_e1_ctx && not_eq_in_e2_ctx;
+}
+
+bool solver_toolbox_t::is_expr_always_true(
+    klee::ConstraintManager constraints, klee::ref<klee::Expr> expr,
+    ReplaceSymbols &symbol_replacer) const {
+  klee::ConstraintManager replaced_constraints;
+
+  for (auto constr : constraints) {
+    replaced_constraints.addConstraint(symbol_replacer.visit(constr));
+  }
+
+  return is_expr_always_true(replaced_constraints, expr);
 }
 
 bool solver_toolbox_t::is_expr_always_false(klee::ref<klee::Expr> expr) const {
@@ -183,15 +204,16 @@ bool solver_toolbox_t::is_expr_always_false(klee::ConstraintManager constraints,
   return result;
 }
 
-bool solver_toolbox_t::is_expr_always_false(klee::ConstraintManager constraints,
-                                            klee::ref<klee::Expr> expr,
-                                            bool force_symbol_merge) const {
-  if (!force_symbol_merge) {
-    return is_expr_always_false(constraints, expr);
+bool solver_toolbox_t::is_expr_always_false(
+    klee::ConstraintManager constraints, klee::ref<klee::Expr> expr,
+    ReplaceSymbols &symbol_replacer) const {
+  klee::ConstraintManager replaced_constraints;
+
+  for (auto constr : constraints) {
+    replaced_constraints.addConstraint(symbol_replacer.visit(constr));
   }
 
-  auto new_constraints = merge_symbols(constraints, expr);
-  return is_expr_always_false(new_constraints, expr);
+  return is_expr_always_false(replaced_constraints, expr);
 }
 
 bool solver_toolbox_t::are_exprs_always_equal(
@@ -208,19 +230,20 @@ bool solver_toolbox_t::are_exprs_always_equal(
     return false;
   }
 
-  auto eq = exprBuilder->Eq(expr1, expr2);
+  RetrieveSymbols symbol_retriever;
+  symbol_retriever.visit(expr1);
+
+  std::vector<klee::ref<klee::ReadExpr>> symbols =
+      symbol_retriever.get_retrieved();
+
+  ReplaceSymbols symbol_replacer(symbols);
+  klee::ref<klee::Expr> replaced = symbol_replacer.visit(expr2);
+
+  assert(exprBuilder);
+  assert(!replaced.isNull());
+
+  auto eq = exprBuilder->Eq(expr1, replaced);
   return is_expr_always_true(eq);
-}
-
-bool solver_toolbox_t::are_exprs_always_equal(klee::ref<klee::Expr> expr1,
-                                              klee::ref<klee::Expr> expr2,
-                                              bool force_symbol_merge) const {
-  if (!force_symbol_merge) {
-    return are_exprs_always_equal(expr1, expr2);
-  }
-
-  auto new_expr_2 = merge_symbols(expr1, expr2);
-  return are_exprs_always_equal(expr1, new_expr_2);
 }
 
 bool solver_toolbox_t::are_exprs_values_always_equal(
@@ -346,7 +369,6 @@ solver_toolbox_t::contains(klee::ref<klee::Expr> expr1,
        offset_bits += 8) {
     auto expr1_extracted = kutil::solver_toolbox.exprBuilder->Extract(
         expr1, offset_bits, expr2_size_bits);
-    assert(expr1_extracted->getWidth() == expr2->getWidth());
 
     if (are_exprs_always_equal(expr1_extracted, expr2)) {
       return contains_result_t(offset_bits, expr1_extracted);

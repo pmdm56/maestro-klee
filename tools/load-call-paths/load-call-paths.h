@@ -5,6 +5,7 @@
 
 typedef uint32_t bits_t;
 
+// At expression offset, t
 typedef struct {
   std::string symbol;
   bits_t offset;
@@ -24,6 +25,7 @@ typedef struct call {
   std::map<std::string, std::pair<klee::ref<klee::Expr>, klee::ref<klee::Expr>>>
       extra_vars;
   std::map<std::string, arg_t> args;
+
   klee::ref<klee::Expr> ret;
 } call_t;
 
@@ -51,8 +53,6 @@ struct call_paths_t {
     }
 
     assert(cp.size() == backup.size());
-
-    merge_symbols();
   }
 
   size_t size() const { return cp.size(); }
@@ -71,8 +71,6 @@ struct call_paths_t {
     cp.push_back(pair.first);
     backup.push_back(pair.second);
   }
-
-  void merge_symbols();
 
   static std::vector<std::string> skip_functions;
   static bool is_skip_function(const std::string &fname);

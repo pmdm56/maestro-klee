@@ -7,6 +7,7 @@
 #include "klee/Expr.h"
 #include "variable.h"
 
+#include "../../../../../../symbex.h"
 #include "../../../code_builder.h"
 #include "../../constants.h"
 
@@ -119,7 +120,7 @@ public:
   variable_query_t query_field(klee::ref<klee::Expr> expr) const {
     auto symbol = kutil::get_symbol(expr);
 
-    if (!symbol.first || symbol.second != BDD::symbex::CHUNK) {
+    if (!symbol.first || symbol.second != symbex::CHUNK) {
       return variable_query_t();
     }
 

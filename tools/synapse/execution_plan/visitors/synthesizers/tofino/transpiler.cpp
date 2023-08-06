@@ -6,8 +6,8 @@
 
 #include <assert.h>
 
-using BDD::symbex::CHUNK;
-using BDD::symbex::PACKET_LENGTH;
+using synapse::symbex::CHUNK;
+using synapse::symbex::PACKET_LENGTH;
 
 namespace synapse {
 namespace synthesizer {
@@ -226,8 +226,8 @@ bool detect_packet_length_conditions(klee::ref<klee::Expr> expr) {
   auto symbols = retriever.get_retrieved_strings();
 
   std::vector<std::string> allowed_symbols = {
-      BDD::symbex::PACKET_LENGTH,
-      BDD::symbex::CHUNK,
+      symbex::PACKET_LENGTH,
+      symbex::CHUNK,
   };
 
   // check if there are unexpected symbols
@@ -240,7 +240,7 @@ bool detect_packet_length_conditions(klee::ref<klee::Expr> expr) {
     }
   }
 
-  return symbols.find(BDD::symbex::PACKET_LENGTH) != symbols.end();
+  return symbols.find(symbex::PACKET_LENGTH) != symbols.end();
 }
 
 std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
@@ -250,15 +250,16 @@ std::string Transpiler::transpile(const klee::ref<klee::Expr> &expr) {
     return const_result.second;
   }
 
-  auto simplified = kutil::simplify(expr);
-  auto variable_result = try_transpile_variable(tg, simplified);
+  auto variable_result = try_transpile_variable(tg, expr);
 
   if (variable_result.first) {
     return variable_result.second;
   }
 
+  auto simplified_expr = kutil::simplify(expr);
+
   auto transpiler = InternalTranspiler(tg);
-  transpiler.visit(simplified);
+  transpiler.visit(simplified_expr);
 
   auto code = transpiler.get();
   return code;

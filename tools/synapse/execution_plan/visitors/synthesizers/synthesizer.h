@@ -60,9 +60,7 @@ public:
   void generate(ExecutionPlan &target_ep, const ExecutionPlan &_original_ep) {
     original_ep = &_original_ep;
 
-    const auto &target_meta = target_ep.get_meta();
-
-    if (target_meta.nodes == 0) {
+    if (target_ep.get_nodes() == 0) {
       if (!fpath.size()) {
         return;
       }

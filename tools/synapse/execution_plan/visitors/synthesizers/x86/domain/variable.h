@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "../../../../../symbex.h"
 #include "../../../../memory_bank.h"
 #include "../../code_builder.h"
 #include "../../util.h"
@@ -103,7 +104,6 @@ public:
     return type.str();
   }
 
-  void set_is_array() { is_array = true; }
   bool get_is_array() const { return is_array; }
 
   bool match(std::string s) const {

@@ -15,11 +15,12 @@ struct symbol_t {
 
   symbol_t() {}
 
-  symbol_t(label_t _label, label_t _label_base, klee::ref<klee::Expr> _expr)
+  symbol_t(label_t _label, label_t _label_base,
+           klee::ref<klee::Expr> _expr)
       : label(_label), label_base(_label_base), expr(_expr) {}
 
-  symbol_t(label_t _label, label_t _label_base, klee::ref<klee::Expr> _expr,
-           klee::ref<klee::Expr> _addr)
+  symbol_t(label_t _label, label_t _label_base,
+           klee::ref<klee::Expr> _expr, klee::ref<klee::Expr> _addr)
       : label(_label), label_base(_label_base), expr(_expr), addr(_addr) {}
 
   symbol_t(const symbol_t &symbol)

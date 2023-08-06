@@ -1,7 +1,5 @@
 #include "bdd-reorderer.h"
 
-#include <iomanip>
-
 namespace BDD {
 
 struct candidate_t {
@@ -48,10 +46,6 @@ struct candidate_t {
     } else {
       condition = rhs;
     }
-  }
-
-  bool has_sibling(node_id_t id) const {
-    return siblings.find(id) != siblings.end();
   }
 
   std::string dump() const {
@@ -679,6 +673,8 @@ get_candidates(const Node *root,
 }
 
 void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
+  node_id_t id = bdd.get_id();
+
   struct aux_t {
     Node_ptr node;
     bool branch_decision;
@@ -689,12 +685,10 @@ void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
         : node(_node), branch_decision(_direction), branch_decision_set(true) {}
   };
 
-  auto id = bdd.get_id();
   std::vector<aux_t> leaves;
   auto candidate_clone = candidate.node->clone();
 
   auto old_next = root->get_next();
-  assert(root->get_type() != Node::BRANCH);
   assert(old_next);
 
   if (!candidate.extra_condition.isNull()) {
@@ -702,13 +696,13 @@ void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
 
     auto old_next_cloned = old_next->clone(true);
 
-    old_next_cloned->recursive_update_ids(++id);
+    old_next_cloned->recursive_update_ids(id);
     bdd.set_id(id);
 
     auto branch =
         std::make_shared<Branch>(id, no_constraints, candidate.extra_condition);
 
-    bdd.set_id(++id);
+    bdd.set_id(id++);
 
     branch->replace_on_true(candidate_clone);
     branch->replace_on_false(old_next_cloned);
@@ -748,7 +742,7 @@ void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
   while (leaves.size()) {
     node = leaves[0].node;
 
-    if (!node || !node->get_next()) {
+    if (!node) {
       leaves.erase(leaves.begin());
       continue;
     }
@@ -759,10 +753,15 @@ void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
       auto on_true = branch->get_on_true();
       auto on_false = branch->get_on_false();
 
-      auto found_on_true = candidate.has_sibling(on_true->get_id());
-      auto found_on_false = candidate.has_sibling(on_false->get_id());
+      auto found_on_true_it =
+          std::find(candidate.siblings.begin(), candidate.siblings.end(),
+                    on_true->get_id());
 
-      if (found_on_true) {
+      auto found_on_false_it =
+          std::find(candidate.siblings.begin(), candidate.siblings.end(),
+                    on_false->get_id());
+
+      if (found_on_true_it != candidate.siblings.end()) {
         Node_ptr next;
 
         if (on_true->get_type() == Node::NodeType::BRANCH) {
@@ -778,7 +777,7 @@ void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
         next->replace_prev(node);
       }
 
-      if (found_on_false) {
+      if (found_on_false_it != candidate.siblings.end()) {
         Node_ptr next;
 
         if (on_false->get_type() == Node::NodeType::BRANCH) {
@@ -799,38 +798,44 @@ void reorder(BDD &bdd, Node_ptr root, candidate_t candidate) {
 
       leaves.emplace_back(branch->get_on_true(), branch_decision);
       leaves.emplace_back(branch->get_on_false(), branch_decision);
-    } else {
-      auto next = node->get_next();
-      auto found_sibling = candidate.has_sibling(next->get_id());
 
-      if (found_sibling) {
-        Node_ptr next_next;
-
-        if (next->get_type() == Node::NodeType::BRANCH) {
-          auto next_branch = static_cast<Branch *>(next.get());
-          assert(leaves[0].branch_decision_set);
-          next_next = leaves[0].branch_decision ? next_branch->get_on_true()
-                                                : next_branch->get_on_false();
-        } else {
-          next_next = next->get_next();
-        }
-
-        node->replace_next(next_next);
-        next_next->replace_prev(node);
-
-        next = next_next;
-      }
-
-      leaves[0].node = next;
+      continue;
     }
+
+    // Not a branch
+    auto next = node->get_next();
+
+    if (!next) {
+      leaves.erase(leaves.begin());
+      continue;
+    }
+
+    auto found_it = std::find(candidate.siblings.begin(),
+                              candidate.siblings.end(), next->get_id());
+
+    if (found_it != candidate.siblings.end()) {
+      Node_ptr next_next;
+
+      if (next->get_type() == Node::NodeType::BRANCH) {
+        auto next_branch = static_cast<Branch *>(next.get());
+        assert(leaves[0].branch_decision_set);
+        next_next = leaves[0].branch_decision ? next_branch->get_on_true()
+                                              : next_branch->get_on_false();
+      } else {
+        next_next = next->get_next();
+      }
+      node->replace_next(next_next);
+      next_next->replace_prev(node);
+
+      next = next_next;
+    }
+
+    leaves[0].node = next;
   }
 
   if (candidate_clone->get_type() == Node::NodeType::BRANCH) {
     auto branch = static_cast<Branch *>(candidate_clone.get());
-    auto on_false = branch->get_on_false();
-
-    auto id = bdd.get_id();
-    on_false->recursive_update_ids(++id);
+    branch->get_on_false()->recursive_update_ids(id);
     bdd.set_id(id);
   }
 }
@@ -895,23 +900,22 @@ reorder(const BDD &bdd, Node_ptr root,
   return reordered;
 }
 
-struct reordered_t {
+struct reordered {
   BDD bdd;
   std::vector<Node_ptr> next;
   int times;
 
-  reordered_t(const BDD &_bdd, Node_ptr _next)
+  reordered(const BDD &_bdd, Node_ptr _next)
       : bdd(_bdd), next(std::vector<Node_ptr>{_next}), times(0) {}
 
-  reordered_t(const BDD &_bdd, std::vector<Node_ptr> _next, int _times)
+  reordered(const BDD &_bdd, std::vector<Node_ptr> _next, int _times)
       : bdd(_bdd), next(_next), times(_times) {}
 
-  reordered_t(const BDD &_bdd, Node_ptr _on_true, Node_ptr _on_false,
-              int _times)
+  reordered(const BDD &_bdd, Node_ptr _on_true, Node_ptr _on_false, int _times)
       : bdd(_bdd), next(std::vector<Node_ptr>{_on_true, _on_false}),
         times(_times) {}
 
-  reordered_t(const reordered_t &other)
+  reordered(const reordered &other)
       : bdd(other.bdd), next(other.next), times(other.times) {}
 
   bool has_next() const { return next.size() > 0; }
@@ -944,7 +948,7 @@ struct reordered_t {
 std::vector<BDD> get_all_reordered_bdds(const BDD &original_bdd,
                                         int max_reordering) {
   auto process = original_bdd.get_process();
-  auto bdds = std::vector<reordered_t>{{original_bdd, process}};
+  auto bdds = std::vector<reordered>{reordered{original_bdd, process}};
   auto result = std::vector<BDD>();
 
   while (bdds.size()) {
@@ -973,7 +977,7 @@ std::vector<BDD> get_all_reordered_bdds(const BDD &original_bdd,
       }
 
       auto new_reordered =
-          reordered_t(reordered_bdd.bdd, new_nexts, bdd.times + 1);
+          reordered(reordered_bdd.bdd, new_nexts, bdd.times + 1);
       new_reordered.advance_next();
       bdds.push_back(new_reordered);
     }
@@ -983,61 +987,6 @@ std::vector<BDD> get_all_reordered_bdds(const BDD &original_bdd,
   }
 
   return result;
-}
-
-double approximate_number_of_reordered_bdds(const BDD &bdd, Node_ptr root) {
-  static std::unordered_map<std::string, double> cache;
-  double total = 0;
-  static double total_max = 0;
-
-  std::cerr << "Total ~ "
-            << std::setprecision(2)
-            << std::scientific << total_max << "\r";
-
-  if (!root) {
-    return 0;
-  }
-
-  auto hash = root->hash(true);
-
-  if (cache.find(hash) != cache.end()) {
-    return cache[hash];
-  }
-
-  auto type = root->get_type();
-
-  if (type == Node::NodeType::BRANCH) {
-    auto branch = cast_node<Branch>(root);
-
-    auto on_true = branch->get_on_true();
-    auto on_false = branch->get_on_false();
-
-    total += approximate_number_of_reordered_bdds(bdd, on_true);
-    total += approximate_number_of_reordered_bdds(bdd, on_false);
-  } else {
-    auto next = root->get_next();
-    total += approximate_number_of_reordered_bdds(bdd, next);
-  }
-
-  auto reordered_bdds = reorder(bdd, root);
-
-  for (auto reordered_bdd : reordered_bdds) {
-    total += approximate_number_of_reordered_bdds(reordered_bdd.bdd,
-                                                  reordered_bdd.candidate);
-    total++;
-  }
-
-  cache[hash] = total;
-  total_max = std::max(total_max, total);
-
-  return total;
-}
-
-float approximate_number_of_reordered_bdds(const BDD &bdd) {
-  auto process = bdd.get_process();
-  auto reordered = approximate_number_of_reordered_bdds(bdd, process);
-  auto total = reordered + 1;
-  return total;
 }
 
 } // namespace BDD
