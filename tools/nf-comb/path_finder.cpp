@@ -204,14 +204,14 @@ void bdd_path_t::build_constraint_layer(std::shared_ptr<bdd_path_t> p) {
     }
 }
 
-bool is_bit_byte_modified(packet_chunk_t &c, klee::Expr::Width bit,
+bool is_bit_byte_modified(packet_chunk_t &c, klee::Expr::Width byte,
                           klee::ConstraintManager constrs) {
-  auto in_bit =
-      kutil::solver_toolbox.exprBuilder->Extract(c.in, bit, klee::Expr::Bool);
-  auto out_bit =
-      kutil::solver_toolbox.exprBuilder->Extract(c.out, bit, klee::Expr::Bool);
-  auto eq_bit = kutil::solver_toolbox.exprBuilder->Eq(in_bit, out_bit);
-  auto always_eq = kutil::solver_toolbox.is_expr_always_true(constrs, eq_bit);
+  auto in_byte =
+      kutil::solver_toolbox.exprBuilder->Extract(c.in, byte*8, klee::Expr::Int8);
+  auto out_byte =
+      kutil::solver_toolbox.exprBuilder->Extract(c.out, byte*8, klee::Expr::Int8);
+  auto eq_byte = kutil::solver_toolbox.exprBuilder->Eq(in_byte, out_byte);
+  auto always_eq = kutil::solver_toolbox.is_expr_always_true(constrs, eq_byte);
 
   return !always_eq;
 }
@@ -221,35 +221,35 @@ klee::ref<klee::Expr> resolve_write_conflicts(packet_chunk_t &p1, packet_chunk_t
                              klee::ConstraintManager &constraints,
                              combination_config conf) {
 
-  auto witdh = p1.out.get()->getWidth(); // bits (TODO precision bits / bytes)
+  auto witdh = p1.out.get()->getWidth() / 8; // bits (TODO precision bits / bytes)
   klee::ref<klee::Expr> new_return_expr;
-  klee::ref<klee::Expr> choosen_bit;
+  klee::ref<klee::Expr> choosen_byte;
 
-  for (auto bit = 0u; bit < witdh; bit++) {
+  for (auto byte = 0u; byte < witdh; byte++) {
 
-    if (is_bit_byte_modified(p1, bit, constraints) &&
-        is_bit_byte_modified(p2, bit, constraints)) {
+    if (is_bit_byte_modified(p1, byte, constraints) &&
+        is_bit_byte_modified(p2, byte, constraints)) {
 
       if (!conf.available)
         ERROR_MSG("A conflict has been detected between chunks. Aborting...");
 
-      choosen_bit = conf.prior_changes
+      choosen_byte = conf.prior_changes
                         ? kutil::solver_toolbox.exprBuilder->Extract(
-                              p2.out, bit, klee::Expr::Bool)
+                              p2.out, byte*8, klee::Expr::Int8)
                         : kutil::solver_toolbox.exprBuilder->Extract(
-                              p1.out, bit, klee::Expr::Bool);
-    } else if (is_bit_byte_modified(p1, bit, constraints)) {
-      choosen_bit = kutil::solver_toolbox.exprBuilder->Extract(
-          p1.out, bit, klee::Expr::Bool);
+                              p1.out, byte*8, klee::Expr::Int8);
+    } else if (is_bit_byte_modified(p1, byte, constraints)) {
+      choosen_byte = kutil::solver_toolbox.exprBuilder->Extract(
+          p1.out, byte*8, klee::Expr::Int8);
     } else {
-      choosen_bit = kutil::solver_toolbox.exprBuilder->Extract(
-          p2.out, bit, klee::Expr::Bool);
+      choosen_byte = kutil::solver_toolbox.exprBuilder->Extract(
+          p2.out, byte*8, klee::Expr::Int8);
     }
 
     new_return_expr = new_return_expr.isNull()
-                          ? choosen_bit
+                          ? choosen_byte
                           : kutil::solver_toolbox.exprBuilder->Concat(
-                                new_return_expr, choosen_bit);
+                                choosen_byte, new_return_expr);
   }
 
   return new_return_expr;
@@ -483,8 +483,6 @@ void PathFinder::add_nodes_from_paths(bdd_path_ptr new_path, bdd_path_ptr p1,
         add_nodes_until_borrow(current_p2_node, new_path, p2_layer, layer);
       else
         add_nodes_until_borrow(current_p1_node, new_path, p1_layer, layer);
-
-  std::cerr << "--------------\n";
 
   for (current_p1_node; current_p1_node != p1->path.end(); current_p1_node++)
     if (isPacketBorrow(*current_p1_node))
